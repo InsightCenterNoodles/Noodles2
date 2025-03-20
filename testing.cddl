@@ -1,0 +1,33 @@
+[
+    MESSAGE_ID,
+    CONTENT,
+    ...
+]
+
+=
+MESSAGE_ENTITY
+ENTITY_ID
+
+If positive, create. If negative, delete entity
+
+=
+MESSAGE_ENTITY_ADD_COMPONENT
+ENTITY_ID <- must be positive, if missing, create entity first
+COMPONENT_MAP
+
+=
+MESSAGE_ENTITY_REMOVE_COMPONENT
+ENTITY_ID <- must be positive, and should have been created beforehand
+COMPONENT_ID_LIST
+
+===============
+
+COMPONENT_MAP = {
+    COMPONENT_ID: COMPONENT_CONTENT
+    ...
+}
+
+COMPONENT_ID_LIST = [
+    COMPONENT_ID,
+    ...
+]
