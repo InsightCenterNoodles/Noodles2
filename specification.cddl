@@ -1,0 +1,220 @@
+
+UUID = bytes
+
+
+; ==============================================================================
+; Introduction messages
+
+; Introduction sent on first connection
+MSG_INTRO = (
+    MESSAGE_INTRO_ID,
+    INTRO_CONTENT
+)
+
+INTRO_CONTENT = {
+    ; IDENTITY
+    0 : UUID, ; _must_ be UUID
+    ; NAME, a human friendly name
+    1 : text, 
+    ; AUTHORITY, ask to reverse the client-server order
+    ? 2 : bool,
+}
+
+; Intro reply sent on successful introduction
+MSG_INTRO_REPLY = (
+    MESSAGE_INTRO_REPLY_ID,
+    INTRO_REPLY_CONTENT
+)
+
+INTRO_REPLY_CONTENT = {
+    ; NAME, the human friendly name of the server/session
+    0 : text, 
+    ; ASSET STREAM, optional asset stream context 
+    ? 1 : LARGE_ASSET_STREAM_INFO 
+}
+
+LARGE_ASSET_STREAM_INFO = {
+    ; ASSET_PORT, the ports that you can connect to. 
+    ; The host is the same as the initial connection
+    0 : [+ uint], 
+    ; ASSET_PROTO, the protocol to use to obtain content
+    ; for now, MUST BE "ws" or "wss" for websocket
+    1: text, 
+}
+
+; Inquiry message to obtain server info. This message is intended to be used
+; in exclusion to all others. If sent, the server will send a query reply
+; and then MUST close the connection.
+MESSAGE_PROBE = (
+    MESSAGE_PROBE_ID,
+)
+
+MESSAGE_PROBE_REPLY = (
+    MESSAGE_PROBE_REPLY_ID,
+    ; NAME a human-friendly name for this server/session
+    0 : text, 
+    ; ICON a SMALL PNG or JPEG image, that describes the session
+    1 : bytes 
+)
+
+
+; ==============================================================================
+; Transaction message
+
+; Transactions have an identifier, to be used with replies. 
+
+MESSAGE_TRANSACTION = (
+    MESSAGE_TRANSACTION_ID,
+    TRANSACTION_IDENTIFIER,
+    ; An array of content messages
+    [ * CONTENT_MESSAGE ]
+)
+
+MESSAGE_TRANSACTION_REPLY = (
+    MESSAGE_TRANSACTION_REPLY_ID,
+    TRANSACTION_IDENTIFIER,
+    ; ?
+)
+
+TRANSACTION_IDENTIFIER = uint
+
+
+; ==============================================================================
+; RPC
+
+; Tells you that an RPC endpoint exists
+MESSAGE_RPC_INFORMATION = (
+    MESSAGE_RPC_ID,
+    RPC_CONTENT,
+)
+
+RPC_ENDPOINT_ID = uint
+
+RPC_CONTENT = {
+    *(RPC_ENDPOINT_ID => RPC_ENDPOINT)
+}
+
+RPC_ENDPOINT = {
+    ; NAME. Human friendly name/label. This may be any string, but should be a 
+    ; short active sentence that indicates what this call does.
+    ; A good example is "Create marker" or "Run simulation"
+    0 : text
+    ; ICON. This is a PNG of an icon image to use. The image _should_ be 
+    ; transparent, with content in black to indicate the function.
+    ; This is to support recoloring for client UIs
+    1 : bytes
+    ; Arguments. If exists, this is the list of expected arguments to this 
+    ; function
+    ? 2 : [ * VariableHint ]
+    ; Return value. If exists, this is the expected return value.
+    ? 3 : VariableHint
+}
+
+; TODO: entity IDs?
+TYPE = 
+    TYPE_BOOL /
+    TYPE_INT /
+    TYPE_REAL /
+    TYPE_STRING /
+    TYPE_LIST /
+    TYPE_MAP /
+    TYPE_VEC3 /
+    TYPE_VEC4 /
+    TYPE_QUAT
+
+Variable =
+    bool /
+    int /
+    float /
+    text /
+    [* Variable] /
+    { Variable => Variable }/
+    [float, float, float] /
+    [float, float, float, float]
+
+; Integers are any signed or unsigned integer CBOR type
+; Reals are any floating CBOR value
+; String is any UTF8 string
+; List is a CBOR array of Variable
+; Map is a CBOR dict of Variable => Variable
+; Vec3 is an array of 3 floats. 
+; Vec4 is an array of 4 floats. 
+; Quat is an array of 4 floats, order x, y, z, w. 
+
+VariableHint = {
+    ; Variable text, human friendly, should be short
+    0: text
+    ; The definition of the variable
+    1: VariableDef / [ + VariableDef]
+}
+
+VariableDef = {
+    ; The type of the variable
+    0: TYPE,
+    ; Bounds
+    ? 1 : RangeBound / DiscreteBound / StringBound
+
+}
+
+
+RangeBound = {
+  ? min: Variable,
+  ? max: Variable
+}
+
+DiscreteBound = {
+  values: [ +Variable ]
+}
+
+StringBound = {
+  ? minLength: uint,
+  ? maxLength: uint
+}
+
+
+MESSAGE_RPC_INVOKE = (
+    MESSAGE_RPC_INVOKE_ID,
+    INVOKE_ID: null / text / uint,
+    RPC_ID: RPC_ENDPOINT_ID, ; the RPC you are invoking
+    ARGUMENTS: [ * any ], ; the content of the event
+)
+
+MESSAGE_RPC_INVOKE_BATCH = (
+    MESSAGE_RPC_INVOKE_BATCH_ID,
+    [ 
+        *(
+            INVOKE_ID: null / text / uint,
+            RPC_ID: RPC_ENDPOINT_ID, ; the RPC you are invoking
+            ARGUMENTS: [ * any ], ; the content of the event 
+        )
+    ]
+)
+
+; A streaming RPC implies that you can receive more than one reply, at 
+; different times.
+MESSAGE_RPC_INVOKE_REPLY = (
+    MESSAGE_EVENT_INVOKE_REPLY_ID,
+    INVOKE_ID: null / text / uint,
+    ; the type of the response. 0 => Result. < 0 error, error code. > 0 streaming result
+    CONTENT_TYPE: int,
+    CONTENT: any / RPC_ERROR
+)
+
+MESSAGE_RPC_INVOKE_BATCH_REPLY = (
+    MESSAGE_RPC_INVOKE_BATCH_REPLY_ID,
+    [
+        *(
+            INVOKE_ID: null / text / uint,
+            CONTENT_TYPE: int,
+            CONTENT: any / RPC_ERROR
+        )
+    ]
+    
+)
+
+RPC_ERROR = {
+    ; Message
+    0 : text,
+    ; Data
+    ? 1 : any
+}

@@ -1,0 +1,16 @@
+LARGE_ASSET_ID = int
+
+LARGE_ASSET_REQUEST = {
+    0: LARGE_ASSET_ID
+}
+
+LARGE_ASSET_REPLY = {
+    0: LARGE_ASSET_META,
+    ? 1: bytes,
+    ? 2: LARGE_ASSET_ERROR,
+}
+
+LARGE_ASSET_ERROR = {
+    ; Error message
+    0: text
+}

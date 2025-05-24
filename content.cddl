@@ -1,0 +1,62 @@
+CONTENT_MESSAGE = 
+    MESSAGE_ENTITY 
+
+ENTITY_ID = int
+COMPONENT_ID = int
+RESOURCE_ID = int
+ASSET_ID = int
+ASSET_TYPE_ID = int
+
+MESSAGE_ENTITY_ID = 0
+MESSAGE_COMPONENT_ID = 1
+MESSAGE_RESOURCE_ID = 2
+MESSAGE_ASSET_ID = 3
+
+; ==============================================================================
+; Entity message
+; A demand to create an entity. 
+; If positive, create. If negative, delete entity
+MESSAGE_ENTITY = (
+    MESSAGE_ENTITY_ID,
+    ENTITY_ID
+)
+
+; ==============================================================================
+; Component modification
+; Adds a component to an entity, given by entity_id
+; If the entity id is missing, create entity first. Negative entity id makes no sense
+; If the component ID is negative, that means the component content should be
+; ignored and the component removed from the entity
+
+MESSAGE_COMPONENT = (
+    MESSAGE_COMPONENT_ID,
+    ENTITY_ID,
+    [ * COMPONENT_MOD ]
+)
+
+COMPONENT_MOD = (
+    COMPONENT_ID, ; if this is negative
+    ? any         ; this wont be here
+)
+
+; ==============================================================================
+; Resource modification
+MESSAGE_RESOUCE = (
+    MESSAGE_RESOURCE_ID,
+    [ * RESOURCE_MOD ]
+)
+
+RESOURCE_MOD = (
+    RESOURCE_ID, ; if this is negative
+    ? any         ; this wont be here
+)
+
+; ==============================================================================
+; Assets
+
+MESSAGE_ASSET = (
+    MESSAGE_ASSET_ID,
+    ASSET_TYPE_ID,
+    ASSET_ID,
+    any,
+)
