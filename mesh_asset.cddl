@@ -1,0 +1,25 @@
+; ==============================================================================
+; Mesh asset
+
+MESH_ASSET_ID = ASSET_ID
+
+MESH_ASSET = {
+    ; Optional name for asset
+    ? 0: text,
+
+    ; Content source
+    1: BUFFER_VIEW,
+
+    ; Uncompressed representation
+    2: UNCOMPRESSED_MESH,
+}
+
+UNCOMPRESSED_MESH = {
+    ; Vertex count
+    0: uint
+
+}
+
+UNCOMPRESSED_ATTRIB = {
+    
+}
