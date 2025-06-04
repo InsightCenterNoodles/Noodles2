@@ -1,7 +1,4 @@
 MESH_COMPONENT = {
-    ; Optional name for component
-    ? 0 : text,
-
     ; Mesh asset to render
-    1 : MESH_ASSET_ID,
+    0 : MESH_ASSET_ID,
 }
