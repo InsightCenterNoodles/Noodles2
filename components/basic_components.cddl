@@ -1,3 +1,4 @@
+; A 3D vector, with float precision
 VEC3 = [ float, float, float ]
 
 QUAT = [
@@ -27,7 +28,8 @@ TRANSFORM_COMPONENT = {
 	; Rotation. If missing, assume the identity rotation
 	? 1: QUAT 
 	; Scale. If missing, assume one
-	? 2: VEC3 
+	; A single float implies an isotropic scale
+	? 2: VEC3 / float
 
 	; Matrix Wise ===================
 	; This must be exactly 16 floats for full transform matrix
