@@ -7,24 +7,30 @@ RESOURCE_ID = int
 ASSET_ID = int
 ASSET_TYPE_ID = int
 
-MESSAGE_ENTITY_ID = 0
-MESSAGE_COMPONENT_ID = 1
-MESSAGE_RESOURCE_ID = 2
-MESSAGE_ASSET_ID = 3
+MESSAGE_CREATE_ENTITY_ID = 0
+MESSAGE_DELETE_ENTITY_ID = 1
+MESSAGE_COMPONENT_ID = 2
+MESSAGE_RESOURCE_ID = 3
+MESSAGE_ASSET_ID = 4
 
 ; ==============================================================================
 ; Entity message
-; A demand to create an entity. 
-; If positive, create. If negative, delete entity
-MESSAGE_ENTITY = (
-    MESSAGE_ENTITY_ID,
-    ENTITY_ID
+; A demand to create an entity or list of entities. 
+MESSAGE_CREATE_ENTITY = (
+    MESSAGE_CREATE_ENTITY_ID,
+    ENTITY_ID / [ENTITY_ID]
+)
+
+; A demand to delete an entity or list of entities.
+MESSAGE_DELATE_ENTITY = (
+    MESSAGE_DELETE_ENTITY_ID,
+    ENTITY_ID / [ENTITY_ID]
 )
 
 ; ==============================================================================
 ; Component modification
 ; Adds a component to an entity, given by entity_id
-; If the entity id is missing, create entity first. Negative entity id makes no sense
+; If the entity id is missing, create entity first.
 ; If the component ID is negative, that means the component content should be
 ; ignored and the component removed from the entity
 

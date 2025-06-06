@@ -1,16 +1,27 @@
+; An arbitrary identifier for a large asset
 LARGE_ASSET_ID = int
 
+; A request for a large asset.
 LARGE_ASSET_REQUEST = {
-    0: LARGE_ASSET_ID
+    ; Request identifier. This should be a unique identifier;
+    ; no two requests should have the same identifier at a time. After request and response, the identifier can be re-used.
+    0: int
+    ; The identifier of the asset to obtain
+    1: LARGE_ASSET_ID
 }
 
+; A request response. 
 LARGE_ASSET_REPLY = {
-    0: LARGE_ASSET_META,
-    ? 1: bytes,
-    ? 2: LARGE_ASSET_ERROR,
+    ; The request identifier
+    0: int
+    ; Metadata about the asset
+    1: LARGE_ASSET_META,
+
+    ; Either the content requested, or an error
+    2: bytes / LARGE_ASSET_ERROR,
 }
 
 LARGE_ASSET_ERROR = {
-    ; Error message
+    ; Short error message
     0: text
 }

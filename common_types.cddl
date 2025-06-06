@@ -1,0 +1,12 @@
+; A 3D vector
+VEC3 = [ float, float, float ]
+
+; A rotation quaternion. The basis coefficients are encoded in xyz, with the scalar in w
+QUAT = [
+	float,
+	float,
+	float,
+	float
+]
+
+UUID = bytes

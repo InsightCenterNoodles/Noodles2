@@ -1,3 +1,8 @@
+; Where do we obtain the bytes? 
+; If an integer, it is a large asset, and should be obtained through the large
+; asset system.
+; If text, this must be a URL to fetch content from
+; If bytes, the content is inline and immediate.
 BUFFER_SOURCE = LARGE_ASSET_ID / text / bytes
 
 ; ==============================================================================
@@ -10,12 +15,10 @@ BUFFER_ASSET = {
     ? 0: text,
 
     ; Content source
-    ; If text, this should be a URL
-    ; Could be inline bytes as well
     1: BUFFER_SOURCE
 
     ; Buffer size hint. This should be the size of the byte buffer, but
-    ; clients should not rely on this as truth.
+    ; clients should not rely on this as truth. Useful for pre-allocation
     2: uint
 }
 
