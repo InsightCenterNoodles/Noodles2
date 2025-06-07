@@ -1,10 +1,20 @@
 CONTENT_MESSAGE = 
-    MESSAGE_ENTITY 
+    MESSAGE_CREATE_ENTITY /
+    MESSAGE_DELETE_ENTITY /
+    MESSAGE_COMPONENT /
+    MESSAGE_RESOUCE /
+    MESSAGE_ASSET
 
-ENTITY_ID = int
+; An identifier for a component type
 COMPONENT_ID = int
+
+; An identifier for a resource type
 RESOURCE_ID = int
+
+; An identifier for a specific asset. Different asset types are considered different namespaces for these IDs
 ASSET_ID = int
+
+; A specific asset type
 ASSET_TYPE_ID = int
 
 MESSAGE_CREATE_ENTITY_ID = 0
@@ -22,7 +32,7 @@ MESSAGE_CREATE_ENTITY = (
 )
 
 ; A demand to delete an entity or list of entities.
-MESSAGE_DELATE_ENTITY = (
+MESSAGE_DELETE_ENTITY = (
     MESSAGE_DELETE_ENTITY_ID,
     ENTITY_ID / [ENTITY_ID]
 )
@@ -40,6 +50,9 @@ MESSAGE_COMPONENT = (
     [ * COMPONENT_MOD ]
 )
 
+; Component modification. A component type id, followed by the component 
+; content. If the ID is negative here, then the content does not exist, and 
+; the component should be deleted on the entity.
 COMPONENT_MOD = (
     COMPONENT_ID, ; if this is negative
     ? any         ; this wont be here

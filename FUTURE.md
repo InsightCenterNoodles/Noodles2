@@ -6,6 +6,10 @@ The design here is to have a component that describes a probe
 
 The server sees this component being added, generates probe content and then removes the component?
 
+## Systems
+
+Should be in WASM. What is the API?
+
 ## Design Notes
 
 ### Topology
@@ -34,3 +38,8 @@ Thus, we have a privledged node. In the absence of code distribution (and even w
 ; can relay
 
 ; Nodes may receive a 'probe' message. This message simply asks the node if it is active, and part of a session. If the node wishes, it may simply close the connection; this is a rejection of the request. Else, it should send a probe reply, with the name of the session, and an optional image that has the same semantics as the favicon for web. When the reply has been sent, the connection must be closed.
+
+
+# Notes
+- No delta. try to keep components small so we can avoid it
+- No versioning. components can be extended, but not otherwise modified.

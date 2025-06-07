@@ -1,8 +1,25 @@
+UNCLASSIFIED_MESSAGES = 
+    MESSAGE_INTRO /
+    MESSAGE_PROBE
+
+UPSTREAM_TO_DOWNSTREAM_MESSAGES =
+    MESSAGE_TRANSACTION /
+    MESSAGE_TRANSACTION_REPLY /
+    MESSAGE_RPC_INVOKE_REPLY /
+    MESSAGE_RPC_INVOKE_BATCH_REPLY /
+    MESSAGE_RPC_INFORMATION
+
+DOWNSTREAM_TO_UPSTREAM_MESSAGES = 
+    MESSAGE_TRANSACTION /
+    MESSAGE_RPC_INVOKE /
+    MESSAGE_RPC_INVOKE_BATCH
+
 ; ==============================================================================
 ; Introduction messages
 
+; NODE: Upstream or Downstream
 ; Introduction sent on first connection
-MSG_INTRO = (
+MESSAGE_INTRO = (
     MESSAGE_INTRO_ID,
     INTRO_CONTENT
 )
@@ -17,7 +34,7 @@ INTRO_CONTENT = {
 }
 
 ; Intro reply sent on successful introduction
-MSG_INTRO_REPLY = (
+MESSAGE_INTRO_REPLY = (
     MESSAGE_INTRO_REPLY_ID,
     INTRO_REPLY_CONTENT
 )
@@ -38,6 +55,7 @@ LARGE_ASSET_STREAM_INFO = {
     1: text, 
 }
 
+; NODE: Upstream or Downstream
 ; Inquiry message to obtain server info. This message is intended to be used
 ; in exclusion to all others. If sent, the server will send a query reply
 ; and then MUST close the connection.
@@ -57,8 +75,10 @@ MESSAGE_PROBE_REPLY = (
 ; ==============================================================================
 ; Transaction message
 
-; Transactions have an identifier, to be used with replies. 
-
+; NODE: Upstream or Downstream
+; Transactions have an identifier, to be used with replies.
+; If the message is Upstream to Downstream, no ID is required.
+; If the message is Downstream to Upstream, an ID is required.
 MESSAGE_TRANSACTION = (
     MESSAGE_TRANSACTION_ID,
     TRANSACTION_IDENTIFIER,
@@ -66,6 +86,8 @@ MESSAGE_TRANSACTION = (
     [ * CONTENT_MESSAGE ]
 )
 
+; NODE: U -> D
+; Indication if the transaction was accepted or rejected.
 MESSAGE_TRANSACTION_REPLY = (
     MESSAGE_TRANSACTION_REPLY_ID,
     TRANSACTION_IDENTIFIER,
@@ -74,10 +96,10 @@ MESSAGE_TRANSACTION_REPLY = (
 
 TRANSACTION_IDENTIFIER = uint
 
-
 ; ==============================================================================
 ; RPC
 
+; NODE: U -> D
 ; Tells you that an RPC endpoint exists
 MESSAGE_RPC_INFORMATION = (
     MESSAGE_RPC_ID,
@@ -167,7 +189,7 @@ StringBound = {
   ? maxLength: uint
 }
 
-
+; NODE: D -> U
 MESSAGE_RPC_INVOKE = (
     MESSAGE_RPC_INVOKE_ID,
     INVOKE_ID: null / text / uint,
@@ -175,6 +197,7 @@ MESSAGE_RPC_INVOKE = (
     ARGUMENTS: [ * any ], ; the content of the event
 )
 
+; NODE: D -> U
 MESSAGE_RPC_INVOKE_BATCH = (
     MESSAGE_RPC_INVOKE_BATCH_ID,
     [ 
@@ -186,6 +209,7 @@ MESSAGE_RPC_INVOKE_BATCH = (
     ]
 )
 
+; NODE: U -> D
 ; A streaming RPC implies that you can receive more than one reply, at 
 ; different times.
 MESSAGE_RPC_INVOKE_REPLY = (
@@ -196,6 +220,7 @@ MESSAGE_RPC_INVOKE_REPLY = (
     CONTENT: any / RPC_ERROR
 )
 
+; NODE: U -> D
 MESSAGE_RPC_INVOKE_BATCH_REPLY = (
     MESSAGE_RPC_INVOKE_BATCH_REPLY_ID,
     [
