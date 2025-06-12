@@ -1,3 +1,4 @@
+; All component type ids are u16
 
 NAME_COMPONENT_ID = 1
 

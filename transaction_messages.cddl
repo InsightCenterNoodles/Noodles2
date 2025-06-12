@@ -5,36 +5,52 @@ CONTENT_MESSAGE =
     MESSAGE_RESOUCE /
     MESSAGE_ASSET
 
+; TODO are the integer sizes here appropriate?
+
 ; An identifier for a component type
-COMPONENT_ID = int
+; Note: This is a signed integer! See below for rationale
+COMPONENT_ID = i16
 
 ; An identifier for a resource type
-RESOURCE_ID = int
+RESOURCE_ID = i16
 
 ; An identifier for a specific asset. Different asset types are considered different namespaces for these IDs
-ASSET_ID = int
+ASSET_ID = u32
 
 ; A specific asset type
-ASSET_TYPE_ID = int
+ASSET_TYPE_ID = u16
 
+; These are all u8!
 MESSAGE_CREATE_ENTITY_ID = 0
-MESSAGE_DELETE_ENTITY_ID = 1
-MESSAGE_COMPONENT_ID = 2
-MESSAGE_RESOURCE_ID = 3
-MESSAGE_ASSET_ID = 4
+MESSAGE_CREATE_ENTITY_BATCH_ID = 1
+MESSAGE_DELETE_ENTITY_ID = 2
+MESSAGE_DELETE_ENTITY_BATCH_ID = 3
+MESSAGE_COMPONENT_ID = 4
+MESSAGE_RESOURCE_ID = 5
+MESSAGE_ASSET_ID = 6
 
 ; ==============================================================================
 ; Entity message
 ; A demand to create an entity or list of entities. 
 MESSAGE_CREATE_ENTITY = (
     MESSAGE_CREATE_ENTITY_ID,
-    ENTITY_ID / [ENTITY_ID]
+    ENTITY_ID
+)
+
+MESSAGE_CREATE_ENTITY_BATCH = (
+    MESSAGE_CREATE_ENTITY_BATCH_ID,
+    ARRAY<u32, ENTITY_ID>
 )
 
 ; A demand to delete an entity or list of entities.
 MESSAGE_DELETE_ENTITY = (
     MESSAGE_DELETE_ENTITY_ID,
-    ENTITY_ID / [ENTITY_ID]
+    ENTITY_ID
+)
+
+MESSAGE_DELETE_ENTITY_BATCH = (
+    MESSAGE_DELETE_ENTITY_BATCH_ID,
+    ARRAY<u32, ENTITY_ID>
 )
 
 ; ==============================================================================
@@ -47,7 +63,7 @@ MESSAGE_DELETE_ENTITY = (
 MESSAGE_COMPONENT = (
     MESSAGE_COMPONENT_ID,
     ENTITY_ID,
-    [ * COMPONENT_MOD ]
+    ARRAY<u16, COMPONENT_MOD>
 )
 
 ; Component modification. A component type id, followed by the component 
@@ -55,14 +71,14 @@ MESSAGE_COMPONENT = (
 ; the component should be deleted on the entity.
 COMPONENT_MOD = (
     COMPONENT_ID, ; if this is negative
-    ? any         ; this wont be here
+    ? any ; this won't exist
 )
 
 ; ==============================================================================
 ; Resource modification
 MESSAGE_RESOUCE = (
     MESSAGE_RESOURCE_ID,
-    [ * RESOURCE_MOD ]
+    ARRAY<u16, RESOURCE_MOD>
 )
 
 RESOURCE_MOD = (

@@ -3,35 +3,39 @@
 ; asset system.
 ; If text, this must be a URL to fetch content from
 ; If bytes, the content is inline and immediate.
-BUFFER_SOURCE = LARGE_ASSET_ID / text / bytes
+BUFFER_SOURCE = (
+    (0, LARGE_ASSET_ID) / 
+    (1, STRING) / 
+    (2, BYTE_STRING)
+)
 
 ; ==============================================================================
 ; Buffer asset
 
 BUFFER_ASSET_ID = ASSET_ID
 
-BUFFER_ASSET = {
+BUFFER_ASSET = (
     ; Optional name for asset
-    ? 0: text,
-
-    ; Content source
-    1: BUFFER_SOURCE
+    OPTION<STRING>,
 
     ; Buffer size hint. This should be the size of the byte buffer, but
     ; clients should not rely on this as truth. Useful for pre-allocation
-    2: uint
-}
+    u64,
+
+    ; Content source
+    BUFFER_SOURCE
+)
 
 ; ==============================================================================
 ; Buffer view 
 
-BUFFER_VIEW = {
+BUFFER_VIEW = (
     ; Buffer to draw bytes from
-    0 : BUFFER_ASSET_ID,
+    BUFFER_ASSET_ID,
     
     ; offset into the asset
-    1 : uint
+    u64,
 
     ; length of the view
-    2 : uint
-}
+    u64
+)

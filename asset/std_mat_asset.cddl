@@ -5,19 +5,81 @@
 STD_MAT_ASSET_ID = ASSET_ID
 MATERIAL_ASSET_ID = STD_MAT_ASSET_ID
 
-STD_MAT_ASSET = {
+STD_MAT_ASSET = (
     ; Optional name for asset
-    ? 0: text,
+    OPTION<STRING>,
 
-    ; Base color (required). Default: [1.0, 1.0, 1.0, 1.0]
-    1: COLOR,
+    ; Base color
+    SRGBA_8,
 
-    ; Base color UV channel. Default: 0
-    ? 2: UV_CHANNEL,
+    ; Optional color texture
+    OPTION<TEXTURE_REFERENCE>,
 
-    ; Base color texture. Default: none
-    ? 3: IMAGE_ASSET_ID,
+    ; Optional emissive control
+    OPTION<EMISSION>,
 
+    ; Perceptual roughness. 
+    NORMALIZED_FLOAT,
+
+    ; Metallic.
+    NORMALIZED_FLOAT,
+
+    ; Optional ORM texture mapping
+    OPTION<ORM_MAP>,
+
+    OPTION<TRANSMISSION>,
+
+    OPTION<THICKNESS>,
+
+    ; Index of Refraction (IOR). Typical: [1.0, 2.5]
+    float,
+
+    ; Optional Normal mapping.
+    OPTIONAL<TEXTURE_REFERENCE>,
+
+    OPTION<CLEARCOAT>,
+
+    OPTION<ANISOTROPY>
+
+    ; Double-sided rendering. Default: false
+    ? 47: bool,
+
+    ; Cull mode. Default: 0 (Front)
+    ? 48: FACE,
+
+    ; Unlit material (disable lighting). Default: false
+    ? 49: bool,
+
+    ; Fog enabled. Default: true
+    ? 50: bool,
+
+    ; Alpha mode. Default: 0 (Opaque)
+    ? 51: ALPHA_MODE,
+
+    OPTION<PARALLAX>,
+
+    ; Lightmap exposure multiplier. Default: 1.0
+    ? 57: float,
+
+    ; UV1 transform matrix. Default: identity matrix
+    ? 60: AFFINE2
+
+    ; UV2 transform matrix. Default: identity matrix
+    ? 60: AFFINE2
+)
+
+TEXTURE_REFERENCE = (
+    UV_CHANNEL, 
+    IMAGE_ASSET_ID
+)
+
+; This is the common Occlusion, Roughness, Metallic map, stored as normalized RGB
+ORM_MAP = (
+    UV_CHANNEL, 
+    IMAGE_ASSET_ID
+)
+
+EMISSION = (
     ; Emissive color. Default: [0.0, 0.0, 0.0, 1.0]
     ? 4: LINEAR_RGBA,
 
@@ -29,25 +91,9 @@ STD_MAT_ASSET = {
 
     ; Emissive texture. Default: none
     ? 7: IMAGE_ASSET_ID,
+)
 
-    ; Perceptual roughness. Range: [0.0, 1.0], Default: 0.5
-    ? 8: float,
-
-    ; Metallic. Range: [0.0, 1.0], Default: 0.0
-    ? 9: float,
-
-    ; Metallic/roughness UV channel. Default: 0
-    ? 10: UV_CHANNEL,
-
-    ; Metallic/roughness texture. Default: none
-    ? 11: IMAGE_ASSET_ID,
-
-    ; Reflectance. Range: [0.0, 1.0], Default: 0.5
-    ? 12: float,
-
-    ; Specular tint. Default: [1.0, 1.0, 1.0, 1.0]
-    ? 13: COLOR,
-
+TRANSMISSION = (
     ; Diffuse transmission. Range: [0.0, 1.0], Default: 0.0
     ? 14: float,
 
@@ -65,7 +111,9 @@ STD_MAT_ASSET = {
 
     ; Specular transmission texture. Default: none
     ? 19: IMAGE_ASSET_ID,
+)
 
+THICKNESS = (
     ; Thickness. Range: [0.0, inf), Default: 1.0
     ? 20: float,
 
@@ -75,42 +123,14 @@ STD_MAT_ASSET = {
     ; Thickness texture. Default: none
     ? 22: IMAGE_ASSET_ID,
 
-    ; Index of Refraction (IOR). Typical: [1.0, 2.5], Default: 1.5
-    ? 23: float,
-
     ; Attenuation distance. Default: inf (no attenuation)
     ? 24: float,
 
     ; Attenuation color. Default: [1.0, 1.0, 1.0, 1.0]
-    ? 25: COLOR,
+    ? 25: SRGBA_8,
+)
 
-    ; Normal map UV channel. Default: 0
-    ? 26: UV_CHANNEL,
-
-    ; Normal map texture. Default: none
-    ? 27: IMAGE_ASSET_ID,
-
-    ; Flip normal map Y. Default: false
-    ? 28: bool,
-
-    ; Occlusion UV channel. Default: 0
-    ? 29: UV_CHANNEL,
-
-    ; Occlusion texture. Default: none
-    ? 30: IMAGE_ASSET_ID,
-
-    ; Specular UV channel. Default: 0
-    ? 31: UV_CHANNEL,
-
-    ; Specular texture. Default: none
-    ? 32: IMAGE_ASSET_ID,
-
-    ; Specular tint UV channel. Default: 0
-    ? 33: UV_CHANNEL,
-
-    ; Specular tint texture. Default: none
-    ? 34: IMAGE_ASSET_ID,
-
+CLEARCOAT = (
     ; Clearcoat. Range: [0.0, 1.0], Default: 0.0
     ? 35: float,
 
@@ -134,34 +154,9 @@ STD_MAT_ASSET = {
 
     ; Clearcoat normal texture. Default: none
     ? 42: IMAGE_ASSET_ID,
+)
 
-    ; Anisotropy strength. Range: [0.0, 1.0], Default: 0.0
-    ? 43: float,
-
-    ; Anisotropy rotation. Range: [0.0, 1.0], Default: 0.0
-    ? 44: float,
-
-    ; Anisotropy UV channel. Default: 0
-    ? 45: UV_CHANNEL,
-
-    ; Anisotropy texture. Default: none
-    ? 46: IMAGE_ASSET_ID,
-
-    ; Double-sided rendering. Default: false
-    ? 47: bool,
-
-    ; Cull mode. Default: 0 (Front)
-    ? 48: FACE,
-
-    ; Unlit material (disable lighting). Default: false
-    ? 49: bool,
-
-    ; Fog enabled. Default: true
-    ? 50: bool,
-
-    ; Alpha mode. Default: 0 (Opaque)
-    ? 51: ALPHA_MODE,
-
+PARALLAX = (
     ; Depth bias. Default: 0.0
     ? 52: float,
 
@@ -176,46 +171,47 @@ STD_MAT_ASSET = {
 
     ; Max parallax layer count. Default: 32.0
     ? 56: float,
+)
 
-    ; Lightmap exposure multiplier. Default: 1.0
-    ? 57: float,
+ANISOTROPY = (
+    ; Anisotropy strength. Range: [0.0, 1.0], Default: 0.0
+    ? 43: float,
 
-    ; Opaque renderer method. Default: 0 (Auto)
-    ? 58: OPAQUE_RENDERER_METHOD,
+    ; Anisotropy rotation. Range: [0.0, 1.0], Default: 0.0
+    ? 44: float,
 
-    ; Deferred lighting pass ID. Default: 0
-    ? 59: uint,
+    ; Anisotropy UV channel. Default: 0
+    ? 45: UV_CHANNEL,
 
-    ; UV transform matrix. Default: identity matrix
-    ? 60: AFFINE2
-
-}
+    ; Anisotropy texture. Default: none
+    ? 46: IMAGE_ASSET_ID,
+)
 
 ; ===== Sub-types =====
+SRGBA_8 = (u8, u8, u8, u8) ; RR GG BB AA
+LINEAR_RGBA = (float, float, float, float) ; linear RGBA, range [0.0, inf)
 
-COLOR32 = uint ; 0xRRGGBBAA
-COLOR_FLOAT = [r: float, g: float, b: float, a: float] ; RGBA, range [0.0, 1.0]
-COLOR = COLOR_FLOAT / COLOR32
-LINEAR_RGBA = [r: float, g: float, b: float, a: float] ; linear RGBA, range [0.0, inf)
+; This is a normalized integer format, using a divisor of 65535. This should provide similar if not more
+; precision than what would be obtained in a texture.
+NORMALIZED_FLOAT = u16 
 
+; this is a u8
 UV_CHANNEL = 0 / 1 ; default: 0
 
-FACE = uint ; 0 = Front, 1 = Back, 2 = None ; default: 0
+FACE = u8 ; 0 = Front, 1 = Back, 2 = None ; default: 0
 
-ALPHA_MODE = uint ; 0 = Opaque, 1 = Mask, 2 = Blend, 3 = Premultiplied ; default: 0
+ALPHA_MODE = u8 ; 0 = Opaque, 1 = Mask, 2 = Blend, 3 = Premultiplied ; default: 0
 
-PARALLAX_MAPPING_METHOD = uint ; 0 = Occlusion, 1 = Relief ; default: 0
-
-OPAQUE_RENDERER_METHOD = uint ; 0 = Auto, 1 = Forward, 2 = Deferred ; default: 0
+PARALLAX_MAPPING_METHOD = u8 ; 0 = Occlusion, 1 = Relief ; default: 0
 
 AFFINE2 = {
-    ; rotation, scaling
-    0: float ; 1
-    1: float ; 0
-    2: float ; 1
-    3: float ; 0
+    ; mat2x3, rotation, scaling
+    float ; default 1
+    float ; default 0
+    float ; default 1
+    float ; default 0
 
-    ; translation
-    4: float ; 0
-    5: float ; 0
+    ; translation, x, y
+    float ; default 0
+    float ; default 0
 }

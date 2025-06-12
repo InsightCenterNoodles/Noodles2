@@ -21,39 +21,33 @@ DOWNSTREAM_TO_UPSTREAM_MESSAGES =
 ; Introduction sent on first connection
 MESSAGE_INTRO = (
     MESSAGE_INTRO_ID,
-    INTRO_CONTENT
-)
-
-INTRO_CONTENT = {
     ; IDENTITY
-    0 : UUID, ; _must_ be UUID
+    UUID, ; _must_ be UUID
     ; NAME, a human friendly name
-    1 : text, 
+    SMALL_STRING, 
     ; AUTHORITY, ask to reverse the client-server order
-    ? 2 : bool,
-}
+    bool,
+)
 
 ; Intro reply sent on successful introduction
 MESSAGE_INTRO_REPLY = (
     MESSAGE_INTRO_REPLY_ID,
-    INTRO_REPLY_CONTENT
+
+    ; NAME, the human friendly name of the server/session
+    SMALL_STRING, 
+
+    ; ASSET STREAM, optional asset stream context 
+    OPTION< LARGE_ASSET_STREAM_INFO >
 )
 
-INTRO_REPLY_CONTENT = {
-    ; NAME, the human friendly name of the server/session
-    0 : text, 
-    ; ASSET STREAM, optional asset stream context 
-    ? 1 : LARGE_ASSET_STREAM_INFO 
-}
-
-LARGE_ASSET_STREAM_INFO = {
+LARGE_ASSET_STREAM_INFO = (
     ; ASSET_PORT, the ports that you can connect to. 
     ; The host is the same as the initial connection
-    0 : [+ uint], 
+    ARRAY<u16, u16>, 
     ; ASSET_PROTO, the protocol to use to obtain content
     ; for now, MUST BE "ws" or "wss" for websocket
-    1: text, 
-}
+    SMALL_STRING, 
+)
 
 ; NODE: Upstream or Downstream
 ; Inquiry message to obtain server info. This message is intended to be used
@@ -66,9 +60,9 @@ MESSAGE_PROBE = (
 MESSAGE_PROBE_REPLY = (
     MESSAGE_PROBE_REPLY_ID,
     ; NAME a human-friendly name for this server/session
-    0 : text, 
+    SMALL_STRING, 
     ; ICON a SMALL PNG or JPEG image, that describes the session
-    1 : bytes 
+    BYTE_STRING
 )
 
 
@@ -83,7 +77,7 @@ MESSAGE_TRANSACTION = (
     MESSAGE_TRANSACTION_ID,
     TRANSACTION_IDENTIFIER,
     ; An array of content messages
-    [ * CONTENT_MESSAGE ]
+    ARRAY<u32, CONTENT_MESSAGE>
 )
 
 ; NODE: U -> D
@@ -91,10 +85,10 @@ MESSAGE_TRANSACTION = (
 MESSAGE_TRANSACTION_REPLY = (
     MESSAGE_TRANSACTION_REPLY_ID,
     TRANSACTION_IDENTIFIER,
-    ; ?
+    bool,
 )
 
-TRANSACTION_IDENTIFIER = uint
+TRANSACTION_IDENTIFIER = u32
 
 ; ==============================================================================
 ; RPC
@@ -103,110 +97,88 @@ TRANSACTION_IDENTIFIER = uint
 ; Tells you that an RPC endpoint exists
 MESSAGE_RPC_INFORMATION = (
     MESSAGE_RPC_ID,
-    RPC_CONTENT,
+    
+    ARRAY<u32, RPC_ENDPOINT_MAPPING>
 )
 
 RPC_ENDPOINT_ID = uint
+RPC_ENDPOINT_MAPPING = (RPC_ENDPOINT_ID, RPC_ENDPOINT)
 
-RPC_CONTENT = {
-    *(RPC_ENDPOINT_ID => RPC_ENDPOINT)
-}
-
-RPC_ENDPOINT = {
+RPC_ENDPOINT = (
     ; NAME. Human friendly name/label. This may be any string, but should be a 
     ; short active sentence that indicates what this call does.
     ; A good example is "Create marker" or "Run simulation"
-    0 : text
+    SMALL_STRING,
+
     ; ICON. This is a PNG of an icon image to use. The image _should_ be 
     ; transparent, with content in black to indicate the function.
     ; This is to support recoloring for client UIs
-    1 : bytes
+    BYTE_STRING,
+
     ; Arguments. If exists, this is the list of expected arguments to this 
     ; function
-    ? 2 : [ * VariableHint ]
+    ARRAY<u8, VariableHint>,
+
     ; Return value. If exists, this is the expected return value.
-    ? 3 : VariableHint
-}
+    OPTION<VariableHint>
+)
 
-; TODO: entity IDs?
-TYPE = 
-    TYPE_BOOL /
-    TYPE_INT /
-    TYPE_REAL /
-    TYPE_STRING /
-    TYPE_LIST /
-    TYPE_MAP /
-    TYPE_VEC3 /
-    TYPE_VEC4 /
-    TYPE_QUAT
-
-Variable =
-    bool /
-    int /
-    float /
-    text /
-    [* Variable] /
-    { Variable => Variable }/
-    [float, float, float] /
-    [float, float, float, float]
-
-; Integers are any signed or unsigned integer CBOR type
-; Reals are any floating CBOR value
-; String is any UTF8 string
-; List is a CBOR array of Variable
-; Map is a CBOR dict of Variable => Variable
-; Vec3 is an array of 3 floats. 
-; Vec4 is an array of 4 floats. 
-; Quat is an array of 4 floats, order x, y, z, w. 
-
-VariableHint = {
+VariableHint = (
     ; Variable text, human friendly, should be short
-    0: text
+    SHORT_STRING,
+
     ; The definition of the variable
-    1: VariableDef / [ + VariableDef]
-}
+    ARRAY<u8, VariableDef>
+)
 
-VariableDef = {
+VariableDef = (
     ; The type of the variable
-    0: TYPE,
+    ANY_ID,
     ; Bounds
-    ? 1 : RangeBound / DiscreteBound / StringBound
+    BOUNDS
+)
 
-}
+BOUNDS = (
+    (0u8) /
+    (1u8, RangeBound) /
+    (2u8, DiscreteBound) /
+    (3u8, StringBound)
+)
 
+RangeBound = (
+    ANY,
+    ANY
+)
 
-RangeBound = {
-  ? min: Variable,
-  ? max: Variable
-}
+DiscreteBound = ARRAY<u32, ANY>
 
-DiscreteBound = {
-  values: [ +Variable ]
-}
+StringBound = (
+    ; minLength
+    u64,
+    ; maxLength
+    u64
+)
 
-StringBound = {
-  ? minLength: uint,
-  ? maxLength: uint
-}
+INVOKE_ID = u32
+
+INVOKE_INFO = (
+    INVOKE_ID,
+    RPC_ENDPOINT_ID, ; the RPC you are invoking
+    ARRAY<u8, ANY>,  ; the content of the event
+)
 
 ; NODE: D -> U
 MESSAGE_RPC_INVOKE = (
     MESSAGE_RPC_INVOKE_ID,
-    INVOKE_ID: null / text / uint,
-    RPC_ID: RPC_ENDPOINT_ID, ; the RPC you are invoking
-    ARGUMENTS: [ * any ], ; the content of the event
+    INVOKE_INFO
 )
+
+
 
 ; NODE: D -> U
 MESSAGE_RPC_INVOKE_BATCH = (
     MESSAGE_RPC_INVOKE_BATCH_ID,
-    [ 
-        *(
-            INVOKE_ID: null / text / uint,
-            RPC_ID: RPC_ENDPOINT_ID, ; the RPC you are invoking
-            ARGUMENTS: [ * any ], ; the content of the event 
-        )
-    ]
+    ARRAY<u16, INVOKE_INFO>
 )
 
 ; NODE: U -> D
@@ -214,28 +186,32 @@ MESSAGE_RPC_INVOKE_BATCH = (
 ; different times.
 MESSAGE_RPC_INVOKE_REPLY = (
     MESSAGE_EVENT_INVOKE_REPLY_ID,
-    INVOKE_ID: null / text / uint,
-    ; the type of the response. 0 => Result. < 0 error, error code. > 0 streaming result
-    CONTENT_TYPE: int,
-    CONTENT: any / RPC_ERROR
+    REPLY_PAIR
+)
+
+RPC_REPLY = (
+    (0, ANY) / ; single result, done
+    (1, RPC_ERROR) / ; result was error, done
+    (2, ANY) / ; streaming result, more results coming!
+)
+
+REPLY_PAIR = (
+    INVOKE_ID,
+    RPC_REPLY
 )
 
 ; NODE: U -> D
+; Batch replies and streaming? How does that work?
+; This is like the JSON RPC. The reply here might not contain all from the batch request. They can be in any order
+; Other replies might come in after.
 MESSAGE_RPC_INVOKE_BATCH_REPLY = (
     MESSAGE_RPC_INVOKE_BATCH_REPLY_ID,
-    [
-        *(
-            INVOKE_ID: null / text / uint,
-            CONTENT_TYPE: int,
-            CONTENT: any / RPC_ERROR
-        )
-    ]
-    
+    ARRAY<u16, REPLY_PAIR>
 )
 
-RPC_ERROR = {
+RPC_ERROR = (
     ; Message
-    0 : text,
+    LARGE_STRING,
     ; Data
-    ? 1 : any
-}
+    ANY
+)

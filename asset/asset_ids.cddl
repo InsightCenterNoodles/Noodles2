@@ -1,3 +1,5 @@
+; All asset types are u16
+
 BUFFER_ASSET_TYPE = 0
 
 MESH_ASSET_TYPE = 4

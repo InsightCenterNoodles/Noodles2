@@ -1,12 +1,60 @@
+; All types parsed as c-style, IEEE, little-endian
+
+ENTITY_ID = u32
+
 ; A 3D vector
-VEC3 = [ float, float, float ]
+VEC3 = ( float, float, float )
 
 ; A rotation quaternion. The basis coefficients are encoded in xyz, with the scalar in w
-QUAT = [
+QUAT = (
 	float,
 	float,
 	float,
 	float
-]
+)
 
-UUID = bytes
+UUID = i128
+
+; All strings are UTF8 encoded.
+SMALL_STRING = ( u8, [ * u8 ] )
+LARGE_STRING = ( u32, [ * u8 ] )
+STRING = LARGE_STRING
+
+; Arrays are preceeded by an integer count, followed by `count` number of those items
+ARRAY<I, T> = (I, [ * T ])
+
+; Map
+MAP<I, K, V> = (I, [ * (K , V) ] )
+
+BYTE_STRING = ARRAY<u64, u8>
+
+OPTION<T> = (
+    (false) /
+    (true, T)
+)
+
+; An optional where a negative value is a sentinel for None
+NON_NEGATIVE_OPTION<T> = (
+    (T(-1)) / ; false
+    (T) ; true
+)
+
+RESULT<U, V> = (
+    (true, U) /
+    (false, V)
+)
+
+ANY = (
+    (0) / ; undefined
+    (1, bool) /
+    (2, i64) /
+    (3, float64) /
+    (4, STRING) /
+    (5, ARRAY<u32, ANY>) /
+    (6, MAP<u32, ANY, ANY>) /
+    (7, BYTE_STRING) /
+    (8, VEC3) /
+    (9, QUAT) /
+)
+
+ANY_ID = () ;; Maps to the above ID

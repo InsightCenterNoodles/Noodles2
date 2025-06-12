@@ -1,58 +1,76 @@
 IMAGE_ASSET_ID = ASSET_ID
 
-IMAGE_ASSET = {
+IMAGE_ASSET = (
     ; Optional name for asset
-    ? 0: text,
-    ; Data
-    1: BUFFER_VIEW,
+    OPTION<STRING>,
+    ; Data. Images MUST be either a PNG, a JPG, or KTX2_basisU texture
+    BUFFER_VIEW,
     ; Sampler
-    ? 2 : SAMPLER_INFO,
+    OPTION<SAMPLER_INFO>,
     ; Semantic
-    ? 3 : IMAGE_SEMANTIC
-}
+    NON_NEGATIVE_OPTION<IMAGE_SEMANTIC>
+)
 
-SAMPLER_INFO = {
-    ; address_mode_u
-    ? 1: ImageAddressMode                
-    ; address_mode_v
-    ? 2: ImageAddressMode                
-    ; address_mode_w
-    ? 3: ImageAddressMode                
-    ; mag_filter
-    ? 4: ImageFilterMode                 
-    ; min_filter
-    ? 5: ImageFilterMode                 
-    ; mipmap_filter
-    ? 6: ImageFilterMode                 
-    ; lod_min_clamp
-    ? 7: float32                         
-    ; lod_max_clamp
-    ? 8: float32                         
+SAMPLER_INFO = (
+    ; If an address mode is missing, use Clamp to Edge
+    OPTION<SAMPLER_ADDRESS_MODES>,
+
+    ; Default filter modes are Linear!
+    OPTION<SAMPLER_FILTER_MODES>,
+    
+    ; lod_min_clamp, default = unspecifed
+    ; NON_NEGATIVE_OPTION<float32>,                         
+    ; lod_max_clamp, default = unspecified
+    ; NON_NEGATIVE_OPTION<float32>,                         
     ; compare (disabled for now)
     ; ? 9: ImageCompareFunction 
     ; anisotropy_clamp  
-    ? 10: uint                         
-    ; border_color (optional)
-    ? 11: ImageSamplerBorderColor        
-}
+    ; ? 10: uint                         
+    
+)
 
+SAMPLER_ADDRESS_MODES = (
+    ; address_mode_u, 
+    ImageAddressMode,
+    ; address_mode_v
+    ImageAddressMode,
+    ; address_mode_w
+    ImageAddressMode,
+    ; border_color, MUST be specified when any mode is Clamp To Border
+    NON_NEGATIVE_OPTION<ImageSamplerBorderColor>
+)
+
+SAMPLER_FILTER_MODES = (
+    ; mag_filter
+    ImageFilterMode,                
+    ; min_filter
+    ImageFilterMode,               
+    ; mipmap_filter
+    ImageFilterMode,   
+)
+
+; all are i8
 ImageAddressMode = 
     0 / ; Clamp to edge
     1 / ; Repeat
     2 / ; Mirrored repeat
     3   ; Clamp to border
 
+; all are i8
 ImageFilterMode = 
     0 / ; Nearest
     1   ; Linear
 
 ;ImageCompareFunction = uint  ; Enum: 0 = Never, 1 = Less, 2 = Equal, ?.
+
+; all are i8
 ImageSamplerBorderColor = 
     0 / ; TransparentBlack
     1 / ; OpaqueBlack
     2 / ; OpaqueWhite
     3   ; Zero
 
+; all are i8
 IMAGE_SEMANTIC = 
     0 / ; Color
     1   ; Data

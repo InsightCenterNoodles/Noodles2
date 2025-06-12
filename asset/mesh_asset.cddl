@@ -5,10 +5,10 @@ MESH_ASSET_ID = ASSET_ID
 
 MESH_ASSET = {
     ; Optional name for asset
-    ? 0: text,
+    OPTION<STRING>,
 
     ; Uncompressed representation
-    1: UNCOMPRESSED_MESH,
+    UNCOMPRESSED_MESH,
 }
 
 ; ==============================================================================
@@ -22,97 +22,97 @@ MESH_ASSET = {
 ; Since buffers can be fetched async, there was a lot of code needed to deal with
 ; Delayed loading for some platforms.
 ; If we need a split again, we can add another mesh type.
-UNCOMPRESSED_MESH = {
+UNCOMPRESSED_MESH = (
     ; Bytes to source mesh content
-    0: BUFFER_VIEW,
+    BUFFER_VIEW,
 
     ; 'Patch' or submesh that may use different materials...
-    1: [+ UNCOMPRESSED_PATCH]  
-}
+    ARRAY<u8, UNCOMPRESSED_PATCH>
+)
 
-UNCOMPRESSED_PATCH = {
+UNCOMPRESSED_PATCH = (
     ; Vertex count
-    1: uint
+    u32,
 
     ; Type
-    2: PRIMITIVE_TYPE
+    PRIMITIVE_TYPE,
 
     ; Optional index information
-    ? 3: UNCOMPRESSED_INDEX,
+    OPTION<UNCOMPRESSED_INDEX>,
 
-    5: POSITION_ATTRIB,
-    ? 6: NORMAL_ATTRIB,
-    ? 7: TANGENT_ATTRIB,
+    POSITION_ATTRIB,
+    OPTION< NORMAL_ATTRIB >,
+    OPTION< TANGENT_ATTRIB >,
     ; No color attribute at this time. Not a lot of support
     ; without custom shaders on a lot of platforms.
 
     ; UV_0 slot
-    ? 9: TEXTURE_ATTRIB,
+    OPTION< TEXTURE_ATTRIB >,
     ; UV_1 slot
-    ? 10: TEXTURE_ATTRIB, 
-}
+    OPTION< TEXTURE_ATTRIB >, 
+)
 
-PRIMITIVE_TYPE = 
+PRIMITIVE_TYPE = ; is a u8
     0 ; Triangle geometry
 
 UNCOMPRESSED_ATTRIB_COMMON = (
     ; Byte offset into the view that the attribute starts
-    ? 1: uint ; Default 0
+    u64,
 
     ; Byte offset between attribute instances
-    ? 2: uint ; Default 0
+    u16,
 
-    ; Per-channel minimum and maximum values of the attribute.
+    ; Per-channel minimum and then maximum values of the attribute, stored in a single array.
     ; Can be used for optimization, and, for position, culling.
-    ; Thus, strongly recommended for position semantics, but optional for others.
-    ? 3: minimum_value : [* float],
-    ? 4: maximum_value : [* float],
+    ; Thus, strongly recommended for position semantics, but optional (empty) for others.
+    ARRAY<u8, float>,
 )
 
-
+; These are all u8
 ATTR_VEC2 = 0 ; a pair of IEEE float32
 ATTR_U16VEC2_N = 1 ; a pair of two unsigned shorts, normalized interpretation
 ATTR_VEC3 = 2 ; a tuple of 3 IEEE float32
 ATTR_VEC4 = 3 ; a tuple of 4 IEEE float32.  W is handedness for tangents
 
 
-POSITION_ATTRIB = {
+POSITION_ATTRIB = (
     UNCOMPRESSED_ATTRIB_COMMON,
     ; Format
-    5: ATTR_VEC3 ; Must be this for now
-}
+    ATTR_VEC3 ; Must be this for now
+)
 
-NORMAL_ATTRIB = {
+NORMAL_ATTRIB = (
     UNCOMPRESSED_ATTRIB_COMMON,
     ; Format
-    5: ATTR_VEC3 ; Must be this for now
-}
+    ATTR_VEC3 ; Must be this for now
+)
 
-TANGENT_ATTRIB = {
+TANGENT_ATTRIB = (
     UNCOMPRESSED_ATTRIB_COMMON,
     ; Format
-    5: ATTR_VEC3 / ATTR_VEC4
-}
+    (ATTR_VEC3 / ATTR_VEC4)
+)
 
-TEXTURE_ATTRIB = {
+TEXTURE_ATTRIB = (
     UNCOMPRESSED_ATTRIB_COMMON,
     ; Format
-    5: ATTR_VEC2 / ATTR_U16VEC2_N
-}
+    (ATTR_VEC2 / ATTR_U16VEC2_N)
+)
 
+; must be a u8 integer
 INDEX_FORMAT = 
     0 / ; U8. This format may not be supported on all targets, and may require conversion
     1 / ; U16.
     2  ; U32. This format is the most compatible.
 
-UNCOMPRESSED_INDEX = {
+UNCOMPRESSED_INDEX = (
     ; Byte offset into the view of where to begin reading elements
-    0: uint,
+    u64,
 
     ; Count of index elements
-    1: uint,
+    u32,
 
     ; Format of index list.
     ; If missing, assume u32
-    ? 2: INDEX_FORMAT,
-}
+    INDEX_FORMAT,
+)
