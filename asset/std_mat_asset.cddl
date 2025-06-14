@@ -9,14 +9,14 @@ STD_MAT_ASSET = (
     ; Optional name for asset
     OPTION<STRING>,
 
+    ; Bit flags
+    FLAGS,
+
     ; Base color
     SRGBA_8,
 
     ; Optional color texture
     OPTION<TEXTURE_REFERENCE>,
-
-    ; Optional emissive control
-    OPTION<EMISSION>,
 
     ; Perceptual roughness. 
     NORMALIZED_FLOAT,
@@ -27,46 +27,45 @@ STD_MAT_ASSET = (
     ; Optional ORM texture mapping
     OPTION<ORM_MAP>,
 
-    OPTION<TRANSMISSION>,
-
-    OPTION<THICKNESS>,
+    ; Optional Normal mapping.
+    OPTIONAL<TEXTURE_REFERENCE>,
 
     ; Index of Refraction (IOR). Typical: [1.0, 2.5]
     float,
 
-    ; Optional Normal mapping.
-    OPTIONAL<TEXTURE_REFERENCE>,
+    OPTION<THICKNESS>,
+
+    OPTION<TRANSMISSION>,
 
     OPTION<CLEARCOAT>,
 
-    OPTION<ANISOTROPY>
-
-    ; Double-sided rendering. Default: false
-    ? 47: bool,
-
-    ; Cull mode. Default: 0 (Front)
-    ? 48: FACE,
-
-    ; Unlit material (disable lighting). Default: false
-    ? 49: bool,
-
-    ; Fog enabled. Default: true
-    ? 50: bool,
-
-    ; Alpha mode. Default: 0 (Opaque)
-    ? 51: ALPHA_MODE,
+    OPTION<ANISOTROPY>,
 
     OPTION<PARALLAX>,
 
+    ; Optional emissive control
+    OPTION<EMISSION>,    
+
     ; Lightmap exposure multiplier. Default: 1.0
-    ? 57: float,
+    float,
 
     ; UV1 transform matrix. Default: identity matrix
-    ? 60: AFFINE2
+    OPTION<AFFINE2>,
 
     ; UV2 transform matrix. Default: identity matrix
-    ? 60: AFFINE2
+    OPTION<AFFINE2>,
+
+    EXTENSION_POINT
 )
+
+; Option flags for this material
+; Bit 0: double_sided?
+; Bit 1: unlit?
+; Bit 2: fog DISabled?
+; Bit 3, 4 : u2 -> FACE
+; Bit 5, 6 : u2 -> ALPHA_MODE
+; 7 - 16 RESERVED
+FLAGS = u32
 
 TEXTURE_REFERENCE = (
     UV_CHANNEL, 
@@ -81,110 +80,86 @@ ORM_MAP = (
 
 EMISSION = (
     ; Emissive color. Default: [0.0, 0.0, 0.0, 1.0]
-    ? 4: LINEAR_RGBA,
+    LINEAR_RGBA,
 
     ; Emissive exposure weight. Range: [0.0, 1.0], Default: 1.0
-    ? 5: float,
+    NORMALIZED_FLOAT,
 
-    ; Emissive texture UV channel. Default: 0
-    ? 6: UV_CHANNEL,
-
-    ; Emissive texture. Default: none
-    ? 7: IMAGE_ASSET_ID,
+    OPTION<TEXTURE_REFERENCE>,
 )
 
 TRANSMISSION = (
     ; Diffuse transmission. Range: [0.0, 1.0], Default: 0.0
-    ? 14: float,
-
-    ; Diffuse transmission UV channel. Default: 0
-    ? 15: UV_CHANNEL,
+    NORMALIZED_FLOAT,
+    ; Specular transmission. Range: [0.0, 1.0], Default: 0.0
+    NORMALIZED_FLOAT,
 
     ; Diffuse transmission texture. Default: none
-    ? 16: IMAGE_ASSET_ID,
-
-    ; Specular transmission. Range: [0.0, 1.0], Default: 0.0
-    ? 17: float,
-
-    ; Specular transmission UV channel. Default: 0
-    ? 18: UV_CHANNEL,
-
+    OPTION<TEXTURE_REFERENCE>,
     ; Specular transmission texture. Default: none
-    ? 19: IMAGE_ASSET_ID,
+    OPTION<TEXTURE_REFERENCE>,
 )
 
 THICKNESS = (
     ; Thickness. Range: [0.0, inf), Default: 1.0
-    ? 20: float,
-
-    ; Thickness UV channel. Default: 0
-    ? 21: UV_CHANNEL,
+    float,
 
     ; Thickness texture. Default: none
-    ? 22: IMAGE_ASSET_ID,
+    OPTION<TEXTURE_REFERENCE>,
 
     ; Attenuation distance. Default: inf (no attenuation)
-    ? 24: float,
+    float,
 
     ; Attenuation color. Default: [1.0, 1.0, 1.0, 1.0]
-    ? 25: SRGBA_8,
+    SRGBA_8,
 )
 
 CLEARCOAT = (
     ; Clearcoat. Range: [0.0, 1.0], Default: 0.0
-    ? 35: float,
+    NORMALIZED_FLOAT,
+    ; Clearcoat roughness. Range: [0.0, 1.0], Default: 0.0
+    NORMALIZED_FLOAT,
 
     ; Clearcoat UV channel. Default: 0
-    ? 36: UV_CHANNEL,
+    OPTION<UV_CHANNEL>,
 
     ; Clearcoat texture. Default: none
-    ? 37: IMAGE_ASSET_ID,
-
-    ; Clearcoat roughness. Range: [0.0, 1.0], Default: 0.0
-    ? 38: float,
-
-    ; Clearcoat roughness UV channel. Default: 0
-    ? 39: UV_CHANNEL,
+    OPTION<IMAGE_ASSET_ID>,
 
     ; Clearcoat roughness texture. Default: none
-    ? 40: IMAGE_ASSET_ID,
-
-    ; Clearcoat normal UV channel. Default: 0
-    ? 41: UV_CHANNEL,
+    OPTION<IMAGE_ASSET_ID>,
 
     ; Clearcoat normal texture. Default: none
-    ? 42: IMAGE_ASSET_ID,
+    OPTION<IMAGE_ASSET_ID>,
 )
 
 PARALLAX = (
     ; Depth bias. Default: 0.0
-    ? 52: float,
+    float,
+    ; Parallax depth scale. Default: 0.05
+    float,
+    ; Max parallax layer count. Default: 32.0
+    float,
+
+    ; Parallax UV channel
+    UV_CHANNEL,
 
     ; Depth map. Default: none
-    ? 53: IMAGE_ASSET_ID,
-
-    ; Parallax depth scale. Default: 0.05
-    ? 54: float,
+    IMAGE_ASSET_ID,
 
     ; Parallax mapping method. Default: 0 (Occlusion)
-    ? 55: PARALLAX_MAPPING_METHOD,
-
-    ; Max parallax layer count. Default: 32.0
-    ? 56: float,
+    PARALLAX_MAPPING_METHOD,
 )
 
 ANISOTROPY = (
     ; Anisotropy strength. Range: [0.0, 1.0], Default: 0.0
-    ? 43: float,
+    NORMALIZED_FLOAT,
 
     ; Anisotropy rotation. Range: [0.0, 1.0], Default: 0.0
-    ? 44: float,
-
-    ; Anisotropy UV channel. Default: 0
-    ? 45: UV_CHANNEL,
+    NORMALIZED_FLOAT,
 
     ; Anisotropy texture. Default: none
-    ? 46: IMAGE_ASSET_ID,
+    TEXTURE_REFERENCE
 )
 
 ; ===== Sub-types =====
@@ -198,9 +173,9 @@ NORMALIZED_FLOAT = u16
 ; this is a u8
 UV_CHANNEL = 0 / 1 ; default: 0
 
-FACE = u8 ; 0 = Front, 1 = Back, 2 = None ; default: 0
+FACE = u2 ; 0 = Front, 1 = Back, 2 = None ; default: 0
 
-ALPHA_MODE = u8 ; 0 = Opaque, 1 = Mask, 2 = Blend, 3 = Premultiplied ; default: 0
+ALPHA_MODE = u2 ; 0 = Opaque, 1 = Mask, 2 = Blend, 3 = Premultiplied ; default: 0
 
 PARALLAX_MAPPING_METHOD = u8 ; 0 = Occlusion, 1 = Relief ; default: 0
 

@@ -1,2 +1,4 @@
 ; The parent of this entity
-CHILD_OF_COMPONENT = { 0: ENTITY_ID }
+CHILD_OF_COMPONENT = ( 
+    ENTITY_ID 
+)

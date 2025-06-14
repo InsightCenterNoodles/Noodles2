@@ -1,31 +1,38 @@
 ; Can this entity be interacted with?
 INTERACTIVE_COMPONENT = { }
 
-AXIS = true /
-	[float, float]
+AXIS = (
+	a : float, 
+    b : float
+)
 
 ALLOWED_AXIS = (
+    ; flags
+    ; bits 01, enable bounds for x
+    ; bits 23, enable bounds for y
+    ; bits 45, enable bounds for z
+    u8
 	; x, y, z
-	0 : AXIS,
-	1 : AXIS,
-	2 : AXIS
+	AXIS,
+	AXIS,
+	AXIS
 )
 
 ; Indicates that the entity can be translated. Gated behind INTERACTIVE_COMPONENT
-CAN_TRANSLATE_COMPONENT = {
+CAN_TRANSLATE_COMPONENT = (
 	ALLOWED_AXIS
-}
+    ; Snapping?
+)
 
 ; Indicates that the entity can be rotated. Gated behind INTERACTIVE_COMPONENT
-CAN_ROTATE_COMPONENT = {
+CAN_ROTATE_COMPONENT = (
 	ALLOWED_AXIS
-}
+)
 
 ; Indicates that the entity can be scaled. Gated behind INTERACTIVE_COMPONENT
-CAN_SCALE_COMPONENT = {
-	2: 0; Full scale on all axis
-       / 1 ; Uniform scale only
-}
+CAN_SCALE_COMPONENT = (
+	ALLOWED_AXIS
+)
 
 ACTIVATE_COMPONENT = { 
 ; If 'activated' (clicked on desktop, tapped on mobile), 
@@ -34,10 +41,10 @@ ACTIVATE_COMPONENT = {
 ; Other IDs are provided to allow some platforms to be able to activate it in multiple ways
 ; (For example, right clicking on desktop). Not all platforms should be expected
 ; to provide access to these other activation options
-	0: [ + RPC_ENDPOINT_ID ] 
+	ARRAY<u8, RPC_ENDPOINT_ID>
 }
 
-; This needs smithing.
+; This needs smithing. IGNORE FOR NOW
 ; The idea here is that some entities which represent something should
 ; have some configuration options
-OPTIONS_COMPONENT = { text => any }
+; OPTIONS_COMPONENT = { text => any }

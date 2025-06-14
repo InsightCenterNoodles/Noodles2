@@ -8,29 +8,33 @@
 ;
 ; The second is Matrix-wise. In this approach, a single field of a matrix is
 ; provided with a transformation matrix. For common cases, a standard affine
-; matrix can be used; a 4x3 matrix (col major). A full 4x4 can also be supplied
-; !However! Arbitrary transforms are not supported on all clients! Most clients
+; matrix can be used; a 4x3 matrix (col major). Most clients
 ; Will attempt to de-construct any matrix into an affine representation.
-TRANSFORM_COMPONENT = { 
-	; This can be specified in two ways,
-	; Affine-wise, or Matrix-wise
-	; It is an error to use both!
-	; If neither, it is assumed to be default affine
+;
+; It is an error to use both!
+;
+TRANSFORM_COMPONENT = (
+    ;Flags
+    u8, 
 
 	; Affine Wise ===================
 	; Position. If missing, assume zero
-	? 0: VEC3 
+	OPTION<VEC3>,
 	; Rotation. If missing, assume the identity rotation
-	? 1: QUAT 
+	OPTION<QUAT>,
 	; Scale. If missing, assume one
 	; A single float implies an isotropic scale
-	? 2: VEC3 / float
+	SCALE,
 
 	; Matrix Wise ===================
-	; This must be exactly 16 floats for full transform matrix
-	; Or a 3 row, 4 column matrix for a more compact matrix
-	? 4: [16* float] / [12* float]
-}
+	OPTION<[12* float]>
+)
+
+SCALE = (
+    (0) ; none
+    (1, float) ; isotropic
+    (2, VEC3) 
+)
 
 ; This component is an ephemeral advisory component
 ; This means that the component is sent from client to server, with the

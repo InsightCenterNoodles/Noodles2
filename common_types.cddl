@@ -58,3 +58,16 @@ ANY = (
 )
 
 ANY_ID = () ;; Maps to the above ID
+
+; Tags 0 - 0xfff are reserved
+
+EXTENSION_POINT = (
+    ARRAY<u8, EXTENSION>
+)
+
+EXTENSION = (
+    ; Tag, used to describe the structure
+    tag: u16,
+    ; Structure content, to be interpreted by the tag
+    payload: ARRAY<u16, u8>
+)

@@ -1,6 +1,6 @@
-MATERIAL_COMPONENT = {
+MATERIAL_COMPONENT = (
     ; Materials to use for rendering
     ; If more materials than mesh "patches" are specified, a prefix is made of this list.
     ; Materials can be of different types, if and when we support them
-    0 : [+ MATERIAL_ASSET_ID],
-}
+    ARRAY<u8, MATERIAL_ASSET_ID>,
+)

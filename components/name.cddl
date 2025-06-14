@@ -2,6 +2,6 @@
 ; This can be used for debugging, or for providing a human-friendly name to 
 ; an important entity. For this purpose, it is recommended that inspection or 
 ; other UI does not show un-named entities by default. 
-NAME_COMPONENT = {
-	0: text
-}
+NAME_COMPONENT = (
+	STRING
+)
