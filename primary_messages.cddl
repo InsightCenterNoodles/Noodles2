@@ -23,11 +23,21 @@ MESSAGE_INTRO = (
     MESSAGE_INTRO_ID,
     ; IDENTITY
     UUID, ; _must_ be UUID
+
+    ; The compatibility version of the protocol this node is operating with
+    ; Similar
+    PROTOCOL_VERSION,
+
     ; NAME, a human friendly name
     SMALL_STRING, 
-    ; AUTHORITY, ask to reverse the client-server order
+    ; Request Authority, ask to reverse the client-server order
     bool,
 )
+
+; All NODES with the same compat version are expected to be interoperable. 
+; Those with different versions may require compatability 'thunks' that allow them to speak
+; at the other's protocol level.
+PROTOCOL_VERSION = (u16)
 
 ; Intro reply sent on successful introduction
 MESSAGE_INTRO_REPLY = (
@@ -61,21 +71,28 @@ MESSAGE_PROBE_REPLY = (
     MESSAGE_PROBE_REPLY_ID,
     ; NAME a human-friendly name for this server/session
     SMALL_STRING, 
-    ; ICON a SMALL PNG or JPEG image, that describes the session
-    BYTE_STRING
+    ; ICON a SMALL PNG, JPEG or SVG, image, that describes the session
+    ; Note that while the technical limitation is large, it is an error to
+    ; send an icon larger than 1 MB. 
+    ICON_BYTE_STRING
 )
 
+ICON_BYTE_STRING = ARRAY<u32, u8>
 
 ; ==============================================================================
 ; Transaction message
 
 ; NODE: Upstream or Downstream
 ; Transactions have an identifier, to be used with replies.
-; If the message is Upstream to Downstream, no ID is required.
-; If the message is Downstream to Upstream, an ID is required.
+; If the message is Upstream to Downstream, no ID is required
+; - It is expected that the client will do as requested, and the server would not care if a transaction 
+;   was rejected.
+; If the message is Downstream to Upstream, an ID _should_ be provided
+; - The client will need an indication of a transaction accept or reject
+; - The client may elect to omit the ID and thus signal it is not interested in a response
 MESSAGE_TRANSACTION = (
     MESSAGE_TRANSACTION_ID,
-    TRANSACTION_IDENTIFIER,
+    NON_NEGATIVE_OPTION<TRANSACTION_IDENTIFIER>,
     ; An array of content messages
     ARRAY<u32, CONTENT_MESSAGE>
 )
@@ -88,7 +105,7 @@ MESSAGE_TRANSACTION_REPLY = (
     bool,
 )
 
-TRANSACTION_IDENTIFIER = u32
+TRANSACTION_IDENTIFIER = i32
 
 ; ==============================================================================
 ; RPC
@@ -101,7 +118,7 @@ MESSAGE_RPC_INFORMATION = (
     ARRAY<u32, RPC_ENDPOINT_MAPPING>
 )
 
-RPC_ENDPOINT_ID = uint
+RPC_ENDPOINT_ID = u32
 RPC_ENDPOINT_MAPPING = (RPC_ENDPOINT_ID, RPC_ENDPOINT)
 
 RPC_ENDPOINT = (
@@ -117,13 +134,13 @@ RPC_ENDPOINT = (
 
     ; Arguments. If exists, this is the list of expected arguments to this 
     ; function
-    ARRAY<u8, VariableHint>,
+    ARRAY<u8, ArgumentHint>,
 
     ; Return value. If exists, this is the expected return value.
-    OPTION<VariableHint>
+    OPTION<ArgumentHint>
 )
 
-VariableHint = (
+ArgumentHint = (
     ; Variable text, human friendly, should be short
     SHORT_STRING,
 
@@ -159,6 +176,7 @@ StringBound = (
     u64
 )
 
+; Invoke IDs are reusable; after being used in a request/reply pair, they may be used again
 INVOKE_ID = u32
 
 INVOKE_INFO = (
@@ -174,7 +192,9 @@ MESSAGE_RPC_INVOKE = (
 )
 
 
-
+; This is like the JSON RPC batch send. The server may process in serial or parallel and in any order. 
+; The batch reply MAY contain all responses; some may be omitted and sent individually.
+; Endpoints may be invoked multiple times in the same batch
 ; NODE: D -> U
 MESSAGE_RPC_INVOKE_BATCH = (
     MESSAGE_RPC_INVOKE_BATCH_ID,
@@ -190,9 +210,9 @@ MESSAGE_RPC_INVOKE_REPLY = (
 )
 
 RPC_REPLY = (
-    (0, ANY) / ; single result, done
-    (1, RPC_ERROR) / ; result was error, done
-    (2, ANY) / ; streaming result, more results coming!
+    (0u8, ANY) / ; single result, done, or streaming result done.
+    (1u8, RPC_ERROR) / ; result was error, done
+    (2u8, ANY) / ; streaming result, more results coming!
 )
 
 REPLY_PAIR = (
@@ -210,6 +230,7 @@ MESSAGE_RPC_INVOKE_BATCH_REPLY = (
 )
 
 RPC_ERROR = (
+    CODE: u16,
     ; Message
     LARGE_STRING,
     ; Data

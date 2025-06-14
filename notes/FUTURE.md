@@ -10,7 +10,11 @@ The server sees this component being added, generates probe content and then rem
 
 Should be in WASM. What is the API?
 
-## Design Notes
+## Interpolation
+
+Specify how entities should be moved from one transform to another
+
+# Design Notes
 
 ### Topology
 

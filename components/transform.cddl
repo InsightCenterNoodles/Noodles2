@@ -2,38 +2,31 @@
 ; (see CHILD_OF_COMPONENT). If there is no parent, then it is a world-relative
 ; transform.
 ;
-; Most transforms are composed of affine components. For compactness, the 
-; transform can be specified in multiple ways. The first is the Affine-wise 
-; approach. Here, position, rotation, and scaling can be specified individually.
-;
-; The second is Matrix-wise. In this approach, a single field of a matrix is
-; provided with a transformation matrix. For common cases, a standard affine
-; matrix can be used; a 4x3 matrix (col major). Most clients
-; Will attempt to de-construct any matrix into an affine representation.
-;
 ; It is an error to use both!
 ;
 TRANSFORM_COMPONENT = (
     ;Flags
-    u8, 
+    FLAGS, 
 
-	; Affine Wise ===================
-	; Position. If missing, assume zero
-	OPTION<VEC3>,
+	; Based on the flags
+	; Position. If missing, assume zero. compression is provisional at this time
+	? VEC3 / COMPRESSED_VEC3,
 	; Rotation. If missing, assume the identity rotation
-	OPTION<QUAT>,
+	? QUAT / COMPRESSED_QUAT,
 	; Scale. If missing, assume one
 	; A single float implies an isotropic scale
-	SCALE,
-
-	; Matrix Wise ===================
-	OPTION<[12* float]>
+	? float / VEC3,
 )
 
+; bit 0,1 = parse translation, position is compressed
+; bit 2,3 = parse rotation, rotation is compressed
+; bit 4,5 = SCALE discriminant
+FLAGS = u8;
+
 SCALE = (
-    (0) ; none
-    (1, float) ; isotropic
-    (2, VEC3) 
+    0 / ; none
+    1 / ; isotropic float scale
+    2 ; full vec3 scale
 )
 
 ; This component is an ephemeral advisory component
@@ -48,3 +41,5 @@ SCALE = (
 ; want to do something on every proposed motion, but delay sending back a position
 ; update until it is really ready.
 PROPOSED_TRANSFORM_COMPONENT = TRANSFORM_COMPONENT
+
+

@@ -5,21 +5,6 @@ CONTENT_MESSAGE =
     MESSAGE_RESOUCE /
     MESSAGE_ASSET
 
-; TODO are the integer sizes here appropriate?
-
-; An identifier for a component type
-; Note: This is a signed integer! See below for rationale
-COMPONENT_ID = i16
-
-; An identifier for a resource type
-RESOURCE_ID = i16
-
-; An identifier for a specific asset. Different asset types are considered different namespaces for these IDs
-ASSET_ID = u32
-
-; A specific asset type
-ASSET_TYPE_ID = u16
-
 ; These are all u8!
 MESSAGE_CREATE_ENTITY_ID = 0
 MESSAGE_CREATE_ENTITY_BATCH_ID = 1

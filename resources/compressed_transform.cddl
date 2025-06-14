@@ -1,0 +1,4 @@
+COMPRESSED_TRANSFORM = (
+    ; AABB quantized space?
+    ; multiple spaces?
+)
