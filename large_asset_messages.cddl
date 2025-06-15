@@ -1,6 +1,19 @@
 ; An arbitrary identifier for a large asset
 LARGE_ASSET_ID = i64
 
+; Sequence
+; Client connects, and makes N requests at arbitrary times.
+; Server, upon receiving a request, will send a reply
+; - if the request results in an error, only the LARGE_ASSET_REPLY will be returned.
+; - if the request is a success, the LARGE_ASSET_REPLY will be sent, followed by 1 or more separate byte messages that constitute chunks of the asset. Finally, a LARGE_ASSET_FINISHED is sent.
+;   - No other asset will be sent until all chunks are sent. No chunks from different assets will be interleaved. Clients may track how many bytes remain via the LARGE_ASSET_REPLY that is always sent first.
+;   - Clients can verify they are finished by checking if they receive the LARGE_ASSET_FINISHED message; that is, they should recv a message of 16 bytes, with the request UUID.
+; The server can store pending requests and fulfil them serially, one after another.
+; The intent here is minimize copy operations on both server and client side, given that 
+; - The message based approach of websockets APIs make it more difficult for streaming approaches
+; - These APIs desire a whole buffer to be sent, and as we need metadata, we separate the messages
+; - Framing does exist in WS, however, it would appear that support is limited, so we must move chunking into the application space
+
 ; A request for a large asset.
 LARGE_ASSET_REQUEST = (
     ; Request identifier. This should be a unique identifier;
@@ -20,7 +33,19 @@ LARGE_ASSET_REPLY = (
     LARGE_ASSET_META,
 
     ; Either the content requested, or an error
-    RESULT<BYTE_STRING, LARGE_ASSET_ERROR>
+    OPTION<LARGE_ASSET_ERROR>
+)
+
+LARGE_ASSET_FINISHED = (
+    ; The request identifier
+    UUID
+)
+
+LARGE_ASSET_META = (
+    ; human friendly name for the asset. Optional, and may be empty
+    STRING,
+    ; Asset size, in bytes
+    u64,
 )
 
 LARGE_ASSET_ERROR = (
