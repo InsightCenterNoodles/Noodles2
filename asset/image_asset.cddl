@@ -8,7 +8,7 @@ IMAGE_ASSET = (
     ; Sampler
     OPTION<SAMPLER_INFO>,
     ; Semantic
-    NON_NEGATIVE_OPTION<IMAGE_SEMANTIC>
+    IMAGE_SEMANTIC
 )
 
 SAMPLER_INFO = (

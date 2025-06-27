@@ -1,3 +1,5 @@
+; For websockets and other message-based transport, each message MUST be its own byte-message
+
 ; An arbitrary identifier for a large asset
 LARGE_ASSET_ID = i64
 
@@ -27,13 +29,12 @@ LARGE_ASSET_REQUEST = (
 ; A request response. 
 LARGE_ASSET_REPLY = (
     ; The request identifier
-    UUID
+    UUID,
 
-    ; Metadata about the asset
-    LARGE_ASSET_META,
+    ; Either the content metadata requested, or an error
+    RESULT<LARGE_ASSET_META, LARGE_ASSET_ERROR>
 
-    ; Either the content requested, or an error
-    OPTION<LARGE_ASSET_ERROR>
+    ; NOTE! if this is successful, there will be 1+ messages of bytes for this asset
 )
 
 LARGE_ASSET_FINISHED = (

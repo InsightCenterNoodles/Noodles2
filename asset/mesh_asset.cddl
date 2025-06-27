@@ -53,7 +53,7 @@ UNCOMPRESSED_PATCH = (
 )
 
 PRIMITIVE_TYPE = ; is a u8
-    0 ; Triangle geometry
+    0 ; Triangles geometry
 
 UNCOMPRESSED_ATTRIB_COMMON = (
     ; Byte offset into the view that the attribute starts
@@ -65,7 +65,7 @@ UNCOMPRESSED_ATTRIB_COMMON = (
     ; Per-channel minimum and then maximum values of the attribute, stored in a single array.
     ; Can be used for optimization, and, for position, culling.
     ; Thus, strongly recommended for position semantics, but optional (empty) for others.
-    ARRAY<u8, float>,
+    VEC3,
 )
 
 ; These are all u8
@@ -90,7 +90,7 @@ NORMAL_ATTRIB = (
 TANGENT_ATTRIB = (
     UNCOMPRESSED_ATTRIB_COMMON,
     ; Format
-    (ATTR_VEC3 / ATTR_VEC4)
+    ATTR_VEC4
 )
 
 TEXTURE_ATTRIB = (
@@ -101,9 +101,9 @@ TEXTURE_ATTRIB = (
 
 ; must be a u8 integer
 INDEX_FORMAT = 
-    0 / ; U8. This format may not be supported on all targets, and may require conversion
-    1 / ; U16.
-    2  ; U32. This format is the most compatible.
+    1 / ; U8. This format may not be supported on all targets, and may require conversion
+    2 / ; U16.
+    4  ; U32. This format is the most compatible.
 
 UNCOMPRESSED_INDEX = (
     ; Byte offset into the view of where to begin reading elements

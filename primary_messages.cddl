@@ -1,9 +1,12 @@
+; For websockets and other message-based transport, each message MUST be its own byte-message
+; For stream transports, no such restriction applies
+
 UNCLASSIFIED_MESSAGES = 
     MESSAGE_INTRO /
     MESSAGE_PROBE
 
 UPSTREAM_TO_DOWNSTREAM_MESSAGES =
-    MESSAGE_TRANSACTION /
+    MESSAGE_ANON_TRANSACTION /
     MESSAGE_TRANSACTION_REPLY /
     MESSAGE_RPC_INVOKE_REPLY /
     MESSAGE_RPC_INVOKE_BATCH_REPLY /
@@ -11,6 +14,7 @@ UPSTREAM_TO_DOWNSTREAM_MESSAGES =
 
 DOWNSTREAM_TO_UPSTREAM_MESSAGES = 
     MESSAGE_TRANSACTION /
+    MESSAGE_ANON_TRANSACTION /
     MESSAGE_RPC_INVOKE /
     MESSAGE_RPC_INVOKE_BATCH
 
@@ -42,6 +46,10 @@ PROTOCOL_VERSION = (u16)
 ; Intro reply sent on successful introduction
 MESSAGE_INTRO_REPLY = (
     MESSAGE_INTRO_REPLY_ID,
+
+    UUID, ; The remote UUID
+
+    PROTOCOL_VERSION, ; The remote version
 
     ; NAME, the human friendly name of the server/session
     SMALL_STRING, 
@@ -82,17 +90,23 @@ ICON_BYTE_STRING = ARRAY<u32, u8>
 ; ==============================================================================
 ; Transaction message
 
-; NODE: Upstream or Downstream
 ; Transactions have an identifier, to be used with replies.
-; If the message is Upstream to Downstream, no ID is required
+; If the message is Upstream to Downstream, no ID is used
 ; - It is expected that the client will do as requested, and the server would not care if a transaction 
 ;   was rejected.
 ; If the message is Downstream to Upstream, an ID _should_ be provided
+; - In this case, the Named version is used.
 ; - The client will need an indication of a transaction accept or reject
 ; - The client may elect to omit the ID and thus signal it is not interested in a response
 MESSAGE_TRANSACTION = (
     MESSAGE_TRANSACTION_ID,
-    NON_NEGATIVE_OPTION<TRANSACTION_IDENTIFIER>,
+    ; An array of content messages
+    ARRAY<u32, CONTENT_MESSAGE>
+)
+
+MESSAGE_NAMED_TRANSACTION = (
+    MESSAGE_NAMED_TRANSACTION_ID,
+    TRANSACTION_IDENTIFIER,
     ; An array of content messages
     ARRAY<u32, CONTENT_MESSAGE>
 )
@@ -105,7 +119,7 @@ MESSAGE_TRANSACTION_REPLY = (
     bool,
 )
 
-TRANSACTION_IDENTIFIER = i32
+TRANSACTION_IDENTIFIER = u32
 
 ; ==============================================================================
 ; RPC
