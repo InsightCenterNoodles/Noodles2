@@ -15,9 +15,6 @@ BUFFER_SOURCE = (
 BUFFER_ASSET_ID = ASSET_ID
 
 BUFFER_ASSET = (
-    ; Optional name for asset
-    OPTION<STRING>,
-
     ; Buffer size hint. This should be the size of the byte buffer, but
     ; clients should not rely on this as truth. Useful for pre-allocation
     u64,

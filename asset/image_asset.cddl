@@ -1,14 +1,13 @@
 IMAGE_ASSET_ID = ASSET_ID
 
 IMAGE_ASSET = (
-    ; Optional name for asset
-    OPTION<STRING>,
     ; Data. Images MUST be either a PNG, a JPG, or KTX2_basisU texture
     BUFFER_VIEW,
+    ; Semantic
+    IMAGE_SEMANTIC,
+
     ; Sampler
     OPTION<SAMPLER_INFO>,
-    ; Semantic
-    IMAGE_SEMANTIC
 )
 
 SAMPLER_INFO = (

@@ -77,6 +77,11 @@ OPTION<T> = (
     (1u8, T)
 )
 
+; This is an option which its presence is defined by some external flag or value. THIS DISCRIMINANT MUST BE DOCUMENTED.
+EXTERNAL_OPTION<T> = (
+    ? T
+)
+
 ; An optional where a negative value is a sentinel for None
 ; T _MUST_ be a signed integer or floating point
 NON_NEGATIVE_OPTION<T> = (

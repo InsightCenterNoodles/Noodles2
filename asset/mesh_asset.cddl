@@ -4,9 +4,6 @@
 MESH_ASSET_ID = ASSET_ID
 
 MESH_ASSET = {
-    ; Optional name for asset
-    OPTION<STRING>,
-
     ; Uncompressed representation
     UNCOMPRESSED_MESH,
 }
@@ -32,27 +29,35 @@ UNCOMPRESSED_MESH = (
 
 UNCOMPRESSED_PATCH = (
     ; Vertex count
-    u32,
-
-    ; Type
-    PRIMITIVE_TYPE,
-
-    ; Optional index information
-    OPTION<UNCOMPRESSED_INDEX>,
+    vertex_count: u32,
+    flags: UNCOMPRESSED_FLAGS,
 
     POSITION_ATTRIB,
-    OPTION< NORMAL_ATTRIB >,
-    OPTION< TANGENT_ATTRIB >,
+
+    ; Optional index information
+    EXTERNAL_OPTION< UNCOMPRESSED_INDEX >,
+    EXTERNAL_OPTION< NORMAL_ATTRIB >,
+    EXTERNAL_OPTION< TANGENT_ATTRIB >,
     ; No color attribute at this time. Not a lot of support
     ; without custom shaders on a lot of platforms.
 
     ; UV_0 slot
-    OPTION< TEXTURE_ATTRIB >,
+    EXTERNAL_OPTION< TEXTURE_ATTRIB >,
     ; UV_1 slot
-    OPTION< TEXTURE_ATTRIB >, 
+    EXTERNAL_OPTION< TEXTURE_ATTRIB >, 
+
+    EXTENSION_POINT,
 )
 
-PRIMITIVE_TYPE = ; is a u8
+;Bit 0: Index?
+;Bit 1: Normal?
+;Bit 2: Tangent?
+;Bit 3: Texture 0?
+;Bit 4: Texture 1?
+;Bit 5-7: PRIMITIVE_TYPE
+UNCOMPRESSED_FLAGS = u32
+
+PRIMITIVE_TYPE = 
     0 ; Triangles geometry
 
 UNCOMPRESSED_ATTRIB_COMMON = (

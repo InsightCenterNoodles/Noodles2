@@ -3,20 +3,13 @@
 ; Represents a classic Burley-type PBR shaders with common extensions
 
 STD_MAT_ASSET_ID = ASSET_ID
-MATERIAL_ASSET_ID = STD_MAT_ASSET_ID
 
 STD_MAT_ASSET = (
-    ; Optional name for asset
-    OPTION<STRING>,
-
     ; Bit flags
-    FLAGS,
+    MAT_FLAGS,
 
     ; Base color
     SRGBA_8,
-
-    ; Optional color texture
-    OPTION<TEXTURE_REFERENCE>,
 
     ; Perceptual roughness. 
     NORMALIZED_FLOAT,
@@ -24,36 +17,39 @@ STD_MAT_ASSET = (
     ; Metallic.
     NORMALIZED_FLOAT,
 
-    ; Optional ORM texture mapping
-    OPTION<ORM_MAP>,
-
-    ; Optional Normal mapping.
-    OPTIONAL<TEXTURE_REFERENCE>,
-
     ; Index of Refraction (IOR). Typical: [1.0, 2.5]
     float,
-
-    OPTION<THICKNESS>,
-
-    OPTION<TRANSMISSION>,
-
-    OPTION<CLEARCOAT>,
-
-    OPTION<ANISOTROPY>,
-
-    OPTION<PARALLAX>,
-
-    ; Optional emissive control
-    OPTION<EMISSION>,    
 
     ; Lightmap exposure multiplier. Default: 1.0
     float,
 
+    ; Optional color texture
+    color_map: EXTERNAL_OPTION<TEXTURE_REFERENCE>,
+
+    ; Optional ORM texture mapping
+    orm_map: EXTERNAL_OPTION<ORM_MAP>,
+
+    ; Optional Normal mapping.
+    normal_map: EXTERNAL_OPTION<TEXTURE_REFERENCE>,
+
+    EXTERNAL_OPTION<THICKNESS>,
+
+    EXTERNAL_OPTION<TRANSMISSION>,
+
+    EXTERNAL_OPTION<CLEARCOAT>,
+
+    EXTERNAL_OPTION<ANISOTROPY>,
+
+    EXTERNAL_OPTION<PARALLAX>,
+
+    ; Optional emissive control
+    EXTERNAL_OPTION<EMISSION>,    
+
     ; UV1 transform matrix. Default: identity matrix
-    OPTION<AFFINE2>,
+    EXTERNAL_OPTION<AFFINE2>,
 
     ; UV2 transform matrix. Default: identity matrix
-    OPTION<AFFINE2>,
+    EXTERNAL_OPTION<AFFINE2>,
 
     EXTENSION_POINT
 )
@@ -64,8 +60,19 @@ STD_MAT_ASSET = (
 ; Bit 2: fog DISabled?
 ; Bit 3, 4 : u2 -> FACE
 ; Bit 5, 6 : u2 -> ALPHA_MODE
-; 7 - 16 RESERVED
-FLAGS = u32
+; Bit 7: Color texture?
+; Bit 8: ORM texture?
+; Bit 9: Normal map?
+; Bit 10: Thickness?
+; Bit 11: Transmission?
+; Bit 12: Clearcoat?
+; Bit 13: Aniso?
+; Bit 14: Parallax?
+; Bit 15: Emission?
+; Bit 16: UV1?
+; Bit 17: UV2?
+; 18 - 32 RESERVED
+MAT_FLAGS = u32
 
 TEXTURE_REFERENCE = (
     UV_CHANNEL, 
@@ -104,14 +111,14 @@ THICKNESS = (
     ; Thickness. Range: [0.0, inf), Default: 1.0
     float,
 
-    ; Thickness texture. Default: none
-    OPTION<TEXTURE_REFERENCE>,
-
     ; Attenuation distance. Default: inf (no attenuation)
     float,
 
     ; Attenuation color. Default: [1.0, 1.0, 1.0, 1.0]
     SRGBA_8,
+
+    ; Thickness texture. Default: none
+    OPTION<TEXTURE_REFERENCE>,
 )
 
 CLEARCOAT = (

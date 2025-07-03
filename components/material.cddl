@@ -4,3 +4,7 @@ MATERIAL_COMPONENT = (
     ; Materials can be of different types, if and when we support them
     ARRAY<u8, MATERIAL_ASSET_ID>,
 )
+
+MATERIAL_ASSET_ID = (
+    (0u8, STD_MAT_ASSET_ID),
+)

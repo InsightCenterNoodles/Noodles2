@@ -1,0 +1,14 @@
+; All assets should have a static and dynamic section. The static section can be used to improve parsing 
+; performance by allowing the parser read the entire section. The dynamic section should be used for 
+; optional elements of the asset, or elements that have no fixed size.
+; A common idiom is to use the static section for a header, complete with a u32 for flags that might determine
+; how the dynamic section is parsed.
+
+
+; All asset types are u16
+
+BUFFER_ASSET_TYPE = 0
+
+MESH_ASSET_TYPE = 4
+STD_MATERIAL_ASSET_TYPE = 5
+IMAGE_ASSET_TYPE = 6
