@@ -1,10 +1,6 @@
 ; For websockets and other message-based transport, each message MUST be its own byte-message
 ; For stream transports, no such restriction applies
 
-UNCLASSIFIED_MESSAGES = 
-    MESSAGE_INTRO /
-    MESSAGE_PROBE
-
 UPSTREAM_TO_DOWNSTREAM_MESSAGES =
     MESSAGE_ANON_TRANSACTION /
     MESSAGE_TRANSACTION_REPLY /
@@ -19,14 +15,32 @@ DOWNSTREAM_TO_UPSTREAM_MESSAGES =
     MESSAGE_RPC_INVOKE_BATCH
 
 ; ==============================================================================
+; ALL IDS HERE ARE u8
+
+MESSAGE_TRANSACTION_ID = 1u8
+MESSAGE_NAMED_TRANSACTION_ID = 2u8
+MESSAGE_TRANSACTION_REPLY_ID = 3u8
+
+MESSAGE_PROBE_ID = 4u8
+MESSAGE_PROBE_REPLY_ID = 5u8
+
+MESSAGE_INTRO_ID = 6u8
+MESSAGE_INTRO_REPLY_ID = 7u8
+
+MESSAGE_RPC_ID = 8u8
+
+MESSAGE_RPC_INVOKE_ID = 9u8
+MESSAGE_RPC_INVOKE_REPLY_ID = 10u8
+
+MESSAGE_RPC_INVOKE_BATCH_ID = 11u8
+MESSAGE_RPC_INVOKE_BATCH_REPLY_ID = 12u8
+
+; ==============================================================================
 ; Introduction messages
 
-; NODE: Upstream or Downstream
 ; Introduction sent on first connection
 MESSAGE_INTRO = (
     MESSAGE_INTRO_ID,
-    ; IDENTITY
-    UUID, ; _must_ be UUID
 
     ; The compatibility version of the protocol this node is operating with
     ; Similar
@@ -46,8 +60,6 @@ PROTOCOL_VERSION = (u16)
 ; Intro reply sent on successful introduction
 MESSAGE_INTRO_REPLY = (
     MESSAGE_INTRO_REPLY_ID,
-
-    UUID, ; The remote UUID
 
     PROTOCOL_VERSION, ; The remote version
 
@@ -151,7 +163,7 @@ RPC_ENDPOINT = (
     ARRAY<u8, ArgumentHint>,
 
     ; Return value. If exists, this is the expected return value.
-    OPTION<ArgumentHint>
+    OPTION<VariableDef>
 )
 
 ArgumentHint = (
@@ -159,7 +171,7 @@ ArgumentHint = (
     SHORT_STRING,
 
     ; The definition of the variable
-    ARRAY<u8, VariableDef>
+    VariableDef
 )
 
 VariableDef = (
@@ -186,7 +198,7 @@ DiscreteBound = ARRAY<u32, ANY>
 StringBound = (
     ; minLength
     u64,
-    ; maxLength
+    ; length
     u64
 )
 

@@ -5,7 +5,7 @@
 ; how the dynamic section is parsed.
 
 
-; All asset types are u16
+; All asset types are i16
 
 BUFFER_ASSET_TYPE = 0
 

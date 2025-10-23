@@ -15,6 +15,9 @@ ASSET_ID = u32
 ; A specific asset type
 ASSET_TYPE_ID = u16
 
+; Content byte size
+CONTENT_SIZE = u16
+
 ; A 3D vector
 VEC3 = ( float, float, float )
 
@@ -27,34 +30,6 @@ QUAT = (
 	float
 )
 
-; A compressed unit quaternion using the "smallest three" method.
-;
-; This format stores 3 components of a unit quaternion, using 9 bits each,
-; and drops the component with the largest absolute value. That missing component
-; is reconstructed during decoding using the identity x² + y² + z² + w² = 1.
-;
-; The quaternion is canonicalized such that the largest component is always positive.
-; This ensures the reconstructed component is unambiguous.
-;
-; Bits are packed as follows (from MSB to LSB):
-;
-; [31..30] = INDEX (2 bits)
-;     Index of the largest component (0 = x, 1 = y, 2 = z, 3 = w)
-;
-; [29..21] = COMPONENT_0 (9 bits)
-; [20..12] = COMPONENT_1 (9 bits)
-; [11..03] = COMPONENT_2 (9 bits)
-;
-; The remaining bit (bit 0) is unused and should be zero.
-;
-; Each component is quantized from the range [-1/√2, +1/√2] (~[-0.7071, +0.7071])
-; into 9 bits (512 levels). Dequantization restores the component values,
-; and the missing component is reconstructed with:
-;
-;     missing = sqrt(1.0 - (c0² + c1² + c2²))
-;
-; This achieves ~29-bit storage per quaternion, down from 128 bits.
-COMPRESSED_QUAT = u32
 
 
 UUID = u128

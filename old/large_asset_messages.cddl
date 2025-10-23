@@ -1,4 +1,4 @@
-; For websockets and other message-based transport, each message MUST be its own byte-message
+; For websockets and other message-based transport, content must not be spkit across datagrams
 
 ; An arbitrary identifier for a large asset
 LARGE_ASSET_ID = i64

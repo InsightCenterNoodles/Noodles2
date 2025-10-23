@@ -23,7 +23,7 @@ UNCOMPRESSED_MESH = (
     ; Bytes to source mesh content
     BUFFER_VIEW,
 
-    ; 'Patch' or submesh that may use different materials...
+    ; 'Patch' or submesh that may use different materials. A mesh with no patches is an error.
     ARRAY<u8, UNCOMPRESSED_PATCH>
 )
 
@@ -35,16 +35,16 @@ UNCOMPRESSED_PATCH = (
     POSITION_ATTRIB,
 
     ; Optional index information
-    EXTERNAL_OPTION< UNCOMPRESSED_INDEX >,
-    EXTERNAL_OPTION< NORMAL_ATTRIB >,
-    EXTERNAL_OPTION< TANGENT_ATTRIB >,
+    index: EXTERNAL_OPTION< UNCOMPRESSED_INDEX >,
+    normal: EXTERNAL_OPTION< NORMAL_ATTRIB >,
+    tangent: EXTERNAL_OPTION< TANGENT_ATTRIB >,
     ; No color attribute at this time. Not a lot of support
     ; without custom shaders on a lot of platforms.
 
     ; UV_0 slot
-    EXTERNAL_OPTION< TEXTURE_ATTRIB >,
+    texture_0: EXTERNAL_OPTION< TEXTURE_ATTRIB >,
     ; UV_1 slot
-    EXTERNAL_OPTION< TEXTURE_ATTRIB >, 
+    texture_1: EXTERNAL_OPTION< TEXTURE_ATTRIB >, 
 
     EXTENSION_POINT,
 )

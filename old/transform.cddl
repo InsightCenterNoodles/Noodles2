@@ -1,0 +1,74 @@
+; The position of this entity, relative to it's parent, if one exists 
+; (see CHILD_OF_COMPONENT). If there is no parent, then it is a world-relative
+; transform.
+;
+; There are two kinds of transforms, compressed and non compressed. While valid to have both on an entity, 
+; it is considered bad form, and only the last of the two kinds of transform applied is valid. 
+
+TRANSFORM_COMPONENT = (
+	; Position.
+	VEC3,
+	; Rotation. 
+	QUAT,
+	; Scale.
+	VEC3,
+)
+
+COMPRESSED_TRANSFORM_COMPONENT = (
+	; Position.
+	COMPRESSED_VEC3,
+	; Rotation. 
+	COMPRESSED_QUAT,
+	; Scale.
+	float,
+)
+
+COMPRESSED_TRANSFORM_SPACE_COMPONENT = (
+	zone: u32
+)
+
+; This component is an ephemeral advisory component
+; This means that the component is sent from client to server, with the
+; server using it to consider updates to the system. The server does NOT send 
+; this component back.
+; In this case,
+; The server is being informed that a client would like to move an entity.
+; This is tied in with the interactivity components; clients should send this
+; instead of an update to a transform component when human interaction is happening.
+; an example is dragging a probe item.  In some cases, the server may
+; want to do something on every proposed motion, but delay sending back a position
+; update until it is really ready.
+PROPOSED_TRANSFORM_COMPONENT = TRANSFORM_COMPONENT
+
+
+
+; A compressed unit quaternion using the "smallest three" method.
+;
+; This format stores 3 components of a unit quaternion, using 9 bits each,
+; and drops the component with the largest absolute value. That missing component
+; is reconstructed during decoding using the identity x² + y² + z² + w² = 1.
+;
+; The quaternion is canonicalized such that the largest component is always positive.
+; This ensures the reconstructed component is unambiguous.
+;
+; Bits are packed as follows (from MSB to LSB):
+;
+; [31..30] = INDEX (2 bits)
+;     Index of the largest component (0 = x, 1 = y, 2 = z, 3 = w)
+;
+; [29..21] = COMPONENT_0 (9 bits)
+; [20..12] = COMPONENT_1 (9 bits)
+; [11..03] = COMPONENT_2 (9 bits)
+;
+; The remaining bit (bit 0) is unused and should be zero.
+;
+; Each component is quantized from the range [-1/√2, +1/√2] (~[-0.7071, +0.7071])
+; into 9 bits (512 levels). Dequantization restores the component values,
+; and the missing component is reconstructed with:
+;
+;     missing = sqrt(1.0 - (c0² + c1² + c2²))
+;
+; This achieves ~29-bit storage per quaternion, down from 128 bits.
+COMPRESSED_QUAT = u32
+
+COMPRESSED_VEC3 = (u16, u16, u16)

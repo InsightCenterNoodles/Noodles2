@@ -1,0 +1,62 @@
+IMAGE_ASSET_ID = ASSET_ID
+
+IMAGE_ASSET = (
+    ; Data. Images MUST be either a PNG, a JPG, or KTX2_basisU texture
+    BUFFER_VIEW,
+    ; Semantic
+    IMAGE_SEMANTIC,
+
+    ; If no sampler customization, we are using default linear filtering for mag, min, and mipmap.
+    ; address modes are clamp_to_edge.
+
+    ; Sampler
+    SAMPLER_FLAGS,
+)
+
+;; Other features?
+; lod_min_clamp, default = unspecifed
+; NON_NEGATIVE_OPTION<float32>,                         
+; lod_max_clamp, default = unspecified
+; NON_NEGATIVE_OPTION<float32>,                         
+; compare (disabled for now)
+; ? 9: ImageCompareFunction 
+; anisotropy_clamp  
+; ? 10: uint 
+
+
+; bits
+; 0: customize? : bool
+; 1-2: address_mode_u: ImageAddressMode
+; 3-4: address_mode_v: ImageAddressMode
+; 5-6: address_mode_w: ImageAddressMode
+; 7-8: border_color: ImageSamplerBorderColor
+; 9: mag_filter: ImageFilterMode
+; 10: min_filter: ImageFilterMode
+; 11: mipmap_filter: ImageFilterMode
+SAMPLER_FLAGS = u32
+
+; all are i8
+ImageAddressMode = 
+    0 / ; Clamp to edge
+    1 / ; Repeat
+    2 / ; Mirrored repeat
+    3   ; Clamp to border
+
+; all are i8
+ImageFilterMode = 
+    0 / ; Nearest
+    1   ; Linear
+
+;ImageCompareFunction = uint  ; Enum: 0 = Never, 1 = Less, 2 = Equal, ?.
+
+; all are i8
+ImageSamplerBorderColor = 
+    0 / ; TransparentBlack
+    1 / ; OpaqueBlack
+    2 / ; OpaqueWhite
+    3   ; Zero
+
+; all are i8
+IMAGE_SEMANTIC = 
+    0 / ; Color
+    1   ; Data

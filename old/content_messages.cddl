@@ -63,7 +63,8 @@ MESSAGE_COMPONENT = (
 ; the component should be deleted on the entity.
 COMPONENT_MOD = (
     COMPONENT_ID, ; if this is negative
-    ? any ; this won't exist
+    CONTENT_SIZE, ; this will be zero
+    ? any ; and this won't exist
 )
 
 ; ==============================================================================
@@ -74,16 +75,19 @@ MESSAGE_RESOUCE = (
 )
 
 RESOURCE_MOD = (
-    RESOURCE_ID, ; if this is negative
+    RESOURCE_ID,  ; if this is negative
+    CONTENT_SIZE, ; this will be zero
     ? any         ; this wont be here
 )
 
 ; ==============================================================================
 ; Assets
 
+; Registers an asset for use
 MESSAGE_ASSET = (
     MESSAGE_ASSET_ID,
-    ASSET_TYPE_ID,
+    ; if the asset type is negative, there will be no content size
+    ASSET_TYPE_ID, CONTENT_SIZE,
     ASSET_ID,
-    any,
+    any, ; if the asset type is negative, this will not exist
 )

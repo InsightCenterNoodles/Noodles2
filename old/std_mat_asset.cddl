@@ -17,11 +17,8 @@ STD_MAT_ASSET = (
     ; Metallic.
     NORMALIZED_FLOAT,
 
-    ; Index of Refraction (IOR). Typical: [1.0, 2.5]
-    float,
-
-    ; Lightmap exposure multiplier. Default: 1.0
-    float,
+    ; Index of Refraction (IOR). Normalized between 1 - 5, x = ((IOR - 1.0) / 5.0) * 65535
+    IOR: u16,
 
     ; Optional color texture
     color_map: EXTERNAL_OPTION<TEXTURE_REFERENCE>,
@@ -128,6 +125,7 @@ CLEARCOAT = (
     NORMALIZED_FLOAT,
 
     ; Clearcoat UV channel. Default: 0
+    ; All clearcoat assets share the same UV channel
     OPTION<UV_CHANNEL>,
 
     ; Clearcoat texture. Default: none
@@ -153,9 +151,6 @@ PARALLAX = (
 
     ; Depth map. Default: none
     IMAGE_ASSET_ID,
-
-    ; Parallax mapping method. Default: 0 (Occlusion)
-    PARALLAX_MAPPING_METHOD,
 )
 
 ANISOTROPY = (
@@ -166,7 +161,7 @@ ANISOTROPY = (
     NORMALIZED_FLOAT,
 
     ; Anisotropy texture. Default: none
-    TEXTURE_REFERENCE
+    OPTION<TEXTURE_REFERENCE>,
 )
 
 ; ===== Sub-types =====
@@ -184,10 +179,10 @@ FACE = u2 ; 0 = Front, 1 = Back, 2 = None ; default: 0
 
 ALPHA_MODE = u2 ; 0 = Opaque, 1 = Mask, 2 = Blend, 3 = Premultiplied ; default: 0
 
-PARALLAX_MAPPING_METHOD = u8 ; 0 = Occlusion, 1 = Relief ; default: 0
-
 AFFINE2 = {
-    ; mat2x3, rotation, scaling
+    ; mat2x2, rotation, scaling
+    ; column major
+
     float ; default 1
     float ; default 0
     float ; default 1
