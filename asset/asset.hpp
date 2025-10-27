@@ -18,9 +18,12 @@ using StdMaterialAssetID = AssetID;
 // ==============================================================================
 // Shared: Buffer views
 
-/// @brief A window into a buffer asset
+/// @brief A window into a buffer asset (Fixed-only)
 struct BufferView {
   u64 offset;
   u32 length;
   BufferAssetID buffer_asset_id;
 };
+
+// Fixed layout checks
+N2_STATIC_ASSERT_FIXED(BufferView);

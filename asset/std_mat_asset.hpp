@@ -167,7 +167,9 @@ struct ExtendedMaterial {
   Affine2 uv2_transform;
 };
 
-struct StdMaterialAsset {
+/// Standard PBR material
+/// Fixed: scalar fields and packed texture refs
+struct StdMaterialAssetFixed {
   // Bit flags
   MatFlags flags;
 
@@ -192,11 +194,16 @@ struct StdMaterialAsset {
 
   // Optional normal mapping
   TextureReference normal_map;
+};
 
-  // DYN
-
+/// Dyn: image table and optional extensions
+/// - Presence of `extended` is gated by MatFlags bit 10 in StdMaterialAssetFixed.
+struct StdMaterialAssetDyn {
   // Image table
   DynamicArray<u8, ImageAssetID> image_table;
 
-  DynamicOptional<ExtendedMaterial> extended;
+  N2_NO_UNIQUE DynamicOptional<ExtendedMaterial> extended;
 };
+
+// Fixed layout checks
+N2_STATIC_ASSERT_FIXED(StdMaterialAssetFixed);

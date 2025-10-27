@@ -5,6 +5,7 @@
 
 // ==============================================================================
 // Mesh asset (uncompressed representation)
+// Split into Fixed (buffer view) and Dyn (patch list)
 
 enum class PrimitiveType : u8 {
   Triangles = 0, // only this for now
@@ -100,15 +101,20 @@ struct UncompressedPatch {
   TextureAttrib texture_1;
 };
 
-struct UncompressedMesh {
+struct UncompressedMeshFixed {
   // Bytes to source mesh content
   BufferView buffer;
+};
 
+struct UncompressedMeshDyn {
   // 'Patches' (aka submeshes) that may use different materials.
   // A mesh with no patches is an error.
   DynamicArray<u8, UncompressedPatch> patches;
 };
 
-struct MeshAsset {
-  UncompressedMesh uncompressed;
-};
+// Top-level Mesh asset: maps to UncompressedMesh
+using MeshAssetFixed = UncompressedMeshFixed;
+using MeshAssetDyn = UncompressedMeshDyn;
+
+// Fixed layout checks
+N2_STATIC_ASSERT_FIXED(UncompressedMeshFixed);

@@ -21,10 +21,25 @@ enum class AnyType : u8 {
   ENTITY = 15,
 };
 
+// Any: a dynamic, self-describing value (Dyn-only)
+// Encoded as an explicit tagged union with named cases
 struct Any;
 struct Any
-    : MatchGroup<AnyType, //
-                 void, i64, double, DynamicString<u64>, DynamicArray<u32, Any>,
-                 DynamicMap<u32, Any, Any>, DynamicByteArray<u64>, Vec3,
-                 UnitQuat, UUID, ComponentTypeID, AssetID, AnAsset,
-                 ResourceTypeID, EntityID> {};
+    : DynamicTaggedUnion<
+          AnyType,
+          Case<AnyType, AnyType::UNDEF, void>,
+          Case<AnyType, AnyType::BOOL, u8>,
+          Case<AnyType, AnyType::INT, i64>,
+          Case<AnyType, AnyType::FLOAT, double>,
+          Case<AnyType, AnyType::STRING, DynamicString<u64>>,
+          Case<AnyType, AnyType::ARRAY, DynamicArray<u32, Any>>,
+          Case<AnyType, AnyType::MAP, DynamicMap<u32, Any, Any>>,
+          Case<AnyType, AnyType::BYTES, DynamicByteArray<u64>>,
+          Case<AnyType, AnyType::VECTOR, Vec3>,
+          Case<AnyType, AnyType::UNIT_QUAT, UnitQuat>,
+          Case<AnyType, AnyType::UUID, UUID>,
+          Case<AnyType, AnyType::COMPONENT_TYPE, ComponentTypeID>,
+          Case<AnyType, AnyType::ASSET_TYPE, AssetTypeID>,
+          Case<AnyType, AnyType::AN_ASSET, AnAsset>,
+          Case<AnyType, AnyType::RESOURCE_TYPE, ResourceTypeID>,
+          Case<AnyType, AnyType::ENTITY, EntityID>> {};

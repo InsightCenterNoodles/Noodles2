@@ -41,7 +41,7 @@ enum class ImageSamplerBorderColor : u8 {
 // other bits reserved
 using SamplerFlags = u32;
 
-/// @brief Image content and sampling description.
+/// @brief Image content and sampling description. (Fixed-only)
 /// Data must be PNG, JPG, or KTX2 basisU texture.
 struct ImageAsset {
   // Raw bytes of the encoded image
@@ -53,3 +53,6 @@ struct ImageAsset {
   // Semantic usage of this image
   ImageSemantic semantic;
 };
+
+// Fixed layout checks
+N2_STATIC_ASSERT_FIXED(ImageAsset);

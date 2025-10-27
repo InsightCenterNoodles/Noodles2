@@ -1,13 +1,16 @@
 #include "../common.hpp"
 
-struct QuantizationSpace
-{
-    u32 index;
-    Vec3 min;
-    Vec3 max;
+// QuantizationSpace is fixed-only
+struct QuantizationSpace {
+  u32 index;
+  Vec3 min;
+  Vec3 max;
 };
 
-struct CompressedTransformResource
-{
-    DynamicArray<u32, QuantizationSpace> spaces;
+// CompressedTransformResource holds a dynamic list of spaces
+struct CompressedTransformResourceDyn {
+  DynamicArray<u32, QuantizationSpace> spaces;
 };
+
+// Fixed layout checks
+N2_STATIC_ASSERT_FIXED(QuantizationSpace);

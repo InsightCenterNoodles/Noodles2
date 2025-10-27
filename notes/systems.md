@@ -1,5 +1,8 @@
 Use WIT for host interaction
 
+Note: Exploratory notes. Mentions of CBOR reflect an older draft and do not
+mirror the current little-endian binary wire format used by the headers.
+
 Possible Interface:
 
 ```

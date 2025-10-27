@@ -11,7 +11,7 @@
 // to have both on an entity, it is considered bad form, and only the last of
 // the two kinds of transform applied is valid.
 
-// Position/rotation/scale relative to parent (or world if no parent)
+// Position/rotation/scale relative to parent (or world if no parent) (Fixed-only)
 struct TransformComponent {
   Vec3 position;
   UnitQuat rotation;
@@ -52,6 +52,7 @@ struct TransformComponent {
 using CompressedQuat = u32; // Smallest-three encoding (see CDDL)
 using CompressedVec3 = std::array<u16, 3>;
 
+// Compressed transform (Fixed-only)
 struct CompressedTransformComponent {
   CompressedVec3 position;
   CompressedQuat rotation;
@@ -179,9 +180,15 @@ inline UnitQuat decompress_quat(CompressedQuat packed) {
 }
 
 // Space/zone identifier used for transform interpretation
+// Space/zone identifier used for transform interpretation (Fixed-only)
 struct CompressedTransformSpaceComponent {
   u32 zone;
 };
+
+// Fixed layout checks
+N2_STATIC_ASSERT_FIXED(TransformComponent);
+N2_STATIC_ASSERT_FIXED(CompressedTransformComponent);
+N2_STATIC_ASSERT_FIXED(CompressedTransformSpaceComponent);
 
 // Ephemeral advisory transform (client->server only)
 // using ProposedTransformComponent = TransformComponent;

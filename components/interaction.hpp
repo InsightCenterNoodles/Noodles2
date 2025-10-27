@@ -40,7 +40,12 @@ struct CanScaleComponent {
 };
 
 // Activation endpoints to call when activated (primary first)
-struct ActivateComponent {
-  // DYN
+// Fixed-only marker; endpoints live in Dyn
+struct ActivateComponentFixed {};
+
+struct ActivateComponentDyn {
   DynamicArray<u8, RpcEndpointID> endpoints;
 };
+
+// Fixed layout checks
+N2_STATIC_ASSERT_FIXED(ActivateComponentFixed);

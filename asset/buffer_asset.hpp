@@ -12,17 +12,25 @@ enum class BufferSourceType : u8 {
   INLINE = 2,      // Inline bytes
 };
 
-using BufferSource = MatchGroup<BufferSourceType, LargeAssetID,
-                                DynamicString<u16>, DynamicByteArray<u16>>;
+using BufferSource = DynamicTaggedUnion<
+    BufferSourceType,
+    Case<BufferSourceType, BufferSourceType::LARGE_ASSET, LargeAssetID>,
+    Case<BufferSourceType, BufferSourceType::URL, DynamicString<u16>>,
+    Case<BufferSourceType, BufferSourceType::INLINE, DynamicByteArray<u16>>>;
 
-/// @brief Where to obtain the raw bytes for a buffer asset and a size hint.
-struct BufferAsset {
+/// Where to obtain the raw bytes for a buffer asset and a size hint.
+/// Fixed: size hint only
+struct BufferAssetFixed {
   // Buffer size hint. Should match final byte count but readers must not rely
   // on it.
   u64 size_hint;
+};
 
-  // DYN
-
+/// Dyn: content source (variant)
+struct BufferAssetDyn {
   // Content source
   BufferSource source;
 };
+
+// Fixed layout checks
+N2_STATIC_ASSERT_FIXED(BufferAssetFixed);
