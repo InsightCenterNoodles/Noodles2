@@ -115,10 +115,15 @@ Examples in this repository:
   - Buffer: `BufferAssetFixed` + `BufferAssetDyn`.
   - Standard material: `StdMaterialAssetFixed` + `StdMaterialAssetDyn`.
   - Mesh: `UncompressedMeshFixed` + `UncompressedMeshDyn` (aliases `MeshAssetFixed`/`MeshAssetDyn`).
+  - Environment/IBL: `EnvironmentAssetFixed` + `EnvironmentAssetDyn`.
   - Large-asset streaming: `LargeAssetRequestFixed` and `LargeAssetReplyFixed` (Fixed-only), `LargeAssetChunkDyn` and `LargeAssetErrorDyn` (Dyn-only).
 - Components
   - `ActivateComponentFixed` + `ActivateComponentDyn`.
   - Many are Fixed-only (e.g., `TransformComponent`, `NameComponent`, `VisibleComponent`).
+  - Lights (Fixed-only): `DirectionalLightComponent`, `PointLightComponent`, `SpotLightComponent`.
+  - Labels (Fixed-only): `BillboardComponent`, `TextComponent`.
+  - Filtering (Fixed-only): `RenderLayerComponent`.
+  - Selection (Fixed-only): `CanSelectComponent`, `IsSelectedComponent`.
 
 Tagged unions:
 - Dynamic values that vary by a discriminant are encoded as a tagged union using `DynamicTaggedUnion<Tag, Case<Tag, Tag::VALUE, Payload>...>`.

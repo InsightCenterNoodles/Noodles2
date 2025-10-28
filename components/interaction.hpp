@@ -1,9 +1,10 @@
 #pragma once
 
 #include "../common.hpp"
-#include "component.hpp"
+#include <array>
 
-// Marker: entity is interactive
+/// Marker: entity is interactive
+/// The size should be zero
 struct InteractiveComponent {};
 
 // Axis bounds
@@ -18,10 +19,10 @@ struct AxisRange {
 //  bit 2-3: enable bounds for y
 //  bit 4-5: enable bounds for z
 struct AllowedAxis {
-  u8 flags;
   AxisRange x;
   AxisRange y;
   AxisRange z;
+  u8 flags;
 };
 
 // Translation capability (gated by InteractiveComponent)
@@ -39,13 +40,10 @@ struct CanScaleComponent {
   AllowedAxis axes;
 };
 
+// RPC endpoint identifier used by activation logic
+using RpcEndpointID = u32;
+
 // Activation endpoints to call when activated (primary first)
-// Fixed-only marker; endpoints live in Dyn
-struct ActivateComponentFixed {};
-
-struct ActivateComponentDyn {
-  DynamicArray<u8, RpcEndpointID> endpoints;
+struct ActivateComponent {
+  std::array<RpcEndpointID, 8> endpoints;
 };
-
-// Fixed layout checks
-N2_STATIC_ASSERT_FIXED(ActivateComponentFixed);

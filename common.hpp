@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 
 // Attribute helper: eliminate storage for empty members where supported
 #ifndef N2_NO_UNIQUE
@@ -29,12 +30,12 @@
 #endif
 
 // Numeric aliases
-// Note: Prefer u8/u16/u32/u64 for unsigned integers. The i64 alias is provided
-// for signed 64-bit integers.
+using i16 = int16_t;
+using i32 = int32_t;
 using i64 = int64_t;
 
-using u8 = unsigned char;
-using u16 = unsigned short;
+using u8 = uint8_t;
+using u16 = uint16_t;
 using u32 = uint32_t;
 using u64 = uint64_t;
 

@@ -11,7 +11,8 @@
 // to have both on an entity, it is considered bad form, and only the last of
 // the two kinds of transform applied is valid.
 
-// Position/rotation/scale relative to parent (or world if no parent) (Fixed-only)
+// Position/rotation/scale relative to parent (or world if no parent)
+// (Fixed-only)
 struct TransformComponent {
   Vec3 position;
   UnitQuat rotation;
@@ -49,7 +50,7 @@ struct TransformComponent {
 //
 // This achieves ~29-bit storage per quaternion, down from 128 bits.
 
-using CompressedQuat = u32; // Smallest-three encoding (see CDDL)
+using CompressedQuat = u32; // Smallest-three encoding
 using CompressedVec3 = std::array<u16, 3>;
 
 // Compressed transform (Fixed-only)
@@ -68,35 +69,68 @@ inline CompressedQuat compress_quat(const UnitQuat &q_in) {
   const float n2 = x * x + y * y + z * z + w * w;
   if (n2 > 0.0f && std::abs(n2 - 1.0f) > 1e-6f) {
     const float invn = 1.0f / std::sqrt(n2);
-    x *= invn; y *= invn; z *= invn; w *= invn;
+    x *= invn;
+    y *= invn;
+    z *= invn;
+    w *= invn;
   }
 
   // Find index of largest magnitude component
   float ax = std::abs(x), ay = std::abs(y), az = std::abs(z), aw = std::abs(w);
   u32 idx = 0;
   float amax = ax;
-  if (ay > amax) { idx = 1; amax = ay; }
-  if (az > amax) { idx = 2; amax = az; }
-  if (aw > amax) { idx = 3; amax = aw; }
+  if (ay > amax) {
+    idx = 1;
+    amax = ay;
+  }
+  if (az > amax) {
+    idx = 2;
+    amax = az;
+  }
+  if (aw > amax) {
+    idx = 3;
+    amax = aw;
+  }
 
   // Canonicalize so the largest component is non-negative
   float sign = 1.0f;
   switch (idx) {
-  case 0: if (x < 0) sign = -1.0f; break;
-  case 1: if (y < 0) sign = -1.0f; break;
-  case 2: if (z < 0) sign = -1.0f; break;
-  case 3: if (w < 0) sign = -1.0f; break;
+  case 0:
+    if (x < 0)
+      sign = -1.0f;
+    break;
+  case 1:
+    if (y < 0)
+      sign = -1.0f;
+    break;
+  case 2:
+    if (z < 0)
+      sign = -1.0f;
+    break;
+  case 3:
+    if (w < 0)
+      sign = -1.0f;
+    break;
   }
-  if (sign < 0.0f) { x = -x; y = -y; z = -z; w = -w; }
+  if (sign < 0.0f) {
+    x = -x;
+    y = -y;
+    z = -z;
+    w = -w;
+  }
 
   // Collect the three non-max components in fixed order (x,y,z,w skipping idx)
   float comps[3];
   {
     u32 k = 0;
-    if (idx != 0) comps[k++] = x;
-    if (idx != 1) comps[k++] = y;
-    if (idx != 2) comps[k++] = z;
-    if (idx != 3) comps[k++] = w;
+    if (idx != 0)
+      comps[k++] = x;
+    if (idx != 1)
+      comps[k++] = y;
+    if (idx != 2)
+      comps[k++] = z;
+    if (idx != 3)
+      comps[k++] = w;
   }
 
   // Quantize from [-1/sqrt(2), +1/sqrt(2)] to 9 bits
@@ -107,11 +141,14 @@ inline CompressedQuat compress_quat(const UnitQuat &q_in) {
 
   auto quant9 = [&](float v) -> u32 {
     // Clamp to representable range
-    if (v < lo) v = lo;
-    if (v > hi) v = hi;
-    float t = (v - lo) / range;         // [0,1]
+    if (v < lo)
+      v = lo;
+    if (v > hi)
+      v = hi;
+    float t = (v - lo) / range;                        // [0,1]
     u32 q = static_cast<u32>(std::lround(t * 511.0f)); // 9 bits
-    if (q > 511u) q = 511u;
+    if (q > 511u)
+      q = 511u;
     return q;
   };
 
@@ -154,26 +191,33 @@ inline UnitQuat decompress_quat(CompressedQuat packed) {
   // Place back into the quaternion (x,y,z,w order), skipping idx
   u32 k = 0;
   for (u32 i = 0; i < 4; ++i) {
-    if (i == idx) continue;
+    if (i == idx)
+      continue;
     out[i] = comps[k++];
   }
 
   // Reconstruct the missing largest component (non-negative by construction)
   float three_sum = 0.0f;
   for (u32 i = 0; i < 4; ++i) {
-    if (i == idx) continue;
+    if (i == idx)
+      continue;
     three_sum += out[i] * out[i];
   }
   float missing = 1.0f - three_sum;
-  if (missing < 0.0f) missing = 0.0f; // guard numeric drift
+  if (missing < 0.0f)
+    missing = 0.0f; // guard numeric drift
   missing = std::sqrt(missing);
   out[idx] = missing;
 
   // Optional re-normalization to counter round-off
-  const float n2 = out[0] * out[0] + out[1] * out[1] + out[2] * out[2] + out[3] * out[3];
+  const float n2 =
+      out[0] * out[0] + out[1] * out[1] + out[2] * out[2] + out[3] * out[3];
   if (n2 > 0.0f && std::abs(n2 - 1.0f) > 1e-5f) {
     const float invn = 1.0f / std::sqrt(n2);
-    out[0] *= invn; out[1] *= invn; out[2] *= invn; out[3] *= invn;
+    out[0] *= invn;
+    out[1] *= invn;
+    out[2] *= invn;
+    out[3] *= invn;
   }
 
   return out;

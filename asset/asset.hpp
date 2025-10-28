@@ -7,13 +7,15 @@ enum class KnownAssetType : u32 {
   BUFFER = 0,
   MESH = 10,
   STD_MATERIAL = 20,
-  IMAGE = 6,
+  IMAGE = 30,
+  ENVIRONMENT = 40,
 };
 
 using BufferAssetID = AssetID;
 using MeshAssetID = AssetID;
 using ImageAssetID = AssetID;
 using StdMaterialAssetID = AssetID;
+using EnvironmentAssetID = AssetID;
 
 // ==============================================================================
 // Shared: Buffer views
