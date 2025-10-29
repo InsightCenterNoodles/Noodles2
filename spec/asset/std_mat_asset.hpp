@@ -135,15 +135,17 @@ struct Affine2 {
   float translate_y;
 };
 
-/// Bit 0: Thickness?
-/// Bit 1: Transmission?
-/// Bit 2: Clearcoat?
-/// Bit 3: Anisotropy?
-/// Bit 4: Parallax?
-/// Bit 5: Emission?
-/// Bit 6: UV1 transform?
-/// Bit 7: UV2 transform?
 struct ExtendedMaterial {
+  /// Bit 0: Thickness?
+  /// Bit 1: Transmission?
+  /// Bit 2: Clearcoat?
+  /// Bit 3: Anisotropy?
+  /// Bit 4: Parallax?
+  /// Bit 5: Emission?
+  /// Bit 6: UV1 transform?
+  /// Bit 7: UV2 transform?
+  u8 flags;
+
   // Optional thickness
   Thickness thickness;
 
@@ -197,7 +199,8 @@ struct StdMaterialAssetFixed {
 };
 
 /// Dyn: image table and optional extensions
-/// - Presence of `extended` is gated by MatFlags bit 10 in StdMaterialAssetFixed.
+/// - Presence of `extended` is gated by MatFlags bit 10 in
+/// StdMaterialAssetFixed.
 struct StdMaterialAssetDyn {
   // Image table
   DynamicArray<u8, ImageAssetID> image_table;

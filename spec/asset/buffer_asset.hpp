@@ -18,12 +18,24 @@ using BufferSource = DynamicTaggedUnion<
     Case<BufferSourceType, BufferSourceType::URL, DynamicString<u16>>,
     Case<BufferSourceType, BufferSourceType::INLINE, DynamicByteArray<u16>>>;
 
+enum class BufferDownloadHint : u8 {
+  DEFER = 0, // Readers may obtain the buffer (if URL or LARGE ASSET) on demand
+  IMMEDIATE = 1, // Readers should obtain the buffer immediately
+};
+
+struct BufferFlags {
+  // Bits
+  // 0: BufferDownloadHint
+  u8 content;
+};
+
 /// Where to obtain the raw bytes for a buffer asset and a size hint.
-/// Fixed: size hint only
 struct BufferAssetFixed {
-  // Buffer size hint. Should match final byte count but readers must not rely
-  // on it.
-  u64 size_hint;
+  // Buffer size. This MUST be the exact size of the buffer.
+  u64 size;
+
+  // Flags
+  BufferFlags flags;
 };
 
 /// Dyn: content source (variant)
