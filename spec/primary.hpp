@@ -30,7 +30,21 @@ enum class MessageID : u8 {
 struct IntroductionFixed {
   u16 protocol_version;
   // Flags: bit 0 = authority_request
-  u16 flags;
+  struct IntroductionFlags {
+    u16 bits = 0;
+
+    constexpr IntroductionFlags() = default;
+    constexpr explicit IntroductionFlags(u16 raw) : bits(raw) {}
+
+    // Raw
+    constexpr u16 raw() const { return bits; }
+    constexpr static IntroductionFlags from_raw(u16 raw) { return IntroductionFlags(raw); }
+    constexpr explicit operator u16() const { return bits; }
+
+    // Bit 0: authority_request
+    constexpr bool authority_request() const { return (bits & 0x1u) != 0; }
+    constexpr IntroductionFlags &set_authority_request(bool v) { if (v) bits |= 0x1u; else bits &= ~0x1u; return *this; }
+  } flags;
   FixedShortString<64> name;
 };
 using Introduction = IntroductionFixed;
@@ -41,7 +55,15 @@ using Introduction = IntroductionFixed;
 struct IntroductionReplyFixed {
   u16 protocol_version;
   // Flags reserved for future use
-  u16 flags;
+  struct IntroductionReplyFlags {
+    u16 bits = 0;
+    constexpr IntroductionReplyFlags() = default;
+    constexpr explicit IntroductionReplyFlags(u16 raw) : bits(raw) {}
+    // Raw
+    constexpr u16 raw() const { return bits; }
+    constexpr static IntroductionReplyFlags from_raw(u16 raw) { return IntroductionReplyFlags(raw); }
+    constexpr explicit operator u16() const { return bits; }
+  } flags;
 
   FixedShortString<64> session_name;
 

@@ -9,10 +9,27 @@
 // linear for shading and apply the separate HDR intensity scalar.
 using SRGB8 = std::array<u8, 3>; // RR GG BB in sRGB
 
-// Light flags (u32)
+// Light flags wrapper (u32)
 // Bit 0: casts_shadows?
 // Bits 1-31: RESERVED
-using LightFlags = u32;
+struct LightFlags {
+  u32 bits = 0;
+
+  constexpr LightFlags() = default;
+  constexpr explicit LightFlags(u32 raw) : bits(raw) {}
+
+  // Raw accessors
+  constexpr u32 raw() const { return bits; }
+  constexpr static LightFlags from_raw(u32 raw) { return LightFlags(raw); }
+  constexpr explicit operator u32() const { return bits; }
+
+  // Bit 0: casts_shadows
+  constexpr bool casts_shadows() const { return (bits & 0x1u) != 0; }
+  constexpr LightFlags &set_casts_shadows(bool v) {
+    if (v) bits |= 0x1u; else bits &= ~0x1u;
+    return *this;
+  }
+};
 
 // Directional light: direction from entity rotation; position ignored
 struct DirectionalLightComponent {

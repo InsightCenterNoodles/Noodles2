@@ -18,7 +18,49 @@ enum class PrimitiveType : u8 {
 //  4: Texture 0?
 //  5: Texture 1?
 //  6-8: PRIMITIVE_TYPE (PrimitiveType)
-using UncompressedFlags = u32;
+struct UncompressedFlags {
+  // Bitfield for presence and primitive type
+  //  0-1: Index size: if 0, missing, otherwise IndexFormat code
+  //  2: Normal?
+  //  3: Tangent?
+  //  4: Texture 0?
+  //  5: Texture 1?
+  //  6-8: PRIMITIVE_TYPE (PrimitiveType)
+  u32 bits = 0;
+
+  constexpr UncompressedFlags() = default;
+  constexpr explicit UncompressedFlags(u32 raw) : bits(raw) {}
+
+  // Raw accessors
+  constexpr u32 raw() const { return bits; }
+  constexpr static UncompressedFlags from_raw(u32 raw) { return UncompressedFlags(raw); }
+  constexpr explicit operator u32() const { return bits; }
+
+  // Index format code (0 = none)
+  constexpr bool has_index() const { return (bits & 0x3u) != 0; }
+  constexpr u8 raw_index_code() const { return static_cast<u8>(bits & 0x3u); }
+  constexpr UncompressedFlags &set_raw_index_code(u8 code) {
+    bits = (bits & ~0x3u) | (static_cast<u32>(code) & 0x3u);
+    return *this;
+  }
+
+  // Attribute presence
+  constexpr bool has_normal() const { return (bits & (1u << 2)) != 0; }
+  constexpr bool has_tangent() const { return (bits & (1u << 3)) != 0; }
+  constexpr bool has_tex0() const { return (bits & (1u << 4)) != 0; }
+  constexpr bool has_tex1() const { return (bits & (1u << 5)) != 0; }
+  constexpr UncompressedFlags &set_has_normal(bool v) { if (v) bits |= (1u << 2); else bits &= ~(1u << 2); return *this; }
+  constexpr UncompressedFlags &set_has_tangent(bool v) { if (v) bits |= (1u << 3); else bits &= ~(1u << 3); return *this; }
+  constexpr UncompressedFlags &set_has_tex0(bool v) { if (v) bits |= (1u << 4); else bits &= ~(1u << 4); return *this; }
+  constexpr UncompressedFlags &set_has_tex1(bool v) { if (v) bits |= (1u << 5); else bits &= ~(1u << 5); return *this; }
+
+  // Primitive type (bits 6-8)
+  constexpr PrimitiveType primitive_type() const { return static_cast<PrimitiveType>((bits >> 6) & 0x7u); }
+  constexpr UncompressedFlags &set_primitive_type(PrimitiveType p) {
+    bits = (bits & ~(0x7u << 6)) | ((static_cast<u32>(p) & 0x7u) << 6);
+    return *this;
+  }
+};
 
 // Common attribute layout information
 struct UncompressedAttribCommon {

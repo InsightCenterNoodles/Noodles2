@@ -25,8 +25,25 @@ enum class BufferDownloadHint : u8 {
 
 struct BufferFlags {
   // Bits
-  // 0: BufferDownloadHint
-  u8 content;
+  // 0: BufferDownloadHint (0 = DEFER, 1 = IMMEDIATE)
+  u8 bits = 0;
+
+  constexpr BufferFlags() = default;
+  constexpr explicit BufferFlags(u8 raw) : bits(raw) {}
+
+  // Raw
+  constexpr u8 raw() const { return bits; }
+  constexpr static BufferFlags from_raw(u8 raw) { return BufferFlags(raw); }
+  constexpr explicit operator u8() const { return bits; }
+
+  // Download hint
+  constexpr BufferDownloadHint download_hint() const {
+    return static_cast<BufferDownloadHint>(bits & 0x1u);
+  }
+  constexpr BufferFlags &set_download_hint(BufferDownloadHint h) {
+    bits = (bits & ~0x1u) | (static_cast<u8>(h) & 0x1u);
+    return *this;
+  }
 };
 
 /// Where to obtain the raw bytes for a buffer asset and a size hint.
