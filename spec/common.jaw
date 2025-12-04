@@ -1,0 +1,42 @@
+pack Vec3
+- x : f32
+- y : f32
+- z : f32
+
+pack Vec4
+- x : f32
+- y : f32
+- z : f32
+- w : f32
+
+pack UnitQuaternion
+- x : f32
+- y : f32
+- z : f32
+- w : f32
+
+fixed_array UUID : 4 * u32
+
+fixed_array SRGB8 : 3 * u8
+fixed_array SRGBA8 : 4 * u8
+fixed_array LinearRGB : 3 * f32
+fixed_array LinearRGBA : 4 * f32
+
+alias EntityID : u32
+
+alias ExtensionID : u16
+
+pack ComponentTypeID
+- extension: ExtensionID
+- identifier: u16
+
+pack AssetTypeID
+- extension: ExtensionID
+- identifier: u16
+
+# Asset IDs are context sensitive; they have no meaning without an associated AssetTypeID
+alias AssetID : u32
+
+pack AnAsset 
+- asset_type : AssetTypeID
+- asset_id : AssetID

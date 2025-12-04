@@ -1,0 +1,42 @@
+variant ContentMessage : u8 
+- 0 => ContentCreateEntities
+- 1 => ContentDeleteEntities
+- 2 => ContentModifyComponents
+- 3 => ContentDeleteComponents
+- 4 => ContentModifyAsset
+- 5 => ContentDeleteAsset
+
+dyn_array EntityList: u32 * EntityID
+
+# ===================================================
+# Add or remove entities
+
+alias ContentCreateEntities: EntityList
+
+alias ContentDeleteEntities: EntityList
+
+dyn_array Content: u32 * u8
+
+# ===================================================
+# Modify components attached to entities
+# The content is structured as a byte stream of (EntityID, Component) pairs. The count of such pairs is provided in the message for optimization, 
+# but readers should be careful to assume this might not be the truth.
+seq ContentModifyComponents
+- component: ComponentTypeID
+- count: u32
+- content: Content
+
+seq ContentDeleteComponents
+- component: ComponentTypeID
+- list: EntityList
+
+# ===================================================
+# Modify asset
+
+# This is a single asset
+seq ContentModifyAsset
+- an_asset: AnAsset
+- content: Content
+
+seq ContentDeleteAsset
+- an_asset: AnAsset

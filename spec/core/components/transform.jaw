@@ -1,0 +1,4 @@
+pack TransformComponent
+- position: Vec3
+- rotation: UnitQuaternion
+- scale: Vec3

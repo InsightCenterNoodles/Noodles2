@@ -1,0 +1,137 @@
+alias PBRMaterialAssetID : AssetID
+
+seq PBRMaterialAsset
+- base : PBRMaterialBase
+- extension: PBRMaterialExtended
+- table : MaterialImageTable
+
+dyn_array MaterialImageTable : u8 * ImageAssetID
+
+variant MaybePBRMaterialExtended : u8 
+- 0 => void
+- 1 => ExtendedMaterial
+
+alias NormalizedUShort : u16  # normalized integer in [0, 65535] -> [0.0, 1.0]         
+
+alias ImageTableID : u8
+
+# Face culling
+enum FaceCulling : u8 
+- Front = 0
+- Back = 1
+- None = 2
+
+# Alpha modes
+enum AlphaMode : u8
+- Opaque = 0
+- Mask = 1
+- Blend = 2
+- Premultiplied = 3
+
+# Index of Refraction (IOR). Normalized between 1-5, x = ((IOR - 1.0) / 5.0) * 65535
+alias IOR : u16
+
+bits MatFlags : u16
+- 0   is_unlit    : u8
+- 1   double_sided : u8
+- 2   unlit        : u8
+- 3   fog_disabled : u8
+- 4-5 culling    : FaceCulling
+- 6-7 alpha      : AlphaMode
+- 8   has_color_texture : u8
+- 9   has_orm_texture   : u8
+- 10  has_normal_map    : u8
+
+alias UVChannel : u8
+
+bits TextureReference : u8
+- 0-1 channel   : UVChannel
+- 2-5 image_id  : ImageTableID 
+
+pack PBRMaterialBase
+- flags      : MatFlags 
+- base_color : SRGBA8
+- roughness  : NormalizedUShort # Perceptual roughness [0,1] (normalized u16)
+- metallic   : NormalizedUShort # Metallic [0,1] (normalized u16)
+- IOR        : ior 
+- color_map  : TextureReference
+- orm_map    : TextureReference
+- normal_map : TextureReference
+
+# Extended material information
+
+bits ExtendedMaterialFlags : u16
+- 0  has_thickness : u8
+- 1  has_thickness_texture : u8
+- 2  has_transmission : u8
+- 3  has_transmission_diffuse_texture : u8
+- 4  has_transmission_specular_texture : u8
+- 5  has_clearcoat : u8
+- 6  has_parallax : u8
+- 7  has_parallax_depth_map : u8
+- 8  has_anisotropy : u8
+- 9  has_anisotropy_map : u8
+- 10 has_emission : u8
+- 11 has_emission_map : u8
+- 12 has_uv0_transform : u8
+- 13 has_uv1_transform : u8
+
+pack ExtendedMaterial
+- flags : ExtendedMaterialFlags
+- thickness : Thickness
+- transmission : Transmission
+- clearcoat : Clearcoat
+- anisotropy : Anisotropy
+- parallax : Parallax
+- emission: Emission
+- uv0_transform: Affine2
+- uv1_transform: Affine2
+
+pack Thickness
+- thickness : f32
+- attenuation_distance : f32
+- attenuation_color : SRGBA8
+- texture : TextureReference
+
+pack Transmission
+- diffuse : NormalizedUShort
+- specular : NormalizedUShort
+- diffuse_map : TextureReference
+- specular_map : TextureReference
+
+pack Clearcoat
+- amount : NormalizedUShort
+- roughness : NormalizedUShort
+- pack : ClearcoatImagePack
+
+bits ClearcoatImagePack : u32
+- 0     has_amount_map : u8
+- 1     has_roughness_map : u8
+- 2     has_normal_map : u8
+- 3-4   channel : UVChannel
+- 6-10  amount_map : ImageTableID
+- 11-14 roughness_map : ImageTableID
+- 15-18 normal_map : ImageTableID
+
+pack Parallax
+- depth_bias : f32
+- depth_scale : f32
+- max_layers : u8
+- depth_map : TextureReference
+
+pack Emission
+- color : LinearRGB
+- exposure : NormalizedUShort
+- map : TextureReference
+
+pack Anisotropy
+- strength : NormalizedUShort
+- rotation : NormalizedUShort
+- texture : TextureReference
+
+fixed_array Mat22 : 4 * f32
+
+pack Affine2
+- rotation_scale : Mat22
+- translate_x : f32
+- translate_y : f32

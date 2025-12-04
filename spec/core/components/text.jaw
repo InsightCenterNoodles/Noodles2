@@ -1,0 +1,7 @@
+seq TextComponent
+- color : SRGB8
+- height : f32 # nominal text height in world units
+- text : TextComponentContent
+
+
+dyn_array TextComponentContent : u16 * u8

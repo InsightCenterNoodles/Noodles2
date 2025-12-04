@@ -1,0 +1,71 @@
+alias MeshAssetID : AssetID
+
+enum PrimitiveType : u8
+- Triangles = 0
+
+enum IndexFormat : u8
+- None = 0
+- U8   = 1
+- U16  = 2
+- U32  = 3
+
+bits UncompressedFlags
+- 0-1 format : IndexFormat
+- 2 has_normal : u8
+- 3 has_tangent : u8
+- 4 has_uv_0 : u8
+- 5 has_uv_1 : u8
+- 6-8 primitive_type : PrimitiveType
+
+pack UncompressedAttribCommon
+- view_byte_offset : u32
+- vertex_stride : u16
+
+
+enum PositionFormat : u8
+- float3 = 0
+
+enum NormalFormat : u8
+- float3 = 0
+
+enum TangentFormat : u8
+- float4 = 0
+
+enum UVFormat : u8
+- float2 = 0
+- normalized_ushort2 = 1
+
+pack PositionAttribute
+- common : UncompressedAttribCommon
+- format : PositionFormat
+
+pack NormalAttribute
+- common : UncompressedAttribCommon
+- format : NormalFormatFormat
+
+pack TangentAttribute
+- common : UncompressedAttribCommon
+- format : TangentFormat
+
+pack UVAttribute
+- common : UncompressedAttribCommon
+- format : UVFormat
+
+
+pack UncompressedIndex
+- view_byte_offset : u32
+- index_count : u32
+
+
+pack MeshAsset
+- view : BufferView
+- vertex_count : u32 
+- flags : UncompressedFlags
+- bb_min : Vec3
+- bb_max : Vec3 
+- position : PositionAttribute
+- index : UncompressedIndex
+- normal : NormalAttribute
+- tangent : TangentAttribute
+- uv_0 : UVAttribute
+- uv_1 : UVAttribute

@@ -1,0 +1,42 @@
+# Core preamble messages. Skip zero?
+variant PreMessage : u8
+- 1 => Probe
+- 2 => ProbeReply
+- 3 => Introduction
+- 4 => IntroductionReply
+
+dyn_array PreambleName : u8 * u8
+dyn_array PreambleIcon : u32 * u8
+dyn_array PreambleCaps : u16 * ExtensionID
+
+pack Probe
+- dummy : u8
+
+seq ProbeReply
+- name : PreambleName
+- icon : PreambleIcon
+
+bits IntroductionFlags : u16
+- 0 authority_request : u8
+
+alias Introduction : IntroductionHeader
+
+seq IntroductionHeader
+- protocol_version : u16
+- flags : IntroductionFlags
+- name : PreambleName
+- capabilities : PreambleCaps
+
+dyn_array OOBPorts : u8 * u16
+
+seq OOBAssetChannels : u8
+- ports : OOBPorts
+
+variant OOBAssetInfo : u8
+- 0 => void
+- 1 => OOBAssetChannels
+
+seq IntroductionReply
+- header : IntroductionHeader
+- capabilities : PreambleCaps
+- large_assets: OOBAssetInfo

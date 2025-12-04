@@ -1,0 +1,1 @@
+Started out with a system that lets nodes disregard unknown components. This fails if the component has entities that need to be remapped with two upstreams. Moved to capabilities, and punting to NOODLES3

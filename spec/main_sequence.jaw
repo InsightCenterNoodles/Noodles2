@@ -1,0 +1,62 @@
+variant MainSequenceMessage : u8
+- 1 => Transaction
+- 2 => NamedTransaction
+- 3 => TransactionReply
+- 4 => RPCInfo
+- 5 => RPCInvoke
+- 6 => RPCReply
+
+
+# ==========================
+# Transaction
+
+dyn_array ContentArray : u32 * ContentMessage
+
+seq Transaction
+- content : ContentArray
+
+seq NamedTransaction
+- transaction_id : u32
+- content : ContentArray
+
+pack TransactionReply
+- transaction_id : u32
+- code : u32
+
+
+# ==========================
+# RPC Invoke
+
+dyn_array RPCArgumentList : u8 * Any
+
+seq RPCInvoke
+- this_invoke_id: u32
+- endpoint: EntityID
+- args: RPCArgumentList
+
+
+# ==========================
+# RPC Reply
+
+dyn_array RPCArgumentList : u8 * Any
+
+seq RPCReply
+- this_invoke_id: u32
+- content: RPCReplyContent
+
+variant RPCReplyContent : u8
+- 0 => RPCComplete
+- 1 => RPCError
+- 2 => RPCStreamResult
+
+seq RPCComplete
+- result: Any
+
+seq RPCStreamResult
+- result: Any
+
+dyn_array ErrorString : u32 * u8
+
+seq RPCError
+- code : u16
+- message : ErrorString

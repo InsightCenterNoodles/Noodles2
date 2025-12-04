@@ -1,0 +1,35 @@
+alias ImageAssetID : AssetID
+
+seq ImageAsset
+- view: BufferView
+- flags: ImageFlags
+
+enum ImageSemantic : u8
+- SRGB = 0
+- Linear = 1
+
+enum ImageAddressMode : u8
+- ClampToEdge = 0
+- Repeat = 1
+- MirroredRepeat = 2
+- ClampToBorder = 3
+
+enum ImageFilterMode : u8
+- Nearest = 0
+- Linear = 1
+
+enum ImageSamplerBorderColor : u8
+- TransparentBlack = 0
+- OpaqueBlack = 1
+- OpaqueWhite = 2
+- Zero = 3
+
+bits ImageFlags : u32
+- 0-1   address_mode_u : ImageAddressMode
+- 2-3   address_mode_v : ImageAddressMode
+- 4-5   address_mode_w : ImageAddressMode
+- 6-7   border_color : ImageSamplerBorderColor
+- 8     mag_filter : ImageFilterMode
+- 9     min_filter : ImageFilterMode
+- 10    mipmap_filter : ImageFilterMode
+- 11    semantic : ImageSemantic

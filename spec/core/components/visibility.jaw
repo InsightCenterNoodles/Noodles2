@@ -1,0 +1,4 @@
+enum VisibilityComponent : u8
+> Inherited = 0
+- Visible   = 1
+- Invisible = 2

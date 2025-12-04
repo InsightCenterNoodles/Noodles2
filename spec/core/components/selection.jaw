@@ -1,0 +1,5 @@
+seq CanSelectComponent
+
+pack IsSelectedComponent
+- color : SRGB
+- width : f32

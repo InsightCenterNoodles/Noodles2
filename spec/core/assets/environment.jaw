@@ -1,0 +1,18 @@
+alias EnvironmentAssetID : AssetID
+
+seq EnvironmentAsset
+- flags: EnvironmentFlags
+- table : EnvImageTable
+- env_map_index : u8
+- sky_map_index : u8
+
+dyn_array EnvImageTable : u8 * ImageAssetID
+
+enum EnvironmentFormat : u8
+> Equirect = 0
+
+bits EnvironmentFlags : u32
+- 0   is_skybox_visible : u8
+- 1-2 format            : EnvironmentFormat
+- 3   has_env_map       : u8
+- 4   has_sky_map       : u8

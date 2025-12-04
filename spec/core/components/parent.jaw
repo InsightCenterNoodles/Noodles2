@@ -1,0 +1,2 @@
+pack ChildOfComponent
+- parent : EntityID

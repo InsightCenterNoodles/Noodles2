@@ -1,0 +1,26 @@
+alias BufferAssetID : AssetID
+
+seq BufferAsset
+- byte_size : u64
+- flags : BufferAssetFlags
+- source : BufferSource
+
+bits BufferAssetFlags : u32
+- 0 hint : BufferDownloadHint
+
+enum BufferDownloadHint : u8
+- IMMEDIATE = 0
+- DEFER     = 1
+
+variant BufferSource : u8
+- 0 => InlineContent
+- 1 => BufferURL
+- 2 => OOBAssetID
+
+dyn_array InlineContent : u32 * u8
+dyn_array BufferURL : u16 * u8
+
+pack BufferView
+- offset : u64
+- length : u32
+- asset_id : AssetID

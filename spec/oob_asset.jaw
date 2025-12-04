@@ -1,0 +1,26 @@
+# Why have OOB assets? To avoid cluttering the main channel
+# Why not use the RPC call stuff in alternate channels? This is an optional element
+
+# Clients may only send the OOBRequest message, and servers may only send the OOBReply message
+
+alias OOBAssetID : u64
+
+variant OOBRequest
+- 0 => OOBRequestContent
+
+seq OOBRequestContent
+- asset_id: OOBAssetID
+
+pack OOBReplyHeader
+- asset_id: OOBAssetID
+- asset_size: u64
+
+dyn_array OOBContent : u64 * u8
+
+seq OOBReplySuccess
+- header: OOBReplyHeader
+- content: OOBContent
+
+variant OOBReply
+- 0 => OOBReplySuccess
+- 1 => OOBReplyFailure

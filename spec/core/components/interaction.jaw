@@ -1,0 +1,31 @@
+seq InteractiveComponent
+
+pack AxisRange
+- min : f32
+- max : f32
+
+bits AllowedAxisFlags : u8
+- 0 x_min_enable : u8
+- 1 x_max_enable : u8
+- 2 y_min_enable : u8
+- 3 y_max_enable : u8
+- 4 z_min_enable : u8
+- 5 z_max_enable : u8
+
+pack AllowedAxis
+- x : AxisRange
+- y : AxisRange
+- z : AxisRange
+- flags : AllowedAxisFlags
+
+pack CanTranslateComponent
+- axes : AllowedAxis
+
+pack CanRotateComponent
+- axes : AllowedAxis
+
+pack CanScaleComponent
+- axes : AllowedAxis
+
+# entity ID should have an RPC component
+dyn_array ActivateComponent : u8 * EntityID

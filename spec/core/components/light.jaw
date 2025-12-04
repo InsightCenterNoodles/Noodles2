@@ -1,0 +1,22 @@
+
+pack DirectionalLightComponent
+- color : SRGB8
+- intensity : f32
+- flags : LightFlags
+
+pack PointLightComponent
+- color : SRGB8
+- intensity : f32
+- range : f32
+- flags : LightFlags
+
+pack SpotLightComponent
+- color : SRGB8
+- intensity : f32
+- range : f32
+- inner_angle_deg : f32
+- outer_angle_deg : f32
+- flags : LightFlags
+
+bits LightFlags : u32
+- 0 casts_shadows : u8

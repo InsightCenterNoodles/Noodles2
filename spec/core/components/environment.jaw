@@ -1,0 +1,4 @@
+pack EnvironmentComponent
+- environment : EnvironmentAssetID
+- intensity : f32
+- rotation : UnitQuaternion

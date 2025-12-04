@@ -1,0 +1,34 @@
+pack InstanceComponent
+- view : BufferView
+- instance_count : u32
+- type : InstanceType
+- quant_bb_min : Vec3
+- quant_bb_max : Vec3
+- quant_scale  : Vec2
+
+enum InstanceType : u8
+- FullFloat = 0
+- Reduced   = 1
+
+
+# 64B "fat" format. Preferred when upload size is not a concern or when the
+# platform benefits from direct, unpack-free vertex fetch.
+pack FullFloatInstance
+- position: Vec4            # Px Py Pz _
+- rotation: UnitQuaternion  # 
+- texture : Vec4            # translate u v , scale u v
+- scale   : Vec4            # Sx Sy Sz _
+
+pack ReducedInstance
+- px : u16
+- py : u16
+- pz : u16
+- s  : u16 #
+- rx : i16 # rotation
+- ry : i16
+- rz : i16
+- rw  : i16
+- ttu : i16 # tex translation
+- ttv : i16
+- tsu : i16 # tex scale
+- tsv : i16
