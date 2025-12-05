@@ -5,12 +5,13 @@ variant PreMessage : u8
 - 2 => Introduction
 - 3 => IntroductionReply
 
+# This spec corresponds to version 1u16.
+
 dyn_array PreambleName : u8 * u8
 dyn_array PreambleIcon : u32 * u8
 dyn_array PreambleCaps : u16 * ExtensionID
 
-pack Probe
-- dummy : u8
+seq Probe
 
 seq ProbeReply
 - name : PreambleName

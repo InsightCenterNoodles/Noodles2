@@ -1,0 +1,77 @@
+# Jaw is a (soon to be published) DSL for binary messages
+
+# Each file is a list of declarations of Types. 
+# Builtin types are integers of 8 to 64 bits, floats f32 f64, and void
+
+# This is a basic declaration of a sequence of types that are to be read 
+# from a byte stream. Each member of this type will be read/written in sequence.
+seq ABasicType
+- a_thing : u8
+- b_thing : u64
+
+# Sequences are opposed by Packs. Packs are intended to be read all at once,
+# minimizing overhead from multiple read calls. They are best thought of as
+# a packed C struct (e.g., __attribute__((packed)) / #pragma pack(1)).
+# No padding is inserted and they have 1-byte alignment.
+# These must ONLY contain members that are Plain Ol' Data. This means
+# types that have no dynamics, are of fixed size, etc. This type will be of size
+# 1 + 8 = 9 bytes.
+# These are good for things like 3D vectors, data headers, etc.
+pack MyPOD
+- a_thing : u8
+- b_thing : u64
+
+# Arrays come in two flavors. Fixed and dynamic. 
+# A fixed array is a consecutive array of items with unchanging size. It is POD iff the value type is POD.
+fixed_array FixedString : 4 * u8
+
+# A dynamic array is a list with runtime-determined size (never POD). The first type is the element-count type;
+# the second is the element type. Readers must validate the count against remaining input to prevent overflow/OOM.
+# For string-ish arrays, contents are UTF-8 and not null-terminated.
+dyn_array ShortString : u8 * u8 # This is a list of up to 255 bytes.
+dyn_array Data : u16 * f32 # This is a list of up to 2**16 floats.
+
+# For opaque bytes and strings, use u8, which is an analogue to a byte.
+
+pack MyOtherPOD
+- first : MyPOD
+- second : FixedString # We could not use ShortString here, how could we read everything at once?
+
+# Types can be given other names
+alias Alpha : MyOtherPOD
+
+# Enums are like C++ scoped enums. They must use an unsigned integer base type. Unknown discriminants are errors
+# unless a default is defined.
+enum PlainEnum : u8
+- F1 = 0
+- F2 = 1
+
+# Enums can also define a default value to substitute when an unknown discriminant is read.
+enum BetterEnum : u8
+- A = 0
+- B = 1
+> DEFAULT = 255
+
+# Bitfields/flags: the underlying type must be an integer or enum, and bit positions are numbered from LSB=0.
+# On write, fields are masked/truncated to their declared width; on read, fields are zero-extended from that width.
+# Readers may ignore bits not mapped to any field to preserve forward compatibility; writers should leave unspecified bits as zero.
+bits MyFlags : u8
+- 0    is_thing : u8
+- 1-2  another_thing : u8
+- 3-4  some_stuff : PlainEnum
+
+seq SmallSeq
+- list : Data
+
+# A variant is a branch (never POD) with an unsigned integer discriminant and explicit options per value. Unknown discriminants
+# are errors (no defaults). Variants may include void to represent an empty branch.
+# These are for describing forks in the road for your messages.
+variant MyVariant : u8
+- 0 => MyPOD
+- 1 => MyOtherPOD
+- 2 => void
+- 3 => SmallSeq
+
+seq Root
+- name : ShortString
+- var : MyVariant
