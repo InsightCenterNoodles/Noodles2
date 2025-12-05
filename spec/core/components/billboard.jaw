@@ -1,1 +1,10 @@
-seq BillboardComponent
+# Billboard component: controls whether the entity faces the camera fully or
+# only rotates around the up axis.
+# The rotational component of the Transform component is thus ignored.
+
+enum BillboardMode : u8
+- FaceCamera = 0  # fully face camera orientation
+- YAxisOnly  = 1  # rotate only around the up axis
+
+pack BillboardComponent
+- mode : BillboardMode # chooses full-face vs Y-axis-only alignment

@@ -1,2 +1,3 @@
+# Parent component: establishes a parent-child relationship between entities.
 pack ChildOfComponent
-- parent : EntityID
+- parent : EntityID # parent entity identifier

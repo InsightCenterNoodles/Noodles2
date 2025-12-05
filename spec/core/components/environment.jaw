@@ -1,4 +1,6 @@
+# Environment component: binds an environment asset with intensity and rotation
+# overrides for scene lighting.
 pack EnvironmentComponent
-- environment : EnvironmentAssetID
-- intensity : f32
-- rotation : UnitQuaternion
+- environment : EnvironmentAssetID # reference to environment asset
+- intensity : f32 # scalar multiplier for environment lighting
+- rotation : UnitQuaternion # applied to environment sampling

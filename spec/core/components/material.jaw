@@ -1,2 +1,3 @@
+# Material component: attaches a PBR material asset to an entity.
 pack PBRMaterialComponent
-- asset : PBRMaterialAssetID
+- asset : PBRMaterialAssetID # reference to a material asset

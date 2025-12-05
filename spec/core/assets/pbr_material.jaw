@@ -1,9 +1,12 @@
+# PBR material asset: base metallic-roughness material with optional extended
+# features (transmission, clearcoat, parallax, emission). References textures
+# via a small image table (up to 16 entries).
 alias PBRMaterialAssetID : AssetID
 
 seq PBRMaterialAsset
 - base : PBRMaterialBase
 - extension: MaybePBRMaterialExtended
-- table : MaterialImageTable
+- table : MaterialImageTable # up to 16 entries for texture references
 
 dyn_array MaterialImageTable : u8 * ImageAssetID
 

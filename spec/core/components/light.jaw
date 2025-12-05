@@ -1,13 +1,15 @@
+# Light components: directional, point, and spot lights with simple color,
+# intensity, range, and shadow casting flag.
 
 pack DirectionalLightComponent
 - color : SRGB8
-- intensity : f32
+- intensity : f32 # luminous intensity multiplier
 - flags : LightFlags
 
 pack PointLightComponent
 - color : SRGB8
 - intensity : f32
-- range : f32
+- range : f32 # attenuation range
 - flags : LightFlags
 
 pack SpotLightComponent

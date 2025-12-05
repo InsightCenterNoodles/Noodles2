@@ -1,4 +1,4 @@
-seq InteractiveComponent
+seq InteractiveComponent # marker that entity supports interaction/affordances
 
 pack AxisRange
 - min : f32
@@ -19,13 +19,14 @@ pack AllowedAxis
 - flags : AllowedAxisFlags
 
 pack CanTranslateComponent
-- axes : AllowedAxis
+- axes : AllowedAxis # hard limits for translation per-axis
 
 pack CanRotateComponent
-- axes : AllowedAxis
+- axes : AllowedAxis # hard limits for rotation per-axis, described as Euler angles
 
 pack CanScaleComponent
-- axes : AllowedAxis
+- axes : AllowedAxis # hard limits for scale per-axis
 
-# entity ID should have an RPC component
-dyn_array ActivateComponent : u8 * EntityID
+# entity ID should have an RPC component. The first entry should be considered the primary action to take; 
+# that is an action on 'click'.
+dyn_array ActivateComponent : u8 * EntityID # target entities (with RPCEndpoint) to invoke on activation

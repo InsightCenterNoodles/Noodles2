@@ -1,3 +1,5 @@
+# Mesh asset: uncompressed geometry layout referencing a buffer slice for
+# attributes and indices. Flags describe which attributes are valid.
 alias MeshAssetID : AssetID
 
 enum PrimitiveType : u8
@@ -18,8 +20,8 @@ bits UncompressedFlags : u16
 - 6-8 primitive_type : PrimitiveType
 
 pack UncompressedAttribCommon
-- view_byte_offset : u32
-- vertex_stride : u16
+- view_byte_offset : u32 # byte offset from BufferView start
+- vertex_stride : u16 # stride between vertices
 
 
 enum PositionFormat : u8
@@ -53,8 +55,8 @@ pack UVAttribute
 
 
 pack UncompressedIndex
-- view_byte_offset : u32
-- index_count : u32
+- view_byte_offset : u32 # byte offset from BufferView start
+- index_count : u32 # ignored when IndexFormat=None
 
 
 # Attribute/index blocks are always present in the buffer. If a corresponding

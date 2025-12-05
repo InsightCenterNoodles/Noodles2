@@ -1,2 +1,3 @@
+# Mesh component: attaches a mesh asset to an entity for rendering.
 pack MeshComponent
-- asset : MeshAssetID
+- asset : MeshAssetID # reference to a mesh asset

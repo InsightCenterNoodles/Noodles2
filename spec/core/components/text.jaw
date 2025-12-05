@@ -1,6 +1,7 @@
+# Text component: world/local space text rendering with color and nominal height.
 seq TextComponent
 - color : SRGB8
-- height : f32 # nominal text height in world units
+- height : f32 # nominal text height in local/world units
 - text : TextComponentContent
 
 

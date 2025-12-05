@@ -1,9 +1,12 @@
+# RPC endpoint component: advertises callable endpoints; argument hints are
+# informational and may be enforced at the application's discretion.
 # Signals that this entity represents a callable. 
-# a Global component on the same entity indicates that call results could have global effect, and the node may want to prioritize these methods on a UI
+# A Global component on the same entity indicates that call results could have global effect, 
+# and the node may want to prioritize these methods on a UI
 
 seq RPCEndpointComponent
 - name: RPCName
-- arguments: RPCArgumentHintList
+- arguments: RPCArgumentHintList # informational; implementations may enforce or ignore
 
 dyn_array RPCName : u8 * u8
 

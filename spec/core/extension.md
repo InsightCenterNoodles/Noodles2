@@ -6,11 +6,11 @@ The Core extension defines the baseline assets and components required for inter
 
 |Name      | Identifier | Description |
 |----------|------------| ----------- |
-| Buffer        | 0x0000     | A blob of bytes, used in other assets for providing byte-data |
-| Environment   | 0x0001     | An environment map |
-| Image         | 0x0002     | A decoded image, for use in texturing |
-| Mesh          | 0x0003     | Geometry data |
-| PBRMaterial   | 0x0004     | A PBR material |
+| Buffer        | 0x0000     | Raw byte storage, referenced by BufferView for higher-level assets. |
+| Environment   | 0x0001     | Environment/sky lighting; references image table entries by index. |
+| Image         | 0x0002     | Encoded image plus sampler/semantic flags. |
+| Mesh          | 0x0003     | Geometry attributes and indices in an uncompressed layout. |
+| PBRMaterial   | 0x0004     | PBR surface parameters with optional extended features; texture tables limited to 16 entries. |
 
 Notes:
 - `BufferView` references must target `Buffer` assets; higher-level assets reference buffers via views.
@@ -20,28 +20,28 @@ Notes:
 ## Components
 |Name      | Identifier | Description |
 |----------|------------| ----------- |
-| Global        | 0x0000     | Indicates that this entity has components that should be considered global. |
-| RPCEndpoint   | 0x0001     | An RPC call endpoint. |
-| Billboard     | 0x0002     | The entity should transform to always face the user. |
-| Environment   | 0x0003     | An environment skybox/light |
-| Instance      | 0x0004     | Explicit instancing |
-| Interactive   | 0x0005     | Can interact with entity |
-| CanTranslate  | 0x0006     | Can translate or move the entity |
-| CanRotate     | 0x0007     | Can rotate the entity |
-| CanScale      | 0x0008     | Can scale the entity |
-| Activate      | 0x0009     | Can the entity be "activated" or "clicked" |
-| DirectionalLight | 0x0010  | A parallel ray light source |
-| PointLight    | 0x0011     | A point light source |
-| SpotLight     | 0x0012     | A spot light source |
-| PBRMaterial   | 0x0013     | Attach a material to an entity |
-| Mesh          | 0x0014     | Attach a mesh to an entity |
-| Name          | 0x0015     | Provide a name to an entity |
-| ChildOf       | 0x0016     | Establish a parent-child entity relationship |
-| CanSelect     | 0x0017     | Can the entity be selected |
-| IsSelected    | 0x0018     | Attached if the entity is selected |
-| Text          | 0x0019     | 3D text rendering |
-| Transform     | 0x0020     | Local transformation |
-| Visibility    | 0x0021     | Scene visibility |
+| Global        | 0x0000     | Marks entities with scene-wide effects that should be prioritized. |
+| RPCEndpoint   | 0x0001     | Advertises callable endpoints; argument hints are informational. |
+| Billboard     | 0x0002     | Rotates to face the viewer (full face or Y-axis only). |
+| Environment   | 0x0003     | Binds an environment asset with intensity/rotation. |
+| Instance      | 0x0004     | Describes instancing buffers and quantization ranges. |
+| Interactive   | 0x0005     | Marks entities as interactive. |
+| CanTranslate  | 0x0006     | Translation affordance with hard per-axis limits. |
+| CanRotate     | 0x0007     | Rotation affordance with hard per-axis limits. |
+| CanScale      | 0x0008     | Scale affordance with hard per-axis limits. |
+| Activate      | 0x0009     | Activation targets entities (with RPCEndpoint) to invoke. |
+| DirectionalLight | 0x0010  | Directional light source. |
+| PointLight    | 0x0011     | Point light source. |
+| SpotLight     | 0x0012     | Spot light source. |
+| PBRMaterial   | 0x0013     | References a material asset. |
+| Mesh          | 0x0014     | References a mesh asset. |
+| Name          | 0x0015     | UTF-8 display name. |
+| ChildOf       | 0x0016     | Parent-child relationship. |
+| CanSelect     | 0x0017     | Entity is selectable. |
+| IsSelected    | 0x0018     | Selection state with outline color. |
+| Text          | 0x0019     | 3D text with color and height. |
+| Transform     | 0x0020     | Local transform (position/rotation/scale). |
+| Visibility    | 0x0021     | Visibility state (inherit/visible/invisible). |
 
 Notes:
 - Component payloads are complete replacements; partial updates are not defined.

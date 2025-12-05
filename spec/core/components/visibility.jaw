@@ -1,3 +1,4 @@
+# Visibility component: explicit visibility override or inherited state. By default, all visibility is inherited.
 enum VisibilityComponent : u8
 > Inherited = 0
 - Visible   = 1

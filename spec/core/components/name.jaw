@@ -1,1 +1,2 @@
+# Name component: UTF-8 display name for the entity.
 dyn_array NameComponent : u16 * u8 # UTF-8

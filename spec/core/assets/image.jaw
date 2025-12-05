@@ -1,8 +1,10 @@
+# Image asset: references an encoded image in a buffer slice plus sampler and
+# semantic flags (sRGB vs linear).
 alias ImageAssetID : AssetID
 
 seq ImageAsset
-- view: BufferView
-- flags: ImageFlags
+- view: BufferView # buffer slice containing the encoded image
+- flags: ImageFlags # sampling and semantic info
 
 enum ImageSemantic : u8
 - SRGB = 0

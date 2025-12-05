@@ -1,3 +1,4 @@
+# Transform component: local transform; always sent as a full replacement.
 pack TransformComponent
 - position: Vec3
 - rotation: UnitQuaternion

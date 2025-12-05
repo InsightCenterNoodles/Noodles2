@@ -1,10 +1,12 @@
+# Environment asset: couples environment/sky images with sampling flags and
+# indices into an image table for lighting and skybox use.
 alias EnvironmentAssetID : AssetID
 
 seq EnvironmentAsset
 - flags: EnvironmentFlags
-- table : EnvImageTable
-- env_map_index : u8
-- sky_map_index : u8
+- table : EnvImageTable # images referenced by indices below
+- env_map_index : u8 # zero-based index into table; ignored if has_env_map=0
+- sky_map_index : u8 # zero-based index into table; ignored if has_sky_map=0
 
 dyn_array EnvImageTable : u8 * ImageAssetID
 

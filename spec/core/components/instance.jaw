@@ -1,6 +1,9 @@
+# Instance component: describes an instancing buffer and quantization ranges.
+# Supports a full-float layout or a reduced, quantized layout for compact uploads.
 # Quantization values describe the world-space range used for Reduced instances.
-# ReducedInstance values are normalized (u16/i16) into [quant_bb_min, quant_bb_max]
-# for position and [quant_scale.x, quant_scale.y] for scalar/texture scale fields.
+# ReducedInstance values are normalized into [quant_bb_min, quant_bb_max] for
+# position (u16) and [quant_scale.x, quant_scale.y] for uniform scale (u16).
+# Texture translation/scale fields are normalized to [-1,1] using i16.
 
 
 pack InstanceComponent
@@ -16,8 +19,7 @@ enum InstanceType : u8
 - Reduced   = 1
 
 
-# 64B "fat" format. Preferred when upload size is not a concern or when the
-# platform benefits from direct, unpack-free vertex fetch.
+# 64B "fat" format. 
 pack FullFloatInstance
 - position: Vec4            # Px Py Pz _
 - rotation: UnitQuaternion  # 
@@ -28,12 +30,12 @@ pack ReducedInstance
 - px : u16
 - py : u16
 - pz : u16
-- s  : u16 #
-- rx : i16 # rotation
-- ry : i16
-- rz : i16
-- rw  : i16
-- ttu : i16 # tex translation
-- ttv : i16
-- tsu : i16 # tex scale
-- tsv : i16
+- s  : u16 # uniform scale normalized over [quant_scale.x, quant_scale.y]
+- rx : i16 # rotation quaternion x, normalized to [-1,1]
+- ry : i16 # rotation quaternion y, normalized to [-1,1]
+- rz : i16 # rotation quaternion z, normalized to [-1,1]
+- rw : i16 # rotation quaternion w, normalized to [-1,1]
+- ttu : i16 # tex translation u, normalized [-1,1]
+- ttv : i16 # tex translation v, normalized [-1,1]
+- tsu : i16 # tex scale u, normalized [-1,1]
+- tsv : i16 # tex scale v, normalized [-1,1]

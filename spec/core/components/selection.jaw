@@ -1,5 +1,5 @@
+# Selection components: opt-in to selection and expose outline styling when selected.
 seq CanSelectComponent
 
 pack IsSelectedComponent
-- color : SRGB8
-- width : f32
+- color : SRGB8 # outline color when selected

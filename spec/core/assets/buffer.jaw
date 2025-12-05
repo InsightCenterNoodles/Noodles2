@@ -1,9 +1,11 @@
+# Buffer asset: raw bytes that other assets reference via BufferView. Content
+# may be inlined, fetched by URL, or provided via an OOB asset channel.
 alias BufferAssetID : AssetID
 
 seq BufferAsset
 - byte_size : u64
 - flags : BufferAssetFlags
-- source : BufferSource
+- source : BufferSource # inline bytes, URL, or OOB asset
 
 bits BufferAssetFlags : u32
 - 0 hint : BufferDownloadHint

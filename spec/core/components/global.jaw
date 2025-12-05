@@ -1,1 +1,1 @@
-seq GlobalComponent
+seq GlobalComponent # marks an entity with scene-wide effects,
