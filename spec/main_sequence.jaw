@@ -1,7 +1,7 @@
 variant MainSequenceMessage : u8
 - 1 => Transaction
-- 2 => NamedTransaction
-- 3 => TransactionReply
+- 2 => ProposedChangeTransaction
+- 3 => ProposedTransactionReply
 - 4 => RPCInvoke
 - 5 => RPCReply
 
@@ -14,14 +14,57 @@ dyn_array ContentArray : u32 * ContentMessage
 seq Transaction
 - content : ContentArray
 
-seq NamedTransaction
-- transaction_id : u32
-- content : ContentArray
+# ==========================
+# Proposed transaction
 
-pack TransactionReply
+# Proposal from Downstream to Upstream to modify the world. Upstream MUST process proposals in arrival order
+# and serialize application. Any accepted proposal MUST be signalled by a ProposedTransactionReply and then
+# followed (in that order) by a Transaction message with the updated world state, which can include cascade
+# effects beyond the original proposal.
+#
+# There are two content arrays:
+# - modify_content uses canonical world EntityIDs/AssetIDs only and may only express modifications to
+#   existing items. It cannot reference IDs introduced in create_content.
+#   Allowed ContentMessage variants: ContentModifyComponents, ContentDeleteComponents,
+#   ContentDeleteEntities, ContentModifyAsset (with canonical AssetIDs).
+# - create_content operates in a transaction-local ID space for entities and assets to avoid collisions.
+#   These IDs MUST NOT reference existing content and are only meaningful for this proposal; remap tables
+#   in the reply map them to canonical world IDs. Allowed variants: ContentCreateEntities,
+#   ContentModifyComponents, ContentDeleteComponents, ContentDeleteEntities, ContentModifyAsset
+#   (interpreted as creating assets when asset IDs are local). ContentDeleteAsset in create_content MUST
+#   be rejected.
+# For assets in create_content: payloads MUST be provided inline (buffer-backed) from downstream to upstream;
+# no OOB channels or URLs are permitted. Asset deletion cannot be proposed and MUST be rejected.
+seq ProposedChangeTransaction
 - transaction_id : u32
-- code : u32 # 0 = accepted, non-zero = application-defined rejection reason
+- modify_content : ContentArray
+- create_content : ContentArray
 
+# Reply from Upstream to a proposed change. If accepted, and the change includes creation of assets or entities,
+# Downstream may need a way to understand which of the created items relates to the proposed items, thus
+# there are two lists to remap entities and assets. Otherwise, the lists are empty.
+seq ProposedTransactionReply
+- transaction_id    : u32
+- code              : u16 # 0 = accepted, non-zero = see table
+- remapped_entities : RemappedEntities
+- remapped_assets   : RemappedAssets
+
+# Error Codes (u16)
+# 1 => Denied: change not permitted for any reason (auth/policy/capability).
+# 2 => Resource exhaustion: insufficient resources to complete.
+# 3 => Malformed payload: failed to parse or contained disallowed content (e.g., asset deletion).
+# >= 256 => application-specific.
+
+pack EntityPairMap
+- from : EntityID
+- to   : EntityID
+
+pack AssetPairMap
+- from : AnAsset
+- to   : AnAsset
+
+dyn_array RemappedEntities : u16 * EntityPairMap
+dyn_array RemappedAssets : u16 * AssetPairMap
 
 # ==========================
 # RPC Invoke

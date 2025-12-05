@@ -30,18 +30,18 @@ Notes:
 | CanRotate     | 0x0007     | Rotation affordance with hard per-axis limits. |
 | CanScale      | 0x0008     | Scale affordance with hard per-axis limits. |
 | Activate      | 0x0009     | Activation targets entities (with RPCEndpoint) to invoke. |
-| DirectionalLight | 0x0010  | Directional light source. |
-| PointLight    | 0x0011     | Point light source. |
-| SpotLight     | 0x0012     | Spot light source. |
-| PBRMaterial   | 0x0013     | References a material asset. |
-| Mesh          | 0x0014     | References a mesh asset. |
-| Name          | 0x0015     | UTF-8 display name. |
-| ChildOf       | 0x0016     | Parent-child relationship. |
-| CanSelect     | 0x0017     | Entity is selectable. |
-| IsSelected    | 0x0018     | Selection state with outline color. |
-| Text          | 0x0019     | 3D text with color and height. |
-| Transform     | 0x0020     | Local transform (position/rotation/scale). |
-| Visibility    | 0x0021     | Visibility state (inherit/visible/invisible). |
+| DirectionalLight | 0x000A  | Directional light source. |
+| PointLight    | 0x000B     | Point light source. |
+| SpotLight     | 0x000C     | Spot light source. |
+| PBRMaterial   | 0x000D     | References a material asset. |
+| Mesh          | 0x000E     | References a mesh asset. |
+| Name          | 0x000F     | UTF-8 display name. |
+| ChildOf       | 0x0010     | Parent-child relationship. |
+| CanSelect     | 0x0011     | Entity is selectable. |
+| IsSelected    | 0x0012     | Selection state with outline color. |
+| Text          | 0x0013     | 3D text with color and height. |
+| Transform     | 0x0014     | Local transform (position/rotation/scale). |
+| Visibility    | 0x0015     | Visibility state (inherit/visible/invisible). |
 
 Notes:
 - Component payloads are complete replacements; partial updates are not defined.

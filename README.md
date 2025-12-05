@@ -21,9 +21,9 @@ NOODLES2 defines a protocol for collaborative, distributed visualization of stru
 
 ## Transactions and Authority
 
-- Downstream proposes, Upstream decides. A proposal is a `Transaction` (or `NamedTransaction` with response tracking) carrying a list of `ContentMessage` items (create/delete entities, modify/delete components, modify/delete assets).
-- `TransactionReply.code` = 0 means accepted; non-zero means rejected with an application-defined reason. Transactions are intended to be atomic, though some implementations may choose to apply updates in a non-atomic manner to achieve frame budget targets.
-- Upstream should rebroadcast the accepted canonical state after applying a transaction, rather than relying on a Downstream echo.
+- Downstream proposes, Upstream decides. Proposals use `ProposedChangeTransaction` with two buckets: `modify_content` (operates only on canonical world IDs; for modifying/deleting components/entities/assets) and `create_content` (transaction-local IDs for new entities/assets; remapped on accept). `create_content` cannot reference existing world IDs, and `modify_content` cannot reference IDs introduced in `create_content`.
+- Proposals are processed in strict arrival order. On acceptance, Upstream sends `ProposedTransactionReply` (code 0, with remap tables for created entities/assets) followed by a canonical `Transaction` broadcast that includes the applied changes and any cascade effects. Non-zero codes are rejected (1 denied, 2 resource exhausted, 3 malformed/disallowed, >=256 application-specific). No error message payload is returned.
+- Asset payloads in proposals must be inline buffers (no URLs or OOB) from Downstream to Upstream. Asset deletion proposals are rejected. Content variants allowed in `create_content`: create entities, modify/delete components, delete entities, modify asset (interpreted as create asset for local IDs). `modify_content` uses canonical IDs and excludes `ContentDeleteAsset`.
 
 ## RPC and Interaction
 
