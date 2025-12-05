@@ -6,69 +6,44 @@ NOODLES2 defines a protocol for collaborative, distributed visualization of stru
 
 ---
 
-## Design Objectives
+## Protocol Shape
 
-This specification is structured to achieve four primary objectives:
+- ECS-centered: entities (u32 IDs), components (typed data blobs), and assets (immutable payloads referenced by components).
+- Binary-first: layouts defined in `.jaw` schemas; little-endian, size-prefixed arrays; no optional fields aside from explicit variants.
+- Directed links: every connection has an Upstream (authority) and Downstream (proposer/consumer). Authority can be negotiated at handshake via `authority_request`.
+- Extensions: each extension owns component/asset ID space under a 16-bit namespace; only mutually advertised extensions should be used on a connection.
 
-1. Utilize ECS as the core abstraction for representing application state, allowing structured, modular encoding of scene elements.
-2. Maintain compact and efficient network communication via a simple binary layout.
-3. Establish a formal model of authority within the network topology to manage data consistency and conflict resolution.
-4. Support scalable node hierarchies through a directed topology of Upstream and Downstream relationships.
+## Connection Flow
 
-The ECS model used in NOODLES2 decomposes application state into entities (identifiers), components (data attached to entities), and spec-specified systems (behavioral logic applied to entity sets, realized through semantics).
+- Preamble: `Introduction` (or `Probe`) exchanges protocol version, capabilities (extension IDs), and optional out-of-band (OOB) asset channel hints. `authority_request` lets a client ask to be treated as the authority.
+- Main sequence: all stateful traffic after the handshake. Messages are encoded as `MainSequenceMessage` variants.
+- Capability gating: during connection, each side must only send component/asset types contained in the shared extension set.
 
----
+## Transactions and Authority
 
-## Network Topology and Entity Structure
+- Downstream proposes, Upstream decides. A proposal is a `Transaction` (or `NamedTransaction`) carrying a list of `ContentMessage` items (create/delete entities, modify/delete components, modify/delete assets).
+- `TransactionReply.code` = 0 means accepted; non-zero means rejected with an application-defined reason. Transactions are atomic.
+- Upstream should rebroadcast the accepted canonical state after applying a transaction, rather than relying on a Downstream echo.
 
-A NOODLES2 network consists of interconnected nodes. Each directed connection between two nodes assigns roles: the initiating node is the **Downstream**, and the receiving node is the **Upstream**. By default, the server-side node assumes the Upstream role, though this may be overridden during the handshake via an `authority_request` flag.
+## RPC and Interaction
 
-Each node may independently maintain one or more ECS worlds. An ECS world is a self-contained state model composed of entities, components, and optionally resources. Nodes may choose to forward, modify, or selectively suppress messages received from their Upstream when communicating with one or more Downstream connections.
+- Entities can advertise callable endpoints with the `RPCEndpointComponent`. Arguments and results are carried as `Any` values.
+- `RPCInvoke` references the target entity; `RPCReply` returns `RPCComplete`, `RPCStreamResult`, or `RPCError` with a UTF-8 message.
+- Interaction-related components (`CanTranslate`, `CanRotate`, `CanScale`, `Activate`) describe affordances; they are pure data and require application-level semantics.
 
-Entity identifiers are 32-bit unsigned integers in this reference. Nodes may implement additional isolation mechanisms—such as maintaining per-connection ECS instances—to avoid collisions or leakage of identifiers.
+## Assets and OOB Transfer
 
-Components are attached to entities and convey application-specific semantics. All components are assigned numeric type identifiers. NOODLES2 requires that component updates be sent in their entirety; partial updates or deltas are not supported. To mitigate redundancy, we design narrowly scoped components (e.g., separate position, rotation, and scale).
+- Assets are addressed by `AssetTypeID` + `AssetID`. Large, immutable payloads should flow over optional out-of-band asset channels (`OOBAssetInfo` in the preamble).
+- `BufferView` always references a `BufferAssetID`; higher-level assets (mesh, image, environment, material) reference buffer-backed views.
+- OOB errors include the requested `asset_id` plus a UTF-8 reason string.
 
-Large, immutable data such as textures or geometry are transmitted via optional dedicated out-of-band asset messages. Asset references are made using identifiers within component or resource payloads. This separation allows efficient caching and transfer of heavy payloads without affecting the primary message stream.
+## Extensions
 
----
+- Extension IDs are 16-bit namespaces for components and assets. The registry is tracked in `spec/registry.md`.
+- The Core extension (0x0000) defines the base component and asset types in `spec/core`.
+- During handshake, each side advertises supported extensions. Only the intersection should be used on the link.
 
-## Conflict Resolution and Update Semantics
+## Status and Roadmap
 
-NOODLES2 follows an authoritative model in which the Upstream node determines the canonical state. When a Downstream node proposes changes (such as creating an entity or modifying a component) it transmits a transaction proposal. The Upstream must then validate this request and respond with a `transaction_reply` message indicating acceptance or rejection.
-
-All proposals are treated atomically. Partial acceptance is not permitted; any deviation from a complete accept results in a full rejection. Upon acceptance, the Upstream is expected to broadcast the correct state for the affected entities or components. Implementations are recommended to use a last-write-wins strategy for resolving state contention, but this behavior is left undefined by the protocol and may be application-specific.
-
----
-
-## Transport and Message Handling
-
-NOODLES2 messages are transmitted over any binary stream (typically WebSockets) using the binary layout described below. Messages are split between `Preamble` (for connection setup and identity) and `MainSequence` messages (after the connection has been set up).
-
-Upon connection, a node must issue one of two message types:
-
-* `Introduction`: initiates a full session and declares node intent
-* `Probe`: requests node metadata without participating in session state
-
----
-
-## Planned Extensions
-
-A major planned feature is the introduction of **Systems**, which will formalize behavior and computation over ECS state. Systems will define operations applied to matching sets of entities and components and will support both reactive and scheduled modes of execution. This will transition NOODLES2 from a passive synchronization layer to a distributed simulation runtime.
-
-Additional roadmap items include:
-
-* Optional support for `libp2p` transport
-* Runtime schema registration and negotiation
-* Server-side asset deduplication
-* Role-based stream filtering and access controls
-
-These extensions are intended to broaden the protocol’s applicability and support larger-scale collaborative environments.
-
----
-
-## Specification Status
-
-This document describes a beta-stage protocol. The specification is not yet complete, and implementations are experimental. Structural elements and message definitions are subject to change as the design matures.
-
-Feedback from early adopters and contributors is encouraged. Issues, proposed changes, and reference implementations are welcome.
+- Beta-stage; schemas may still change. Systems (runtime behavior), richer capability negotiation, and transport options (e.g., libp2p) remain on the roadmap.
+- Feedback and implementation notes are welcome; keep the `.jaw` schemas and markdown docs in sync as behavior evolves.

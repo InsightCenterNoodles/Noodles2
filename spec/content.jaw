@@ -20,7 +20,7 @@ dyn_array Content: u32 * u8
 # ===================================================
 # Modify components attached to entities
 # The content is structured as a byte stream of (EntityID, Component) pairs. The count of such pairs is provided in the message for optimization, 
-# but readers should be careful to assume this might not be the truth.
+# but readers should treat the count strictly as a hint (e.g., for preallocation) and must parse until the content buffer is fully consumed.
 seq ContentModifyComponents
 - component: ComponentTypeID
 - count: u32

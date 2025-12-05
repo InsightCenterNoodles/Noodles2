@@ -4,4 +4,4 @@ seq TextComponent
 - text : TextComponentContent
 
 
-dyn_array TextComponentContent : u16 * u8
+dyn_array TextComponentContent : u16 * u8 # UTF-8

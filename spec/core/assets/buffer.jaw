@@ -23,4 +23,4 @@ dyn_array BufferURL : u16 * u8
 pack BufferView
 - offset : u64
 - length : u32
-- asset_id : AssetID
+- asset_id : BufferAssetID

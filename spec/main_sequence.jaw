@@ -2,9 +2,8 @@ variant MainSequenceMessage : u8
 - 1 => Transaction
 - 2 => NamedTransaction
 - 3 => TransactionReply
-- 4 => RPCInfo
-- 5 => RPCInvoke
-- 6 => RPCReply
+- 4 => RPCInvoke
+- 5 => RPCReply
 
 
 # ==========================
@@ -21,7 +20,7 @@ seq NamedTransaction
 
 pack TransactionReply
 - transaction_id : u32
-- code : u32
+- code : u32 # 0 = accepted, non-zero = application-defined rejection reason
 
 
 # ==========================
@@ -38,8 +37,6 @@ seq RPCInvoke
 # ==========================
 # RPC Reply
 
-dyn_array RPCArgumentList : u8 * Any
-
 seq RPCReply
 - this_invoke_id: u32
 - content: RPCReplyContent
@@ -55,6 +52,7 @@ seq RPCComplete
 seq RPCStreamResult
 - result: Any
 
+# UTF-8 error message
 dyn_array ErrorString : u32 * u8
 
 seq RPCError

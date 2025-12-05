@@ -9,7 +9,7 @@ enum IndexFormat : u8
 - U16  = 2
 - U32  = 3
 
-bits UncompressedFlags
+bits UncompressedFlags : u16
 - 0-1 format : IndexFormat
 - 2 has_normal : u8
 - 3 has_tangent : u8
@@ -33,7 +33,7 @@ enum TangentFormat : u8
 
 enum UVFormat : u8
 - float2 = 0
-- normalized_ushort2 = 1
+- normalized_ushort2 = 1sd
 
 pack PositionAttribute
 - common : UncompressedAttribCommon
@@ -41,7 +41,7 @@ pack PositionAttribute
 
 pack NormalAttribute
 - common : UncompressedAttribCommon
-- format : NormalFormatFormat
+- format : NormalFormat
 
 pack TangentAttribute
 - common : UncompressedAttribCommon
@@ -57,6 +57,10 @@ pack UncompressedIndex
 - index_count : u32
 
 
+# Attribute/index blocks are always present in the buffer. If a corresponding
+# has_* flag is false, the consumer should still advance the stream but ignore
+# the decoded attribute. When IndexFormat is None, the index block is read and
+# then ignored.
 pack MeshAsset
 - view : BufferView
 - vertex_count : u32 

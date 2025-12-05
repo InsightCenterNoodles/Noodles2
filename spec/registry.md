@@ -1,7 +1,9 @@
-Components, assets, etc, are collected under Extensions. All extensions are given a 2 byte identifier (namespace) for components and assets. 
+Extensions define namespaces for components and assets. Each is assigned a 16-bit identifier that scopes type IDs on the wire. Only extensions advertised by both peers during the preamble should appear in subsequent messages.
 
-|Extension | Identifier | Description |
-|----------|------------| ----------- |
-| Core     | 0x0000     | Core required components. All implementations must support these.|
+| Extension | Identifier | Description |
+|-----------|------------|-------------|
+| Core      | 0x0000     | Base assets and components required for interoperability. |
 
-During connection Upstream and Downstream should only send messages related to shared Extensions
+Notes:
+- Identifiers are little-endian on the wire.
+- Submit new extension IDs alongside a short description and contact so they can be recorded here.

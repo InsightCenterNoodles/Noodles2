@@ -1,3 +1,8 @@
+# Quantization values describe the world-space range used for Reduced instances.
+# ReducedInstance values are normalized (u16/i16) into [quant_bb_min, quant_bb_max]
+# for position and [quant_scale.x, quant_scale.y] for scalar/texture scale fields.
+
+
 pack InstanceComponent
 - view : BufferView
 - instance_count : u32

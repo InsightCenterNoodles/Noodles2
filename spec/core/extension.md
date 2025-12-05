@@ -1,5 +1,6 @@
 # Core Extension
 
+The Core extension defines the baseline assets and components required for interoperability. IDs are scoped under extension 0x0000 and should be available on every connection.
 
 ## Assets
 
@@ -10,6 +11,10 @@
 | Image         | 0x0002     | A decoded image, for use in texturing |
 | Mesh          | 0x0003     | Geometry data |
 | PBRMaterial   | 0x0004     | A PBR material |
+
+Notes:
+- `BufferView` references must target `Buffer` assets; higher-level assets reference buffers via views.
+- Image/material tables are intentionally small (up to 16 entries) to align with typical sampler limits.
 
 
 ## Components
@@ -37,3 +42,8 @@
 | Text          | 0x0019     | 3D text rendering |
 | Transform     | 0x0020     | Local transformation |
 | Visibility    | 0x0021     | Scene visibility |
+
+Notes:
+- Component payloads are complete replacements; partial updates are not defined.
+- `Global` marks entities whose effects may be scene-wide. Downstreams may prioritize their synchronization/UI.
+- `RPCEndpoint` exposes callable entry points; arguments/results use `Any` encoding.

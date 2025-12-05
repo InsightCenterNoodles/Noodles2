@@ -2,7 +2,7 @@ alias PBRMaterialAssetID : AssetID
 
 seq PBRMaterialAsset
 - base : PBRMaterialBase
-- extension: PBRMaterialExtended
+- extension: MaybePBRMaterialExtended
 - table : MaterialImageTable
 
 dyn_array MaterialImageTable : u8 * ImageAssetID
@@ -13,7 +13,7 @@ variant MaybePBRMaterialExtended : u8
 
 alias NormalizedUShort : u16  # normalized integer in [0, 65535] -> [0.0, 1.0]         
 
-alias ImageTableID : u8
+alias ImageTableID : u8 # table is limited to 16 entries ONLY. other ids are invalid
 
 # Face culling
 enum FaceCulling : u8 
@@ -32,15 +32,14 @@ enum AlphaMode : u8
 alias IOR : u16
 
 bits MatFlags : u16
-- 0   is_unlit    : u8
-- 1   double_sided : u8
-- 2   unlit        : u8
-- 3   fog_disabled : u8
-- 4-5 culling    : FaceCulling
-- 6-7 alpha      : AlphaMode
-- 8   has_color_texture : u8
-- 9   has_orm_texture   : u8
-- 10  has_normal_map    : u8
+- 0   double_sided : u8
+- 1   unlit        : u8
+- 2   fog_disabled : u8
+- 3-4 culling    : FaceCulling
+- 5-6 alpha      : AlphaMode
+- 7   has_color_texture : u8
+- 8   has_orm_texture   : u8
+- 9   has_normal_map    : u8
 
 alias UVChannel : u8
 
@@ -53,7 +52,7 @@ pack PBRMaterialBase
 - base_color : SRGBA8
 - roughness  : NormalizedUShort # Perceptual roughness [0,1] (normalized u16)
 - metallic   : NormalizedUShort # Metallic [0,1] (normalized u16)
-- IOR        : ior 
+- ior        : IOR
 - color_map  : TextureReference
 - orm_map    : TextureReference
 - normal_map : TextureReference
@@ -109,9 +108,9 @@ bits ClearcoatImagePack : u32
 - 1     has_roughness_map : u8
 - 2     has_normal_map : u8
 - 3-4   channel : UVChannel
-- 6-10  amount_map : ImageTableID
-- 11-14 roughness_map : ImageTableID
-- 15-18 normal_map : ImageTableID
+- 5-9  amount_map : ImageTableID
+- 10-13 roughness_map : ImageTableID
+- 14-17 normal_map : ImageTableID
 
 pack Parallax
 - depth_bias : f32

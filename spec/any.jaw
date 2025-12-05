@@ -1,5 +1,5 @@
 dyn_array AnyBytes : u32 * u8
-dyn_array AnyString : u32 * u8
+dyn_array AnyString : u32 * u8 # UTF-8
 dyn_array AnyArray : u32 * Any
 dyn_array AnyMap : u32 * AnyKeyPair
 
@@ -20,9 +20,9 @@ variant Any : u8
 - 9 => Vec4
 - 10 => UnitQuaternion
 - 11 => UUID
-- 12 => ComponentType
-- 13 => AssetType
+- 12 => ComponentTypeID
+- 13 => AssetTypeID
 - 14 => AnAsset
-- 15 => Entity
+- 15 => EntityID
 
 alias AnyTypeID: u8

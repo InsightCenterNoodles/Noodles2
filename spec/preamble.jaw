@@ -1,9 +1,9 @@
-# Core preamble messages. Skip zero?
+# Core preamble messages exchanged before the main sequence starts.
 variant PreMessage : u8
-- 1 => Probe
-- 2 => ProbeReply
-- 3 => Introduction
-- 4 => IntroductionReply
+- 0 => Probe
+- 1 => ProbeReply
+- 2 => Introduction
+- 3 => IntroductionReply
 
 dyn_array PreambleName : u8 * u8
 dyn_array PreambleIcon : u32 * u8
@@ -17,7 +17,7 @@ seq ProbeReply
 - icon : PreambleIcon
 
 bits IntroductionFlags : u16
-- 0 authority_request : u8
+- 0 authority_request : u8 # requester asks to be treated as upstream authority
 
 alias Introduction : IntroductionHeader
 
@@ -25,7 +25,7 @@ seq IntroductionHeader
 - protocol_version : u16
 - flags : IntroductionFlags
 - name : PreambleName
-- capabilities : PreambleCaps
+- capabilities : PreambleCaps # extensions supported by the sender
 
 dyn_array OOBPorts : u8 * u16
 
@@ -38,5 +38,5 @@ variant OOBAssetInfo : u8
 
 seq IntroductionReply
 - header : IntroductionHeader
-- capabilities : PreambleCaps
+- capabilities : PreambleCaps # extensions supported by the responder
 - large_assets: OOBAssetInfo

@@ -5,7 +5,7 @@
 
 alias OOBAssetID : u64
 
-variant OOBRequest
+variant OOBRequest : u8
 - 0 => OOBRequestContent
 
 seq OOBRequestContent
@@ -16,11 +16,17 @@ pack OOBReplyHeader
 - asset_size: u64
 
 dyn_array OOBContent : u64 * u8
+# UTF-8 string for error reporting
+dyn_array OOBString : u16 * u8
 
 seq OOBReplySuccess
 - header: OOBReplyHeader
 - content: OOBContent
 
-variant OOBReply
+seq OOBReplyFailure
+- asset_id: OOBAssetID
+- reason: OOBString
+
+variant OOBReply : u8
 - 0 => OOBReplySuccess
 - 1 => OOBReplyFailure
