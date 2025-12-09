@@ -21,12 +21,32 @@ pack UnitQuaternion
 
 fixed_array UUID : 4 * u32
 
-fixed_array SRGB8 : 3 * u8
-fixed_array SRGBA8 : 4 * u8
-fixed_array LinearRGB : 3 * f32
-fixed_array LinearRGBA : 4 * f32
+pack SRGB8
+- r : u8
+- g : u8
+- b : u8
 
-alias EntityID : u32
+pack SRGBA8
+- r : u8
+- g : u8
+- b : u8
+- a : u8
+
+pack LinearRGB
+- r : f32
+- g : f32
+- b : f32
+
+pack LinearRGBA
+- r : f32
+- g : f32
+- b : f32
+- a : f32
+
+# Entity ID; bit 63 marks patch-local placeholders in proposals and must be clear for canonical IDs.
+# id & (1 << 63) == 0 → real entity
+# id & (1 << 63) != 0 → patch-only placeholder entity
+alias EntityID : u64
 
 alias ExtensionID : u16
 
@@ -38,8 +58,11 @@ pack AssetTypeID
 - extension: ExtensionID
 - identifier: u16
 
-# Asset IDs are context sensitive; they have no meaning without an associated AssetTypeID
-alias AssetID : u32
+# Asset IDs are context sensitive; they have no meaning without an associated AssetTypeID.
+# Bit 63 marks patch-local placeholders in proposals and must be clear for canonical IDs.
+# id & (1 << 63) == 0 → real asset.
+# id & (1 << 63) != 0 → patch-only placeholder asset.
+alias AssetID : u64
 
 pack AnAsset 
 - asset_type : AssetTypeID

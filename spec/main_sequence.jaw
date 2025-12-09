@@ -21,24 +21,17 @@ seq Transaction
 # and serialize application. Any accepted proposal MUST be signalled by a ProposedTransactionReply and then
 # followed (in that order) by a Transaction message with the updated world state, which can include cascade
 # effects beyond the original proposal.
+# 
+# To create content (entities or assets), Downstream uses patch local addresses for new content, while still being able to reference existing. 
+# id & (1 << 63) == 0 → real entity or asset.
+# id & (1 << 63) != 0 → patch-only placeholder entity or asset.
+# The authority will realize these placeholders into real content. It is an error to try and use 'real' ids that have not been created by the authority.
 #
-# There are two content arrays:
-# - modify_content uses canonical world EntityIDs/AssetIDs only and may only express modifications to
-#   existing items. It cannot reference IDs introduced in create_content.
-#   Allowed ContentMessage variants: ContentModifyComponents, ContentDeleteComponents,
-#   ContentDeleteEntities, ContentModifyAsset (with canonical AssetIDs).
-# - create_content operates in a transaction-local ID space for entities and assets to avoid collisions.
-#   These IDs MUST NOT reference existing content and are only meaningful for this proposal; remap tables
-#   in the reply map them to canonical world IDs. Allowed variants: ContentCreateEntities,
-#   ContentModifyComponents, ContentDeleteComponents, ContentDeleteEntities, ContentModifyAsset
-#   (interpreted as creating assets when asset IDs are local). ContentDeleteAsset in create_content MUST
-#   be rejected.
-# For assets in create_content: payloads MUST be provided inline (buffer-backed) from downstream to upstream;
+# For assets: payloads MUST be provided inline (buffer-backed) from downstream to upstream;
 # no OOB channels or URLs are permitted. Asset deletion cannot be proposed and MUST be rejected.
 seq ProposedChangeTransaction
 - transaction_id : u32
-- modify_content : ContentArray
-- create_content : ContentArray
+- content : ContentArray
 
 # Reply from Upstream to a proposed change. If accepted, and the change includes creation of assets or entities,
 # Downstream may need a way to understand which of the created items relates to the proposed items, thus

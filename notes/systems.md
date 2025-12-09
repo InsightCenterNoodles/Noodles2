@@ -13,10 +13,10 @@ package noodles:host
 
 interface ecs {
   /// Adds a new component to an entity.
-  add_component: func(entity: u32, component_type: string, data: list<u8>)
+  add_component: func(entity: u64, component_type: string, data: list<u8>)
 
   /// Removes a component from an entity.
-  remove_component: func(entity: u32, component_type: string)
+  remove_component: func(entity: u64, component_type: string)
 
   /// Emits a CBOR-encoded message to the upstream node.
   send_message: func(data: list<u8>)
@@ -29,27 +29,27 @@ interface ecs {
 
   /// Requests the CBOR-encoded component data for an entity.
   /// Returns empty if not found.
-  get_component: func(entity: u32, component_type: string) -> option<list<u8>>
+  get_component: func(entity: u64, component_type: string) -> option<list<u8>>
 
   /// Spawns a new entity and returns its ID.
-  spawn_entity: func() -> u32
+  spawn_entity: func() -> u64
 
   /// Despawns an entity and all its components.
-  despawn_entity: func(entity: u32)
+  despawn_entity: func(entity: u64)
 }
 
 interface graphics {
   /// Attaches a mesh asset to an entity for visualization.
-  attach_mesh: func(entity: u32, mesh_id: string)
+  attach_mesh: func(entity: u64, mesh_id: string)
 
   /// Attaches a material asset to an entity.
-  attach_material: func(entity: u32, material_id: string)
+  attach_material: func(entity: u64, material_id: string)
 
   /// Sets the visibility of an entity.
-  set_visibility: func(entity: u32, visible: bool)
+  set_visibility: func(entity: u64, visible: bool)
 
   /// Updates the transform of an entity (CBOR-encoded transform component).
-  set_transform: func(entity: u32, transform: list<u8>)
+  set_transform: func(entity: u64, transform: list<u8>)
 }
 
 world noodles-host {

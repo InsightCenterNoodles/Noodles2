@@ -1,6 +1,7 @@
 ; All types parsed as c-style, IEEE, little-endian
 
-ENTITY_ID = u32
+; Entity identifiers are 64-bit; bit 63 is reserved for patch-local placeholders in proposals.
+ENTITY_ID = u64
 
 ; An identifier for a component type
 ; Note: This is a signed integer!
@@ -10,7 +11,8 @@ COMPONENT_ID = i16
 RESOURCE_ID = i16
 
 ; An identifier for a specific asset. Different asset types are considered different namespaces for these IDs
-ASSET_ID = u32
+; Asset identifiers mirror entities: 64-bit with bit 63 reserved for patch-local placeholders in proposals.
+ASSET_ID = u64
 
 ; A specific asset type
 ASSET_TYPE_ID = u16

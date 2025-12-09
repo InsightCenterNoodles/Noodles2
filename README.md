@@ -8,9 +8,9 @@ NOODLES2 defines a protocol for collaborative, distributed visualization of stru
 
 ## Protocol Shape
 
-- ECS-centered: entities (u32 IDs), components (typed data blobs), and assets (immutable payloads referenced by components).
+- ECS-centered: entities/assets use 64-bit IDs (bit 63 reserved for patch-local placeholders in proposals), with components as typed data blobs and assets as payloads referenced by components.
 - Binary-first: layouts defined in `.jaw` schemas; little-endian, size-prefixed arrays; no optional fields aside from explicit variants.
-- Directed links: every connection has an Upstream (authority) and Downstream (proposer/consumer). Authority can be negotiated at handshake via `authority_request`.
+- Directed links: every connection has an Upstream (authority) and one or more Downstreams (proposer/consumer). Authority can be negotiated at handshake via `authority_request`.
 - Extensions: each extension owns component/asset ID space under a 16-bit namespace; only mutually advertised extensions should be used on a connection.
 
 ## Connection Flow
@@ -21,9 +21,9 @@ NOODLES2 defines a protocol for collaborative, distributed visualization of stru
 
 ## Transactions and Authority
 
-- Downstream proposes, Upstream decides. Proposals use `ProposedChangeTransaction` with two buckets: `modify_content` (operates only on canonical world IDs; for modifying/deleting components/entities/assets) and `create_content` (transaction-local IDs for new entities/assets; remapped on accept). `create_content` cannot reference existing world IDs, and `modify_content` cannot reference IDs introduced in `create_content`.
-- Proposals are processed in strict arrival order. On acceptance, Upstream sends `ProposedTransactionReply` (code 0, with remap tables for created entities/assets) followed by a canonical `Transaction` broadcast that includes the applied changes and any cascade effects. Non-zero codes are rejected (1 denied, 2 resource exhausted, 3 malformed/disallowed, >=256 application-specific). No error message payload is returned.
-- Asset payloads in proposals must be inline buffers (no URLs or OOB) from Downstream to Upstream. Asset deletion proposals are rejected. Content variants allowed in `create_content`: create entities, modify/delete components, delete entities, modify asset (interpreted as create asset for local IDs). `modify_content` uses canonical IDs and excludes `ContentDeleteAsset`.
+- Downstream proposes, Upstream decides. Proposals use `ProposedChangeTransaction` carrying the same `ContentMessage` variants as authoritative `Transaction`. New entities/assets in a proposal MUST use patch-local IDs with bit 63 set; canonical IDs keep bit 63 clear. This lets a single proposal mix references to existing and newly created content; Upstream rejects unknown canonical IDs or patch-local IDs outside proposals.
+- Proposals are processed in strict arrival order. On acceptance, Upstream sends `ProposedTransactionReply` (code 0) with remap tables from patch-local → canonical entities/assets, followed by a canonical `Transaction` broadcast that includes the applied changes and any cascade effects. Non-zero codes are rejected (1 denied, 2 resource exhausted, 3 malformed/disallowed, >=256 application-specific). No error message payload is returned.
+- Asset payloads in proposals must be inline buffers (no URLs or OOB) from Downstream to Upstream. Asset deletion proposals are rejected.
 
 ## RPC and Interaction
 

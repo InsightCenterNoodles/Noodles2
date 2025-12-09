@@ -1,0 +1,240 @@
+# Expose options and parameters to clients for display and modification.
+# Parameters are a simple way of providing a UI. Simple is the key here; for more complex UIs and interaction, it is recommended that the server provide an alternative means
+# such as a webpage, etc
+# Clients may update the UI by writing state component changes, as well as changing children. The server will validate changes.
+
+# Marker, for a parameter tree root element
+# A Global root might be a candidate for placement in a sidebar, otherwise, consider it to be local to the entity in question
+seq ParameterRootComponent
+
+
+# This is opposite of how we usually do things in ECS. However, there are a number of benefits for UI toolkits which don't follow the ECS paradigm.
+dyn_array ParameterChildList : u16 * EntityID
+
+# ==============================================================
+# Misc
+
+# Icons are well known strings that are mapped to font icons for the target platform. See below for known names.
+# If unknown, may be mapped to the closest logical icon
+dyn_array Icon : u8 * u8
+
+dyn_array ParamLabelString : u8 * u8
+dyn_array ParamTextString : u16 * u8
+
+variant ParamValue : u8 
+- 0 => i64
+- 1 => f64
+
+# A tree of options that are enabled when this mode is selected. Children of this entity form the tree of parameters.
+# IDs must be >= 0; negatives are reserved, and -1 is used to denote a None option, if allowed.
+seq ModeOption
+- label: ParamLabelString
+- id: i32
+- icon: Icon
+- list: ParameterChildList
+
+enum ModeKind: u8
+- Exclusive = 0
+- Tabs = 1
+
+dyn_array ModeList : u8 * ModeOption
+
+seq SelectOption
+- id: i32
+- label: ParamLabelString
+
+dyn_array SelectOptionList : u8 * SelectOption
+
+enum LabelKind: u8
+- Title = 0
+- Subtitle = 1
+- Help = 2
+- Warning = 3
+
+enum ButtonKind: u8
+- Normal = 0
+- Destructive = 1
+
+enum RangeKind: u8
+- Slider = 0
+- Step = 1
+
+seq ParameterComponent
+- disabled: u8
+- label: ParamLabelString
+
+enum DateTimeKind: u8
+- Date = 0
+- Time = 1
+- DateTime = 2 
+
+enum ContainerKind: u8
+- Section = 0
+- Group = 1
+
+enum SelectKind: u8 
+- Dropdown = 0
+- LargeMenu = 1
+- SegmentedButtons = 2
+
+variant MaybeParamValue : u8
+- 0 => void
+- 1 => i64
+- 2 => f64
+
+# ==============================================================
+# Defintitions / Structure
+
+seq LabelDefinition
+- text: ParamTextString
+- kind: LabelKind
+    
+# Models a tree of params that are exclusively enabled
+# If none_allowed, clients may set or may see an active id of -1, which is None
+seq ModesDefinition
+- none_allowed: u8
+- list: ModeList
+- kind: ModeKind
+
+seq ToggleDefinition
+
+# Entity target must have RPC call component. RPC design has one RPC endpoint component per entity.
+seq ButtonDefinition
+- target: EntityID
+- payload: AnyArray // passed to the existing RPC def in the component
+- button_kind: ButtonKind
+    
+#
+seq RangeDefinition 
+- min: ParamValue
+- max: ParamValue
+- step: MaybeParamValue
+- unit: ParamLabelString # may be empty
+- kind: RangeKind
+
+# Raw text number input
+seq NumberDefinition
+- is_int: u8
+- min: MaybeParamValue
+- max: MaybeParamValue
+- step: MaybeParamValue
+
+
+seq DateTimeDefinition
+- kind: DateTimeKind
+
+# If none_allowed, clients may set or may see an active id of -1, which is None
+seq SelectDefinition
+- none_allowed: u8
+- options: SelectOptionList
+- kind: SelectKind
+
+seq ListDefinition
+- reorderable: u8
+- allow_add: u8
+- allow_remove: u8
+
+seq ContainerDefinition
+- kind: ContainerKind
+- list: ParameterChildList
+
+seq ProgressDefinition
+
+# A component that defines the 'widget' type of this parameter.
+variant ParamDefinitionComponent : u8
+- 0  => LabelDefinition
+- 1  => ModesDefinition
+- 2  => ToggleDefinition
+- 3  => ButtonDefinition
+- 4  => RangeDefinition
+- 5  => NumberDefinition
+- 6  => DateTimeDefinition
+- 7  => SelectDefinition
+- 8  => ListDefinition
+- 9  => ContainerDefinition
+- 10 => ProgressDefinition
+
+# ==============================================================
+# Current State
+
+seq LabelState
+    
+seq ModesState
+- active_id: i32
+
+seq ToggleState
+- value: u8
+
+seq ButtonState
+    
+seq RangeState
+- value: ParamValue
+
+seq NumberState
+- value: ParamValue
+
+# In UTC.
+# Date -> YYYY-MM-DD
+# Time -> HH:MM:SS or HH:MM
+# DateTime -> ISO 8601 string
+seq DateTimeState
+- value: ParamLabelString
+
+seq SelectState
+- active_id: i32
+
+seq ListState
+- list: ParameterChildList
+
+seq ContainerState
+
+seq ProgressState
+- normalized: f64
+
+variant ParamStateComponent : u8
+- 0  => LabelState
+- 1  => ModesState
+- 2  => ToggleState
+- 3  => ButtonState
+- 4  => RangeState
+- 5  => NumberState
+- 6  => DateTimeState
+- 7  => SelectState
+- 8  => ListState
+- 9  => ContainerState
+- 10 => ProgressState
+
+# ==============================================================
+# Known Icons
+
+# action.add
+# action.remove
+# action.refresh
+# action.reset
+# action.search
+# action.save
+# 
+# nav.back
+# nav.forward
+# 
+# media.play
+# media.pause
+# 
+# toggle.eye_open
+# toggle.eye_closed
+# toggle.check
+# toggle.lock
+# toggle.unlock
+# 
+# status.info
+# status.warning
+# status.error
+# 
+# view.zoom_in
+# view.zoom_out
+# view.fullscreen
+# view.exit_fullscreen
+# 
+# misc.more_vertical
+# misc.settings
+# misc.close
