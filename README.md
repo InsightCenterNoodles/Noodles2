@@ -22,7 +22,7 @@ NOODLES2 defines a protocol for collaborative, distributed visualization of stru
 ## Transactions and Authority
 
 - Downstream proposes, Upstream decides. Proposals use `ProposedChangeTransaction` carrying the same `ContentMessage` variants as authoritative `Transaction`. New entities/assets in a proposal MUST use patch-local IDs with bit 63 set; canonical IDs keep bit 63 clear. This lets a single proposal mix references to existing and newly created content; Upstream rejects unknown canonical IDs or patch-local IDs outside proposals.
-- Proposals are processed in strict arrival order. On acceptance, Upstream sends `ProposedTransactionReply` (code 0) with remap tables from patch-local → canonical entities/assets, followed by a canonical `Transaction` broadcast that includes the applied changes and any cascade effects. Non-zero codes are rejected (1 denied, 2 resource exhausted, 3 malformed/disallowed, >=256 application-specific). No error message payload is returned.
+- Proposals are processed in strict arrival order. On acceptance, Upstream sends `ProposedTransactionReply` (code 0) with remap tables from patch-local → canonical entities/assets, followed by a canonical `Transaction` broadcast that includes the applied changes and any cascade effects. Non-zero codes are rejections (1 denied, 2 resource exhausted, 3 malformed/disallowed, >=256 application-specific). No error message payload is returned.
 - Asset payloads in proposals must be inline buffers (no URLs or OOB) from Downstream to Upstream. Asset deletion proposals are rejected.
 
 ## RPC and Interaction

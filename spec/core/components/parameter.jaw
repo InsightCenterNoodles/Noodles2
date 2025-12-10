@@ -9,6 +9,7 @@ seq ParameterRootComponent
 
 
 # This is opposite of how we usually do things in ECS. However, there are a number of benefits for UI toolkits which don't follow the ECS paradigm.
+# It is not an error for a child to appear in multiple lists.
 dyn_array ParameterChildList : u16 * EntityID
 
 # ==============================================================

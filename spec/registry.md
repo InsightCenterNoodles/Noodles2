@@ -7,3 +7,4 @@ Extensions define namespaces for components and assets. Each is assigned a 16-bi
 Notes:
 - Identifiers are little-endian on the wire.
 - Submit new extension IDs alongside a short description and contact so they can be recorded here.
+- Components should have a "Component" postfix. Assets should have an "Asset" postfix.
