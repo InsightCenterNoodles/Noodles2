@@ -2,6 +2,8 @@
 # Why not use the RPC call stuff in alternate channels? This is an optional element
 
 # Clients may only send the OOBRequest message, and servers may only send the OOBReply message
+# Assets are not transferred in chunks; they are done all at once, in one transfer.
+# Servers must not truncate or pad content. Clients MUST reject OOB content that does not comply.
 
 alias OOBAssetID : u64
 
@@ -13,9 +15,10 @@ seq OOBRequestContent
 
 pack OOBReplyHeader
 - asset_id: OOBAssetID
-- asset_size: u64
 
+# This provides the canonical length of the data as well. 
 dyn_array OOBContent : u64 * u8
+
 # UTF-8 string for error reporting
 dyn_array OOBString : u16 * u8
 

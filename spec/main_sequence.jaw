@@ -23,19 +23,23 @@ seq Transaction
 # effects beyond the original proposal.
 # 
 # To create content (entities or assets), Downstream uses patch local addresses for new content, while still being able to reference existing. 
+# Patch-local means that these are IDs that are scoped to this specific proposal only.
 # id & (1 << 63) == 0 → real entity or asset.
 # id & (1 << 63) != 0 → patch-only placeholder entity or asset.
 # The authority will realize these placeholders into real content. It is an error to try and use 'real' ids that have not been created by the authority.
 #
 # For assets: payloads MUST be provided inline (buffer-backed) from downstream to upstream;
 # no OOB channels or URLs are permitted. Asset deletion cannot be proposed and MUST be rejected.
+#
+# There are no partial applications. Either the proposal is accepted in full, or rejected in full.
 seq ProposedChangeTransaction
 - transaction_id : u32
 - content : ContentArray
 
 # Reply from Upstream to a proposed change. If accepted, and the change includes creation of assets or entities,
 # Downstream may need a way to understand which of the created items relates to the proposed items, thus
-# there are two lists to remap entities and assets. Otherwise, the lists are empty.
+# there are two lists to remap entities and assets. Otherwise, the lists are empty. The lists are also empty upon a rejection.
+# Mappings are one-to-one, and must include all placeholders provided by Downstream. If an asset or entity cannot be realized, that would be a rejection.
 seq ProposedTransactionReply
 - transaction_id    : u32
 - code              : u16 # 0 = accepted, non-zero = see table
@@ -64,6 +68,10 @@ dyn_array RemappedAssets : u16 * AssetPairMap
 
 dyn_array RPCArgumentList : u8 * Any
 
+# A request to invoke an RPC endpoint with given arguments
+# this_invoke_id is used to correlate requests with responses, as the server may handle requests
+# in any order. If this_invoke_id is 0, then the client is signalling that they are not interested in a response, and the server must elide the reply.
+# this_invoke_id values can be repeated iff used values are not currently in-flight. 
 seq RPCInvoke
 - this_invoke_id: u32
 - endpoint: EntityID
@@ -73,6 +81,7 @@ seq RPCInvoke
 # ==========================
 # RPC Reply
 
+# A response to an RPC endpoint invoke request. this_invoke_id is correlated with the request.
 seq RPCReply
 - this_invoke_id: u32
 - content: RPCReplyContent
@@ -82,15 +91,19 @@ variant RPCReplyContent : u8
 - 1 => RPCError
 - 2 => RPCStreamResult
 
+# The call has completed, with the given value result
 seq RPCComplete
 - result: Any
 
+# The call is in process, and has yielded the given value. Additional RPCStreamResult replies may result, and will be terminated by a final RPCComplete.
+# An RPCError reply is also terminal to streams. Streaming is not legal with this_invoke_id == 0; a zero this_invoke_id implies the client is not interested in replies. 
 seq RPCStreamResult
 - result: Any
 
 # UTF-8 error message
 dyn_array ErrorString : u32 * u8
 
+# The call resulted in an error. If the call was a streaming call, this indicates the stream has ended.
 seq RPCError
 - code : u16
 - message : ErrorString

@@ -35,7 +35,7 @@ enum TangentFormat : u8
 
 enum UVFormat : u8
 - float2 = 0
-- normalized_ushort2 = 1sd
+- normalized_ushort2 = 1
 
 pack PositionAttribute
 - common : UncompressedAttribCommon

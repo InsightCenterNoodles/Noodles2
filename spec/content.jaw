@@ -33,10 +33,14 @@ seq ContentDeleteComponents
 # ===================================================
 # Modify asset
 
-# This is a single asset
+# Adds or updates an existing asset
 seq ContentModifyAsset
 - an_asset: AnAsset
 - content: Content
 
+# Schedules an asset for deletion. 
+# It should be anticipated by clients that a server may delete an asset, even though it is being referenced. In this case, the client is informed that the asset should be removed
+# only after all references to it are deleted (shared_ptr like semantics). 
+# Clients MAY NOT propose asset deletion. 
 seq ContentDeleteAsset
 - an_asset: AnAsset

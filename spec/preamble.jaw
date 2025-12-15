@@ -22,6 +22,10 @@ bits IntroductionFlags : u16
 
 alias Introduction : IntroductionHeader
 
+# Sent upon opening a channel to a server. By default, the server will be Upstream, and the client Downstream.
+# This can be requested to be reversed with the authority_request flag. If the server agrees, the roles will be reversed, and a 
+# normal IntroductionHeader will be sent by the server to the client, following normal connection rules (with a cleared authority_request flag).
+# If the server does not agree, the server will close the connection.
 seq IntroductionHeader
 - protocol_version : u16
 - flags : IntroductionFlags
@@ -39,5 +43,4 @@ variant OOBAssetInfo : u8
 
 seq IntroductionReply
 - header : IntroductionHeader
-- capabilities : PreambleCaps # extensions supported by the responder
 - large_assets: OOBAssetInfo

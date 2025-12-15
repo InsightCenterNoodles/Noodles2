@@ -102,7 +102,7 @@ seq ToggleDefinition
 # Entity target must have RPC call component. RPC design has one RPC endpoint component per entity.
 seq ButtonDefinition
 - target: EntityID
-- payload: AnyArray // passed to the existing RPC def in the component
+- payload: AnyArray # passed to the existing RPC def in the component
 - button_kind: ButtonKind
     
 #

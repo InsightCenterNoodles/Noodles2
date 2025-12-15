@@ -31,7 +31,7 @@ enum AlphaMode : u8
 - Blend = 2
 - Premultiplied = 3
 
-# Index of Refraction (IOR). Normalized between 1-5, x = ((IOR - 1.0) / 5.0) * 65535
+# Index of Refraction (IOR). Normalized between 1-5, x = ((IOR - 1.0) / 4.0) * 65535
 alias IOR : u16
 
 bits MatFlags : u16
