@@ -19,7 +19,8 @@ variant BufferSource : u8
 - 1 => BufferFromURL
 - 2 => OOBAssetID
 
-# Inline content is limited to 4 GB to avoid stalling the main communication channel. 
+# Inline content is limited to 4 GB to avoid stalling the main communication channel. It is HIGHLY discouraged
+# to send an asset this size over the main channel! Downstream are free to disconnect rather than consume the asset!
 # Large assets SHOULD be sent over the Out-Of-Band system instead, and prefer to inline only small assets.
 # The definition of small assets is variable to the application, but recommendations are < 10 MB.
 # Proposals to add buffer assets MUST use inline content only. 

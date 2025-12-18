@@ -3,21 +3,21 @@
 
 pack DirectionalLightComponent
 - color : SRGB8
-- intensity : f32 # luminous intensity multiplier
+- intensity : f32   # Illuminance in lux (lumens per square meter)
 - flags : LightFlags
 
 pack PointLightComponent
 - color : SRGB8
-- intensity : f32
-- range : f32 # attenuation range
+- intensity : f32   # Luminous power in lumens
+- range : f32       # attenuation range
 - flags : LightFlags
 
 pack SpotLightComponent
 - color : SRGB8
-- intensity : f32
+- intensity : f32   # Luminous power in lumens
 - range : f32
-- inner_angle_deg : f32
-- outer_angle_deg : f32
+- inner_angle_rads : f32
+- outer_angle_rads : f32
 - flags : LightFlags
 
 bits LightFlags : u32

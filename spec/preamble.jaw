@@ -34,6 +34,7 @@ seq IntroductionHeader
 
 dyn_array OOBPorts : u8 * u16
 
+# OOB Channels are to be provided over the given ports with Websockets.
 seq OOBAssetChannels : u8
 - ports : OOBPorts
 

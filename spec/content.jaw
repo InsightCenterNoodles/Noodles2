@@ -15,10 +15,14 @@ alias ContentCreateEntities: EntityList
 
 alias ContentDeleteEntities: EntityList
 
+# Packed component data. Technical limits are 4 GB, but it is NOT recommended that Upstream send anything close
+# to this. Upstream SHOULD make all efforts to break larger updates into smaller transactions. Downstreams are free
+# to disconnect rather than service large transactions.
 dyn_array Content: u32 * u8
 
 # ===================================================
 # Modify components attached to entities
+# Entities that do not exist are created. 
 # The content is structured as a byte stream of (EntityID, Component) pairs. The count of such pairs is provided in the message for optimization, 
 # but readers should treat the count strictly as a hint (e.g., for preallocation) and must parse until the content buffer is fully consumed.
 seq ContentModifyComponents

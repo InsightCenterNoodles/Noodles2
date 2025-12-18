@@ -18,12 +18,18 @@ pack AllowedAxis
 - z : AxisRange
 - flags : AllowedAxisFlags
 
+# Can users interactively translate this entity? 
+# Optional hard limits for translation per-axis are in scene units
 pack CanTranslateComponent
-- axes : AllowedAxis # hard limits for translation per-axis
+- axes : AllowedAxis 
 
+# Can users interactively rotate this entity? 
+# Optional hard limits for rotating per-axis are in radians
 pack CanRotateComponent
 - axes : AllowedAxis # hard limits for rotation per-axis, described as Euler angles
 
+# Can users interactively scale this entity? 
+# Optional hard limits for scaling per-axis are in absolute scale
 pack CanScaleComponent
 - axes : AllowedAxis # hard limits for scale per-axis
 
