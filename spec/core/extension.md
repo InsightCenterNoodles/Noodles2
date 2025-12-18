@@ -49,6 +49,7 @@ Notes:
 | Skin             | 23         | Joint palette and inverse bind matrices for skinned meshes. |
 | MorphWeights     | 24         | Current morph target weights for an entity's mesh. |
 | TimeSync         | 25         | Common timebase support.                           |
+| PBRMaterialOverride | 26         | Material property override per-entity.  |
 
 Notes:
 - Component payloads are complete replacements; partial updates are not defined.
@@ -81,8 +82,23 @@ Core-defined targets:
 | `SpotLightComponent`      | (0, 12)           | 0→`color`                             | SRGB8 |
 | `SpotLightComponent`      | (0, 12)           | 1→`intensity`                         | Float |
 | `MorphWeightsComponent`   | (0, 24)           | 0→weight[`sub_index`]                 | Float |
+| `PBRMaterialOverride`     | (0, 26)           | 0→`base_color`                        | SRGBA8 |
+| `PBRMaterialOverride`     | (0, 26)           | 1→`roughness`                         | Float |
+| `PBRMaterialOverride`     | (0, 26)           | 2→`metallic`                          | Float |
+| `PBRMaterialOverride`     | (0, 26)           | 3→`ior`                               | Float |
 
 If a component id is not known, or the animation value cannot be coerced to the target component member, the node is free to ignore this animation.
+
+### Value Coertion
+
+It is possible, in this spec, to have an AnimationValueType that does not fully match with the target value type. The client may then coerce the animated value to the proper type. Legal conversions are provided:
+
+| From (v)          | To (y)        | Notes         |
+|---                |---            | ---           |
+|f32                | Float3        | y = [v, v, v] |
+|Float3             | f32           | y = v.x       |
+|SRGBA8             | SRGB8         | y = [v.r, v.g, v.b] |
+|SRGB8              | SRGBA8        | y = [v.r, v.g, v.b, 255] |
 
 ### Reference Evaluation
 

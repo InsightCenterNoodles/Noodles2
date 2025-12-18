@@ -28,11 +28,12 @@ enum AnimInterpolation : u8
 
 # Supported animation value types
 # For rotations, quaternions must be stored as unit. There must be hemisphere continuity. Linear interpolation is by spherical linear (slerp).
+# Colors are provided with alpha, but that channel can be ignored: See coercion in the extension doc.
 enum AnimationValueType : u8
 > Float = 0         # f32, can be used for scalars and morph weights, etc.
 - Float3 = 1        # Vec3 (3 * f32)
 - Rotation = 2      # UnitQuaternion (4 * f32)
-- SRGB8    = 3      # Color, ubyte, no alpha (1 * u32) 
+- SRGBA8   = 3      # Color, ubyte, with alpha (1 * u32) 
 
 # sub-index can be used to address sub-parts of a component member. For example, morph weights
 pack AnimTargetPath

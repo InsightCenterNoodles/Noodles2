@@ -1,3 +1,10 @@
 # Material component: attaches a PBR material asset to an entity.
 pack PBRMaterialComponent
 - asset : PBRMaterialAssetID # reference to a material asset
+
+# Set an entity-specific override for a material property
+pack PBRMaterialOverrideComponent
+- base_color : SRGBA8
+- roughness  : f32
+- metallic   : f32
+- ior        : f32
