@@ -37,6 +37,12 @@ NOODLES2 defines a protocol for collaborative, distributed visualization of stru
 - `BufferView` references a `BufferAssetID`; higher-level assets (mesh, image, environment, material) reference buffer-backed views.
 - OOB errors include the requested `asset_id` plus a UTF-8 reason string.
 
+## Animation and Deformation
+
+- Core includes an `AnimationAsset` (samplers/channels) plus `AnimatorComponent` for layered playback.
+- Mesh assets now describe joint/weight attributes for skinning and optional morph targets; `SkinComponent` supplies joint palettes and inverse bind matrices.
+- `MorphWeightsComponent` carries per-entity weights; animation channels may target specific weights by index.
+
 ## Extensions
 
 The specification is designed for expandability and modularity through Extensions. Extensions define a collection of components, assets, and semantics with optional dependencies on other Extensions.

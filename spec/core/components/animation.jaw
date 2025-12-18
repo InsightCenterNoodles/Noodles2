@@ -1,0 +1,52 @@
+# Animator component: describes layered playback of animation clips. Authority
+# updates this component; downstreams evaluate locally using monotonic time.
+# Time is sourced from the TimeSyncComponent
+
+# Layering rules:
+# - Layers are evaluated in array order.
+# - For each target path, override (is_additive == 0) contributions are blended by weight.
+# - If the total override weight for a path is 0, the override stage does not write that path.
+# - After overrides, additive (is_additive != 0) layers are applied in array order.
+
+# Weighting:
+# - Override blending is performed per-path using only layers that contribute to that path.
+# - Implementations SHOULD clamp negative weights to 0.
+# - Override weights are normalized by sum_w per-path.
+
+# Additive semantics:
+# - Float / Float3 additive: base += weight * sample
+# - Rotation additive: treat sample as a delta from identity and apply multiplicatively:
+#     base = base * slerp(identity, sample, weight)
+#   (Rotation additive is therefore "no-op" when sample == identity.)
+
+# Looping / time mapping:
+# Given local monotonic time now_seconds, each layer computes:
+#   clip_t = (now_seconds - start_time) * speed + clip_time_offset
+# Then clip_t is mapped into [0, duration_seconds] according to loop_mode:
+# - Loop:    clip_t = clip_t mod duration_seconds  (for duration_seconds > 0)
+# - Clamp:   clip_t = clamp(clip_t, 0, duration_seconds)
+# - PingPong:reflect within [0, duration_seconds] (triangle wave)
+# If duration_seconds == 0, the layer contributes no samples.
+
+enum AnimLoopMode : u8
+- Loop = 0
+- Clamp = 1
+- PingPong = 2
+
+pack AnimLayer
+- animation : AnimationAssetID
+- start_time : f64 # authority monotonic seconds when this layer began (TimeSync timebase)
+- clip_time_offset : f64 # seconds into the clip at start_time
+- speed : f32 # 1.0 = realtime
+- weight : f32 # contribution; base layers should be normalized
+- loop_mode : AnimLoopMode
+- is_additive : u8 # additive layers apply deltas instead of overrides
+
+dyn_array AnimLayerList : u8 * AnimLayer
+
+pack AnimatorComponent
+- layers : AnimLayerList # evaluated in array order
+
+# Current morph weights for an entity; length must match the mesh's morph target count.
+# If absent, implementations SHOULD treat all weights as 0.
+dyn_array MorphWeightsComponent : u16 * f32

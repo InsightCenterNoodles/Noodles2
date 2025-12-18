@@ -19,7 +19,17 @@ pack UnitQuaternion
 - z : f32
 - w : f32
 
-fixed_array UUID : 4 * u32
+pack Mat4
+- c0 : Vec4
+- c1 : Vec4
+- c2 : Vec4
+- c3 : Vec4
+
+pack UUID 
+- a : u32
+- b : u32
+- c : u32
+- d : u32
 
 pack SRGB8
 - r : u8

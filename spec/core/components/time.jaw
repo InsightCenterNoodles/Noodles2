@@ -1,0 +1,16 @@
+# Common timebase support
+# This is intended for use by animations, not for simulation times. It is strongly recommended
+# for implementations to update this value at ~1 Hz.
+
+# Implementations should maintain a local clock. When this component is updated, compute:
+#   tA = TimeSyncComponent.last
+#   tL = local_now_at_receive
+# Then compute an offset estimate:
+#   offset_est = tA - tL
+# Maintain a smoothed offset (EWMA):
+#   offset = lerp(offset, offset_est, alpha) where alpha ranges between 0.02–0.1 depending on update rate.
+# Then compute “estimated authority time now” locally as:
+#   auth_now_est = local_now + offset
+
+pack TimeSyncComponent
+- last: f64 # authority monotonic seconds at send time

@@ -17,7 +17,12 @@ bits UncompressedFlags : u16
 - 3 has_tangent : u8
 - 4 has_uv_0 : u8
 - 5 has_uv_1 : u8
-- 6-8 primitive_type : PrimitiveType
+- 6 has_joint_0 : u8
+- 7 has_joint_1 : u8
+- 8 has_weight_0 : u8
+- 9 has_weight_1 : u8
+- 10    has_morph_targets : u8
+- 11-13 primitive_type : PrimitiveType
 
 pack UncompressedAttribCommon
 - view_byte_offset : u32 # byte offset from BufferView start
@@ -37,6 +42,19 @@ enum UVFormat : u8
 - float2 = 0
 - normalized_ushort2 = 1
 
+enum JointFormat : u8
+- ubyte4 = 0
+- ushort4 = 1
+
+enum WeightFormat : u8
+- normalized_ubyte4 = 0
+- normalized_ushort4 = 1
+- float4 = 2
+
+# Joint indices are indices into a corresponding SkinComponent.joints palette.
+# joint_0/weight_0 provide up to 4 influences per vertex; joint_1/weight_1 provide an additional 4.
+# Implementations SHOULD renormalize weights (over the influences present) if they do not sum to 1.
+
 pack PositionAttribute
 - common : UncompressedAttribCommon
 - format : PositionFormat
@@ -53,17 +71,48 @@ pack UVAttribute
 - common : UncompressedAttribCommon
 - format : UVFormat
 
+pack JointAttribute
+- common : UncompressedAttribCommon
+- format : JointFormat
+
+pack WeightAttribute
+- common : UncompressedAttribCommon
+- format : WeightFormat
+
 
 pack UncompressedIndex
 - view_byte_offset : u32 # byte offset from BufferView start
 - index_count : u32 # ignored when IndexFormat=None
+
+bits MorphTargetFlags : u8
+- 0 has_position : u8
+- 1 has_normal : u8
+- 2 has_tangent : u8
+
+pack MorphTarget
+- flags : MorphTargetFlags
+- position : PositionAttribute
+- normal : NormalAttribute
+- tangent : TangentAttribute
+
+dyn_array MorphTargetList : u16 * MorphTarget
+
+# Morph targets apply per-vertex deltas for position/normal/tangent in list
+# order; MorphWeightsComponent and animation channels should use matching counts.
+# If flags.has_morph_targets == 0, morph_targets MUST have count == 0.
+# Tangent morph values are deltas; implementations MAY ignore the w component (and producers SHOULD set it to 0).
+#
+# Typical evaluation (per vertex):
+#   pos = base_pos + Σ_i (w[i] * delta_pos[i])
+#   nrm = normalize(base_nrm + Σ_i (w[i] * delta_nrm[i]))
+#   tan = normalize_xyz(base_tan + Σ_i (w[i] * delta_tan[i]))  # w preserved/implementation-defined
 
 
 # Attribute/index blocks are always present in the buffer. If a corresponding
 # has_* flag is false, the consumer should still advance the stream but ignore
 # the decoded attribute. When IndexFormat is None, the index block is read and
 # then ignored.
-pack MeshAsset
+seq MeshAsset
 - view : BufferView
 - vertex_count : u32 
 - flags : UncompressedFlags
@@ -75,3 +124,8 @@ pack MeshAsset
 - tangent : TangentAttribute
 - uv_0 : UVAttribute
 - uv_1 : UVAttribute
+- joint_0 : JointAttribute
+- joint_1 : JointAttribute
+- weight_0 : WeightAttribute
+- weight_1 : WeightAttribute
+- morph_targets : MorphTargetList

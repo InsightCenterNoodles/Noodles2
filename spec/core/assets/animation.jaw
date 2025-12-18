@@ -1,0 +1,74 @@
+# Animation asset: sampler/channel clip layout modeled after glTF.
+# Samplers reference key time arrays (f32 seconds) and value arrays whose layout
+# depends on the target path. Channels bind a sampler to an entity target.
+
+# Sampling / evaluation notes:
+# - All times are in seconds. Sampler input times must be finite and non-decreasing.
+# - Channels with an unresolved target path MUST be ignored (and SHOULD emit a validation warning).
+# - The sampler's output buffer MUST match the expected f32 stride for (value_type, interpolation).
+
+# Rotation requirements:
+# - Rotation key values MUST be unit quaternions (implementation SHOULD normalize on load).
+# - Hemisphere continuity MUST be enforced for rotation keys (and their tangents if present):
+#   For consecutive keys q[i-1], q[i], if dot(q[i-1], q[i]) < 0, negate q[i].
+# - Linear rotation interpolation MUST use shortest-path slerp.
+# - CubicSpline rotation interpolation:
+#   - Treat [in_tangent, value, out_tangent] as 4D quaternion component vectors.
+#   - Sample using cubic Hermite per component; then normalize the resulting quaternion.
+#   - If the sampled quaternion has near-zero norm, implementations SHOULD fall back to the previous valid rotation.
+
+
+alias AnimationAssetID : AssetID
+alias AnimSamplerAssetID : AssetID
+
+enum AnimInterpolation : u8
+> Linear = 0
+- Step = 1
+- CubicSpline = 2
+
+# Supported animation value types
+# For rotations, quaternions must be stored as unit. There must be hemisphere continuity. Linear interpolation is by spherical linear (slerp).
+enum AnimationValueType : u8
+> Float = 0         # f32, can be used for scalars and morph weights, etc.
+- Float3 = 1        # Vec3 (3 * f32)
+- Rotation = 2      # UnitQuaternion (4 * f32)
+- SRGB8    = 3      # Color, ubyte, no alpha (1 * u32) 
+
+# sub-index can be used to address sub-parts of a component member. For example, morph weights
+pack AnimTargetPath
+- component_id : ComponentTypeID
+- component_member_index: u16
+- sub_index : u16 
+
+# For CubicSpline, output values are laid out as [in_tangent, value, out_tangent]
+# per keyframe for the target type.
+# - input is a f32 time array, length = keyframe_count. Values must not decrease.
+# - output depends on the value type and the interpolation, but must be of size (N * 4 * keyframe_count),
+#   Where N is (* 3 if interpolation is cubic spline):
+#   - Float => 1
+#   - Float3 => 3
+#   - Rotation => 4
+#   
+pack AnimSamplerAsset
+- input : BufferView
+- output : BufferView  # value array shaped for target path and interpolation
+- interpolation : AnimInterpolation
+- value_type: AnimationValueType
+- keyframe_count : u32
+
+pack AnimChannelTarget
+- entity : EntityID
+- path : AnimTargetPath
+
+# Sampler indices refer to the AnimationAsset.samplers array.
+pack AnimChannel
+- sampler : u16
+- target : AnimChannelTarget
+
+dyn_array AnimSamplerList : u16 * AnimSamplerAssetID
+dyn_array AnimChannelList : u16 * AnimChannel
+
+seq AnimationAsset
+- samplers : AnimSamplerList
+- channels : AnimChannelList
+- duration_seconds : f64 # total clip length; MUST be >= max sampler input time (or 0 for empty clips)

@@ -1,0 +1,22 @@
+# Skin component: binds a skinned mesh to a joint hierarchy. Joints are listed
+# in palette order; inverse bind matrices are a Mat4 array matching that order,
+# stored column-major in the referenced BufferView.
+#
+# Skinning is evaluated in the mesh entity's local space (before applying the mesh entity's TransformComponent).
+# Let:
+# - M_world be the mesh entity's world transform matrix.
+# - J_world[i] be joint i's world transform matrix (from its TransformComponent and ChildOf hierarchy).
+# - IBM[i] be inverse bind matrix i.
+# Then a typical per-joint matrix used for vertex skinning is:
+#   joint_matrix[i] = inverse(M_world) * J_world[i] * IBM[i]
+
+dyn_array SkinJointList : u16 * EntityID
+
+bits SkinComponentFlags : u16
+- 0 is_root : u8
+
+seq SkinComponent
+- flags : SkinComponentFlags
+- inverse_bind_matrices : BufferView # Mat4 array, count == joints length (view length MUST be 64 * joint_count)
+- skeleton_root : EntityID # optional root for evaluating the joint tree, valid only if flags.is_root is != 0
+- joints : SkinJointList
