@@ -60,7 +60,8 @@ pack PBRMaterialBase
 - orm_map    : TextureReference
 - normal_map : TextureReference
 
-# Extended material information
+# Extended material information. May clients may not be able to support all these features, and may
+# omit or emulate them (i.e. simple alpha for transmission).
 
 bits ExtendedMaterialFlags : u16
 - 0  has_thickness : u8
@@ -111,7 +112,7 @@ bits ClearcoatImagePack : u32
 - 1     has_roughness_map : u8
 - 2     has_normal_map : u8
 - 3-4   channel : UVChannel
-- 5-9  amount_map : ImageTableID
+- 5-9   amount_map : ImageTableID
 - 10-13 roughness_map : ImageTableID
 - 14-17 normal_map : ImageTableID
 

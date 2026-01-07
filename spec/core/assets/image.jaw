@@ -2,6 +2,15 @@
 # semantic flags (sRGB vs linear).
 alias ImageAssetID : AssetID
 
+# Images must be one of the following formats
+# - PNG
+# - JPEG
+# - WEBP
+# - KTX2
+# - HDR
+# - EXR
+# Clients may not have full support for these formats, but SHOULD make best effort have partial support
+
 seq ImageAsset
 - view: BufferView # buffer slice containing the encoded image
 - flags: ImageFlags # sampling and semantic info

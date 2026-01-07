@@ -10,8 +10,8 @@ The Core extension defines the baseline assets and components required for inter
 | Environment   |    1       | Environment/sky lighting; references image table entries by index.       |
 | Image         |    2       | Encoded image plus sampler/semantic flags.                               |
 | Mesh          |    3       | Geometry attributes and indices in an uncompressed layout.               |
-| PBRMaterial   |    4       | PBR surface parameters with optional extended features; texture tables limited to 16 entries. |
-| Animation     |    5       | Clip referencing sampler assets and channels targeting entities for transforms or morph weights. |
+| PBRMaterial   |    4       | PBR surface parameters with optional extended features                   |
+| Animation     |    5       | Clip referencing sampler assets and channels targeting entities/assets.  |
 | AnimSampler   |    6       | Reusable keyframe sampler data (time/value arrays) referenced by Animation clips. |
 
 Notes:
@@ -49,7 +49,10 @@ Notes:
 | Skin             | 23         | Joint palette and inverse bind matrices for skinned meshes. |
 | MorphWeights     | 24         | Current morph target weights for an entity's mesh. |
 | TimeSync         | 25         | Common timebase support.                           |
-| PBRMaterialOverride | 26         | Material property override per-entity.  |
+| ParameterRoot    | 26         | The start of a parameter UI tree.                    | 
+| Parameter        | 27         | Common parameter storage. |
+| ParamDefinition  | 28         | Parameter definition.                          | 
+| ParamState       | 29         | Parameter state storage.                          | 
 
 Notes:
 - Component payloads are complete replacements; partial updates are not defined.
@@ -60,36 +63,38 @@ Notes:
 
 ### Target Paths
 
-Animation channels address component members via `AnimTargetPath`. For the Core extension:
+Animation channels address component or asset members for time-varying value animations.
 
-- `component_id` MUST match the component type being targeted (extension 0, identifier from the Components table above).
-- `component_member_index` is a zero-based index into the component payload fields in the `.jaw` schema order.
-- `sub_index` is component-defined (used to address elements inside dynamic arrays); otherwise it MUST be 0.
+Core-defined component targets:
 
-Core-defined targets:
+| Component                 | `component_id`    | `member_index` → meaning    | `value_type` |
+|---------------------------|-------------------|-----------------------------|--------------|
+| `TransformComponent`      | (0, 20)           | 0 → `position`                | Float3    |
+| `TransformComponent`      | (0, 20)           | 1 → `rotation`                | Rotation |
+| `TransformComponent`      | (0, 20)           | 2 → `scale`                   | Float3 |
+| `EnvironmentComponent`    | (0, 3)            | 1 → `intensity`               | Float | 
+| `EnvironmentComponent`    | (0, 3)            | 2 → `rotation`                | Rotation |
+| `DirectionalLightComponent` | (0, 10)         | 0 → `color`                   | SRGB8 |
+| `DirectionalLightComponent` | (0, 10)         | 1 → `intensity`               | Float |
+| `PointLightComponent`     | (0, 11)           | 0 → `color`                   | SRGB8 |
+| `PointLightComponent`     | (0, 11)           | 1 → `intensity`               | Float |
+| `SpotLightComponent`      | (0, 12)           | 0 → `color`                   | SRGB8 |
+| `SpotLightComponent`      | (0, 12)           | 1 → `intensity`               | Float |
+| `MorphWeightsComponent`   | (0, 24)           | 0 → weight[`sub_index`]       | Float |
 
-| Component                 | `component_id`    | `component_member_index` → meaning    | `value_type` |
-|---------------------------|-------------------|---------------------------------------|--------------|
-| `TransformComponent`      | (0, 20)           | 0→`position`                          | Float3    |
-| `TransformComponent`      | (0, 20)           | 1→`rotation`                          | Rotation |
-| `TransformComponent`      | (0, 20)           | 2→`scale`                             | Float3 |
-| `EnvironmentComponent`    | (0, 3)            | 1→`intensity`                         | Float | 
-| `EnvironmentComponent`    | (0, 3)            | 2→`rotation`                          | Rotation |
-| `DirectionalLightComponent` | (0, 10)         | 0→`color`                             | SRGB8 |
-| `DirectionalLightComponent` | (0, 10)         | 1→`intensity`                         | Float |
-| `PointLightComponent`     | (0, 11)           | 0→`color`                             | SRGB8 |
-| `PointLightComponent`     | (0, 11)           | 1→`intensity`                         | Float |
-| `SpotLightComponent`      | (0, 12)           | 0→`color`                             | SRGB8 |
-| `SpotLightComponent`      | (0, 12)           | 1→`intensity`                         | Float |
-| `MorphWeightsComponent`   | (0, 24)           | 0→weight[`sub_index`]                 | Float |
-| `PBRMaterialOverride`     | (0, 26)           | 0→`base_color`                        | SRGBA8 |
-| `PBRMaterialOverride`     | (0, 26)           | 1→`roughness`                         | Float |
-| `PBRMaterialOverride`     | (0, 26)           | 2→`metallic`                          | Float |
-| `PBRMaterialOverride`     | (0, 26)           | 3→`ior`                               | Float |
+Core-defined asset targets:
+
+| Asset             | Asset Type ID | `member_index` → meaning    | `value_type` |
+|-------------------|---------------|-----------------------------|--------------|
+| `PBRMaterial`     | (0, 4)        | 0 →`base_color`              | SRGBA8 |
+| `PBRMaterial`     | (0, 4)        | 1 →`roughness`               | Float |
+| `PBRMaterial`     | (0, 4)        | 2 →`metallic`                | Float |
+| `PBRMaterial`     | (0, 4)        | 3 →`ior`                     | Float |
 
 If a component id is not known, or the animation value cannot be coerced to the target component member, the node is free to ignore this animation.
 
-### Value Coertion
+
+### Value Coercion
 
 It is possible, in this spec, to have an AnimationValueType that does not fully match with the target value type. The client may then coerce the animated value to the proper type. Legal conversions are provided:
 
@@ -101,6 +106,8 @@ It is possible, in this spec, to have an AnimationValueType that does not fully 
 |SRGB8              | SRGBA8        | y = [v.r, v.g, v.b, 255] |
 
 ### Reference Evaluation
+
+Example code for components. Similar approach is used for assets. Cocercion is not added in this sample.
 
 ```
 function eval_animator(entity, animator, now_seconds):

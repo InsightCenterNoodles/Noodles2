@@ -30,6 +30,7 @@ seq ContentModifyComponents
 - count: u32
 - content: Content
 
+# Delete components from entities. Entities that do not exist are ignored.
 seq ContentDeleteComponents
 - component: ComponentTypeID
 - list: EntityList
@@ -37,7 +38,8 @@ seq ContentDeleteComponents
 # ===================================================
 # Modify asset
 
-# Adds or updates an existing asset
+# Adds or updates an existing asset to the world. When added to the world, the asset is retained for use by components or other assets.
+# This use could be in the future, and so implementations MUST NOT remove the asset from the world until informed to do so.
 seq ContentModifyAsset
 - an_asset: AnAsset
 - content: Content

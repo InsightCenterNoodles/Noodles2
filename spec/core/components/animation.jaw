@@ -10,7 +10,7 @@
 
 # Weighting:
 # - Override blending is performed per-path using only layers that contribute to that path.
-# - Implementations SHOULD clamp negative weights to 0.
+# - Implementations MUST clamp negative weights to 0.
 # - Override weights are normalized by sum_w per-path.
 
 # Additive semantics:

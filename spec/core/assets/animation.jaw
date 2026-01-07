@@ -29,16 +29,28 @@ enum AnimInterpolation : u8
 # Supported animation value types
 # For rotations, quaternions must be stored as unit. There must be hemisphere continuity. Linear interpolation is by spherical linear (slerp).
 # Colors are provided with alpha, but that channel can be ignored: See coercion in the extension doc.
+# No non-alpha color is provided; that breaks the 4-byte size many systems prefer. Color animation is component-wise, as if they were f32.
 enum AnimationValueType : u8
 > Float = 0         # f32, can be used for scalars and morph weights, etc.
 - Float3 = 1        # Vec3 (3 * f32)
-- Rotation = 2      # UnitQuaternion (4 * f32)
-- SRGBA8   = 3      # Color, ubyte, with alpha (1 * u32) 
+- Rotation = 2      # UnitQuaternion (4 * f32, same definition as in common)
+- SRGBA8   = 3      # Color, ubyte, with alpha (1 * u32, packed as 1 byte per channel) 
 
-# sub-index can be used to address sub-parts of a component member. For example, morph weights
-pack AnimTargetPath
+# A path to an a member of a component to animate. The component_id describes the component this path targets.
+# The member index identifies the component member to animate. These are documented in the extension.
+# The sub-index can be used to address sub-parts of a component member. For example, morph weights.
+pack ComponentAnimTarget
+- entity : EntityID
 - component_id : ComponentTypeID
-- component_member_index: u16
+- member_index: u16
+- sub_index : u16 
+
+# A path to an a member of an asset to animate. The component_id describes the component this path targets.
+# The member index identifies the asset member to animate. These are documented in the extension.
+# The sub-index can be used to address sub-parts of a component member. For example, morph weights.
+pack AssetAnimTarget
+- asset : AnAsset
+- member_index: u16
 - sub_index : u16 
 
 # For CubicSpline, output values are laid out as [in_tangent, value, out_tangent]
@@ -57,19 +69,22 @@ pack AnimSamplerAsset
 - value_type: AnimationValueType
 - keyframe_count : u32
 
-pack AnimChannelTarget
-- entity : EntityID
-- path : AnimTargetPath
+# Sampler indices refer to the AnimationAsset.samplers array.
+pack ComponentAnimChannel
+- sampler : u16
+- target : ComponentAnimTarget
 
 # Sampler indices refer to the AnimationAsset.samplers array.
-pack AnimChannel
+pack AssetAnimChannel
 - sampler : u16
-- target : AnimChannelTarget
+- target : AssetAnimTarget
 
 dyn_array AnimSamplerList : u16 * AnimSamplerAssetID
-dyn_array AnimChannelList : u16 * AnimChannel
+dyn_array AnimCChannelList : u16 * ComponentAnimChannel
+dyn_array AnimAChannelList : u16 * AssetAnimChannel
 
 seq AnimationAsset
 - samplers : AnimSamplerList
-- channels : AnimChannelList
-- duration_seconds : f64 # total clip length; MUST be >= max sampler input time (or 0 for empty clips)
+- component_channels : AnimCChannelList
+- asset_channels     : AnimAChannelList
+- duration_seconds   : f64 # total clip length; MUST be >= max sampler input time (or 0 for empty clips)
