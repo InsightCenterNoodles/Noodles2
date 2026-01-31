@@ -1,3 +1,5 @@
+from "../../common.jaw" use {EntityID}
+
 seq InteractiveComponent # marker that entity supports interaction/affordances
 
 pack AxisRange

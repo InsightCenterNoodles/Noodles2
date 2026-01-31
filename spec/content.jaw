@@ -1,3 +1,5 @@
+from "common.jaw" use {AnAsset, ComponentTypeID, EntityID}
+
 variant ContentMessage : u8 
 - 0 => ContentCreateEntities
 - 1 => ContentDeleteEntities

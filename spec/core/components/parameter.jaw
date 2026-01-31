@@ -3,6 +3,9 @@
 # such as a webpage, etc
 # Clients may update the UI by writing state component changes, as well as changing children. The server will validate changes.
 
+from "../../any.jaw" use {AnyArray}
+from "../../common.jaw" use {EntityID}
+
 # Marker, for a parameter tree root element
 # A Global root might be a candidate for placement in a sidebar, otherwise, consider it to be local to the entity in question
 seq ParameterRootComponent

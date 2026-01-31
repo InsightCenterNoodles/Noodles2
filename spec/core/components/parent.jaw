@@ -1,3 +1,6 @@
 # Parent component: establishes a parent-child relationship between entities.
+
+from "../../common.jaw" use {EntityID}
+
 pack ChildOfComponent
 - parent : EntityID # parent entity identifier

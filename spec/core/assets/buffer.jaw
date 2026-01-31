@@ -1,5 +1,9 @@
 # Buffer asset: raw bytes that other assets reference via BufferView. Content
 # may be inlined, fetched by URL, or provided via an OOB asset channel.
+
+from "../../common.jaw" use {AssetID}
+from "../../oob_asset.jaw" use {OOBAssetID}
+
 alias BufferAssetID : AssetID
 
 # A blob of bytes that can be referred to by other assets.

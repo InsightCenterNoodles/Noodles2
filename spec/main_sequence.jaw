@@ -1,3 +1,7 @@
+from "any.jaw" use {Any}
+from "common.jaw" use {AnAsset, EntityID}
+from "content.jaw" use {ContentMessage}
+
 variant MainSequenceMessage : u8
 - 1 => Transaction
 - 2 => ProposedChangeTransaction

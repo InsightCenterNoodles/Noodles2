@@ -1,3 +1,5 @@
+from "common.jaw" use {AnAsset, AssetTypeID, ComponentTypeID, EntityID, UUID, UnitQuaternion, Vec3, Vec4}
+
 dyn_array AnyBytes : u32 * u8
 dyn_array AnyString : u32 * u8 # UTF-8
 dyn_array AnyArray : u32 * Any

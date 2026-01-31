@@ -1,6 +1,8 @@
 # Light components: directional, point, and spot lights with simple color,
 # intensity, range, and shadow casting flag.
 
+from "../../common.jaw" use {SRGB8}
+
 pack DirectionalLightComponent
 - color : SRGB8
 - intensity : f32   # Illuminance in lux (lumens per square meter)

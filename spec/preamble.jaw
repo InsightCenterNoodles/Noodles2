@@ -1,4 +1,7 @@
 # Core preamble messages exchanged before the main sequence starts.
+
+from "common.jaw" use {ExtensionID}
+
 variant PreMessage : u8
 - 0 => Probe
 - 1 => ProbeReply

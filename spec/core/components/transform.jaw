@@ -1,4 +1,7 @@
 # Transform component: local transform; always sent as a full replacement.
+
+from "../../common.jaw" use {UnitQuaternion, Vec3}
+
 pack TransformComponent
 - position: Vec3
 - rotation: UnitQuaternion

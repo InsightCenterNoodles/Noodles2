@@ -5,6 +5,8 @@
 # position (u16) and [quant_scale.x, quant_scale.y] for uniform scale (u16).
 # Texture translation/scale fields are normalized to [-1,1] using i16.
 
+from "../../common.jaw" use {UnitQuaternion, Vec2, Vec3, Vec4}
+from "../assets/buffer.jaw" use {BufferView}
 
 pack InstanceComponent
 - view : BufferView

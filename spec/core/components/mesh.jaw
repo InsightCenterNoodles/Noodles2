@@ -1,3 +1,6 @@
 # Mesh component: attaches a mesh asset to an entity for rendering.
+
+from "../assets/mesh.jaw" use {MeshAssetID}
+
 pack MeshComponent
 - asset : MeshAssetID # reference to a mesh asset

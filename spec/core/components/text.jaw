@@ -1,4 +1,7 @@
 # Text component: world/local space text rendering with color and nominal height.
+
+from "../../common.jaw" use {SRGB8}
+
 seq TextComponent
 - color : SRGB8
 - height : f32 # nominal text height in local/world units

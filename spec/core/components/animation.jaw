@@ -2,6 +2,8 @@
 # updates this component; downstreams evaluate locally using monotonic time.
 # Time is sourced from the TimeSyncComponent
 
+from "../assets/animation.jaw" use {AnimationAssetID}
+
 # Layering rules:
 # - Layers are evaluated in array order.
 # - For each target path, override (is_additive == 0) contributions are blended by weight.

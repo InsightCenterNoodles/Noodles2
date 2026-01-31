@@ -1,5 +1,9 @@
 # Environment component: binds an environment asset with intensity and rotation
 # overrides for scene lighting.
+
+from "../../common.jaw" use {UnitQuaternion}
+from "../assets/environment.jaw" use {EnvironmentAssetID}
+
 pack EnvironmentComponent
 - environment : EnvironmentAssetID # reference to environment asset
 - intensity : f32 # scalar multiplier for environment lighting

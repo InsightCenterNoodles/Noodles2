@@ -1,4 +1,0 @@
-MESH_COMPONENT = (
-    ; Mesh asset to render
-    MESH_ASSET_ID,
-)

@@ -1,6 +1,10 @@
 # PBR material asset: base metallic-roughness material with optional extended
 # features (transmission, clearcoat, parallax, emission). References textures
 # via a small image table (up to 16 entries).
+
+from "../../common.jaw" use {AssetID, LinearRGB, SRGBA8}
+from "image.jaw" use {ImageAssetID}
+
 alias PBRMaterialAssetID : AssetID
 
 seq PBRMaterialAsset

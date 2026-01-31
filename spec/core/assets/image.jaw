@@ -1,5 +1,9 @@
 # Image asset: references an encoded image in a buffer slice plus sampler and
 # semantic flags (sRGB vs linear).
+
+from "../../common.jaw" use {AssetID}
+from "buffer.jaw" use {BufferView}
+
 alias ImageAssetID : AssetID
 
 # Images must be one of the following formats

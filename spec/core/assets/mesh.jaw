@@ -1,5 +1,9 @@
 # Mesh asset: uncompressed geometry layout referencing a buffer slice for
 # attributes and indices. Flags describe which attributes are valid.
+
+from "../../common.jaw" use {AssetID, Vec3}
+from "buffer.jaw" use {BufferView}
+
 alias MeshAssetID : AssetID
 
 enum PrimitiveType : u8

@@ -1,6 +1,10 @@
 # Skin component: binds a skinned mesh to a joint hierarchy. Joints are listed
 # in palette order; inverse bind matrices are a Mat4 array matching that order,
 # stored column-major in the referenced BufferView.
+
+from "../../common.jaw" use {EntityID}
+from "../assets/buffer.jaw" use {BufferView}
+
 #
 # Skinning is evaluated in the mesh entity's local space (before applying the mesh entity's TransformComponent).
 # Let:

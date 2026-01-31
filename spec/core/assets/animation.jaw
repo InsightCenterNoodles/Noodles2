@@ -2,6 +2,9 @@
 # Samplers reference key time arrays (f32 seconds) and value arrays whose layout
 # depends on the target path. Channels bind a sampler to an entity target.
 
+from "../../common.jaw" use {AnAsset, AssetID, ComponentTypeID, EntityID}
+from "buffer.jaw" use {BufferView}
+
 # Sampling / evaluation notes:
 # - All times are in seconds. Sampler input times must be finite and non-decreasing.
 # - Channels with an unresolved target path MUST be ignored (and SHOULD emit a validation warning).

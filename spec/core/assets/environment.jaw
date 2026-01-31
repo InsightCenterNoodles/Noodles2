@@ -1,5 +1,9 @@
 # Environment asset: couples environment/sky images with sampling flags and
 # indices into an image table for lighting and skybox use.
+
+from "../../common.jaw" use {AssetID}
+from "image.jaw" use {ImageAssetID}
+
 alias EnvironmentAssetID : AssetID
 
 seq EnvironmentAsset

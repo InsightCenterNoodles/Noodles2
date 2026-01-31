@@ -1,4 +1,7 @@
 # Selection components: opt-in to selection and expose outline styling when selected.
+
+from "../../common.jaw" use {SRGB8}
+
 seq CanSelectComponent
 
 pack IsSelectedComponent

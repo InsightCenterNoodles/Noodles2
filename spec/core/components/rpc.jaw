@@ -4,6 +4,8 @@
 # A Global component on the same entity indicates that call results could have global effect, 
 # and the node may want to prioritize these methods on a UI
 
+from "../../any.jaw" use {AnyTypeID}
+
 seq RPCEndpointComponent
 - name: RPCName
 - arguments: RPCArgumentHintList # informational; implementations may enforce or ignore
