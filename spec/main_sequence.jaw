@@ -9,6 +9,8 @@ variant MainSequenceMessage : u8
 # ==========================
 # Transaction
 
+# Content is to be applied in the order of the array
+
 dyn_array ContentArray : u32 * ContentMessage
 
 seq Transaction

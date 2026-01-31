@@ -119,7 +119,7 @@ bits ClearcoatImagePack : u32
 pack Parallax
 - depth_bias : f32
 - depth_scale : f32
-- max_layers : u8
+- layer_quality : u8 # a map to the client maximum layer limit: 0 lowest, 255 maximum
 - depth_map : TextureReference
 
 pack Emission
