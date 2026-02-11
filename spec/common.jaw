@@ -61,12 +61,12 @@ alias EntityID : u64
 alias ExtensionID : u16
 
 pack ComponentTypeID
-- extension: ExtensionID
-- identifier: u16
+- extension : ExtensionID
+- identifier : u16
 
 pack AssetTypeID
-- extension: ExtensionID
-- identifier: u16
+- extension : ExtensionID
+- identifier : u16
 
 # Asset IDs are context sensitive; they have no meaning without an associated AssetTypeID.
 # Bit 63 marks patch-local placeholders in proposals and must be clear for canonical IDs.

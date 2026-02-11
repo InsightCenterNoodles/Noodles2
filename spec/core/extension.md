@@ -23,7 +23,7 @@ Notes:
 ## Components
 |Name              | Identifier | Description |
 |------------------|------------| ----------- |
-| Global           | 0          | Marks entities with scene-wide effects that should be prioritized. |
+| Global           | 0          | Marks entities with scene-wide effects. |
 | RPCEndpoint      | 1          | Advertises callable endpoints; argument hints are informational. |
 | Billboard        | 2          | Rotates to face the viewer (full face or Y-axis only). |
 | Environment      | 3          | Binds an environment asset with intensity/rotation. |
@@ -56,7 +56,7 @@ Notes:
 
 Notes:
 - Component payloads are complete replacements; partial updates are not defined.
-- `Global` marks entities whose effects may be scene-wide. Downstreams may prioritize their synchronization/UI.
+- `Global` marks entities whose effects may be scene-wide. See component documentation for more details.
 - `RPCEndpoint` exposes callable entry points; arguments/results use `Any` encoding.
 
 ## Animation Notes

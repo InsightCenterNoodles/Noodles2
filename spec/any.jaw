@@ -27,4 +27,4 @@ variant Any : u8
 - 14 => AnAsset
 - 15 => EntityID
 
-alias AnyTypeID: u8
+alias AnyTypeID : u8
