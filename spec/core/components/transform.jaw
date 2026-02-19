@@ -3,6 +3,6 @@
 from "../../common.jaw" use {UnitQuaternion, Vec3}
 
 pack TransformComponent
-- position: Vec3
-- rotation: UnitQuaternion
-- scale: Vec3
+- position : Vec3
+- rotation : UnitQuaternion
+- scale : Vec3

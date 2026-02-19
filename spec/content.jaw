@@ -8,19 +8,21 @@ variant ContentMessage : u8
 - 4 => ContentModifyAsset
 - 5 => ContentDeleteAsset
 
-dyn_array EntityList: u32 * EntityID
+dyn_array EntityList : u32 * EntityID
 
 # ===================================================
 # Add or remove entities
 
-alias ContentCreateEntities: EntityList
+seq ContentCreateEntities
+- list : EntityList
 
-alias ContentDeleteEntities: EntityList
+seq ContentDeleteEntities
+- list : EntityList
 
 # Packed component data. Technical limits are 4 GB, but it is NOT recommended that Upstream send anything close
 # to this. Upstream SHOULD make all efforts to break larger updates into smaller transactions. Downstreams are free
 # to disconnect rather than service large transactions.
-dyn_array Content: u32 * u8
+dyn_array Content : u32 * u8
 
 # ===================================================
 # Modify components attached to entities
@@ -28,27 +30,28 @@ dyn_array Content: u32 * u8
 # The content is structured as a byte stream of (EntityID, Component) pairs. The count of such pairs is provided in the message for optimization, 
 # but readers should treat the count strictly as a hint (e.g., for preallocation) and must parse until the content buffer is fully consumed.
 seq ContentModifyComponents
-- component: ComponentTypeID
-- count: u32
-- content: Content
+- component : ComponentTypeID
+- count : u32
+- content : Content
 
 # Delete components from entities. Entities that do not exist are ignored.
 seq ContentDeleteComponents
-- component: ComponentTypeID
-- list: EntityList
+- component : ComponentTypeID
+- list : EntityList
 
 # ===================================================
 # Modify asset
 
 # Adds or updates an existing asset to the world. When added to the world, the asset is retained for use by components or other assets.
 # This use could be in the future, and so implementations MUST NOT remove the asset from the world until informed to do so.
+# The content should be parsed as the corresponding *Asset type for the given extension/asset type
 seq ContentModifyAsset
-- an_asset: AnAsset
-- content: Content
+- an_asset : AnAsset
+- content : Content
 
 # Schedules an asset for deletion. 
 # It should be anticipated by clients that a server may delete an asset, even though it is being referenced. In this case, the client is informed that the asset should be removed
 # only after all references to it are deleted (shared_ptr like semantics). 
 # Clients MAY NOT propose asset deletion. 
 seq ContentDeleteAsset
-- an_asset: AnAsset
+- an_asset : AnAsset

@@ -1,0 +1,27 @@
+from "assets/animation.jaw" use *
+from "assets/buffer.jaw" use *
+from "assets/environment.jaw" use *
+from "assets/image.jaw" use *
+from "assets/mesh.jaw" use *
+from "assets/pbr_material.jaw" use *
+from "components/animation.jaw" use *
+from "components/billboard.jaw" use *
+from "components/environment.jaw" use *
+from "components/global.jaw" use *
+from "components/instance.jaw" use *
+from "components/interaction.jaw" use *
+from "components/light.jaw" use *
+from "components/material.jaw" use *
+from "components/mesh.jaw" use *
+from "components/name.jaw" use *
+from "components/parameter.jaw" use *
+from "components/parent.jaw" use *
+from "components/rpc.jaw" use *
+from "components/selection.jaw" use *
+from "components/skin.jaw" use *
+from "components/text.jaw" use *
+from "components/time.jaw" use *
+from "components/transform.jaw" use *
+from "components/visibility.jaw" use *
+
+const EXTENSION_CORE : u16 = 0

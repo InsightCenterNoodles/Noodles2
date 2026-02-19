@@ -32,51 +32,51 @@ variant ParamValue : u8
 # A tree of options that are enabled when this mode is selected. Children of this entity form the tree of parameters.
 # IDs must be >= 0; negatives are reserved, and -1 is used to denote a None option, if allowed.
 seq ModeOption
-- label: ParamLabelString
-- id: i32
-- icon: Icon
-- list: ParameterChildList
+- label : ParamLabelString
+- id    : i32
+- icon  : Icon
+- list  : ParameterChildList
 
-enum ModeKind: u8
+enum ModeKind : u8
 - Exclusive = 0
 - Tabs = 1
 
 dyn_array ModeList : u8 * ModeOption
 
 seq SelectOption
-- id: i32
-- label: ParamLabelString
+- id : i32
+- label : ParamLabelString
 
 dyn_array SelectOptionList : u8 * SelectOption
 
-enum LabelKind: u8
+enum LabelKind : u8
 - Title = 0
 - Subtitle = 1
 - Help = 2
 - Warning = 3
 
-enum ButtonKind: u8
+enum ButtonKind : u8
 - Normal = 0
 - Destructive = 1
 
-enum RangeKind: u8
+enum RangeKind : u8
 - Slider = 0
 - Step = 1
 
 seq ParameterComponent
-- disabled: u8
-- label: ParamLabelString
+- disabled : u8
+- label : ParamLabelString
 
-enum DateTimeKind: u8
+enum DateTimeKind : u8
 - Date = 0
 - Time = 1
 - DateTime = 2 
 
-enum ContainerKind: u8
+enum ContainerKind : u8
 - Section = 0
 - Group = 1
 
-enum SelectKind: u8 
+enum SelectKind : u8 
 - Dropdown = 0
 - LargeMenu = 1
 - SegmentedButtons = 2
@@ -90,57 +90,57 @@ variant MaybeParamValue : u8
 # Defintitions / Structure
 
 seq LabelDefinition
-- text: ParamTextString
-- kind: LabelKind
+- text : ParamTextString
+- kind : LabelKind
     
 # Models a tree of params that are exclusively enabled
 # If none_allowed, clients may set or may see an active id of -1, which is None
 seq ModesDefinition
-- none_allowed: u8
-- list: ModeList
-- kind: ModeKind
+- none_allowed : u8
+- list : ModeList
+- kind : ModeKind
 
 seq ToggleDefinition
 
 # Entity target must have RPC call component. RPC design has one RPC endpoint component per entity.
 seq ButtonDefinition
-- target: EntityID
-- payload: AnyArray # passed to the existing RPC def in the component
-- button_kind: ButtonKind
+- target : EntityID
+- payload : AnyArray # passed to the existing RPC def in the component
+- button_kind : ButtonKind
     
 #
 seq RangeDefinition 
-- min: ParamValue
-- max: ParamValue
-- step: MaybeParamValue
-- unit: ParamLabelString # may be empty
-- kind: RangeKind
+- min : ParamValue
+- max : ParamValue
+- step : MaybeParamValue
+- unit : ParamLabelString # may be empty
+- kind : RangeKind
 
 # Raw text number input
 seq NumberDefinition
-- is_int: u8
-- min: MaybeParamValue
-- max: MaybeParamValue
-- step: MaybeParamValue
+- is_int : u8
+- min : MaybeParamValue
+- max : MaybeParamValue
+- step : MaybeParamValue
 
 
 seq DateTimeDefinition
-- kind: DateTimeKind
+- kind : DateTimeKind
 
 # If none_allowed, clients may set or may see an active id of -1, which is None
 seq SelectDefinition
-- none_allowed: u8
-- options: SelectOptionList
-- kind: SelectKind
+- none_allowed : u8
+- options : SelectOptionList
+- kind : SelectKind
 
 seq ListDefinition
-- reorderable: u8
-- allow_add: u8
-- allow_remove: u8
+- reorderable : u8
+- allow_add : u8
+- allow_remove : u8
 
 seq ContainerDefinition
-- kind: ContainerKind
-- list: ParameterChildList
+- kind : ContainerKind
+- list : ParameterChildList
 
 seq ProgressDefinition
 
@@ -164,36 +164,36 @@ variant ParamDefinitionComponent : u8
 seq LabelState
     
 seq ModesState
-- active_id: i32
+- active_id : i32
 
 seq ToggleState
-- value: u8
+- value : u8
 
 seq ButtonState
     
 seq RangeState
-- value: ParamValue
+- value : ParamValue
 
 seq NumberState
-- value: ParamValue
+- value : ParamValue
 
 # In UTC.
 # Date -> YYYY-MM-DD
 # Time -> HH:MM:SS or HH:MM
 # DateTime -> ISO 8601 string
 seq DateTimeState
-- value: ParamLabelString
+- value : ParamLabelString
 
 seq SelectState
-- active_id: i32
+- active_id : i32
 
 seq ListState
-- list: ParameterChildList
+- list : ParameterChildList
 
 seq ContainerState
 
 seq ProgressState
-- normalized: f64
+- normalized : f64
 
 variant ParamStateComponent : u8
 - 0  => LabelState

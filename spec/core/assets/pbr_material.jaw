@@ -5,11 +5,12 @@
 from "../../common.jaw" use {AssetID, LinearRGB, SRGBA8}
 from "image.jaw" use {ImageAssetID}
 
-alias PBRMaterialAssetID : AssetID
+pack PBRMaterialAssetID
+- id : AssetID
 
 seq PBRMaterialAsset
 - base : PBRMaterialBase
-- extension: MaybePBRMaterialExtended
+- extension : MaybePBRMaterialExtended
 - table : MaterialImageTable # up to 16 entries for texture references
 
 dyn_array MaterialImageTable : u8 * ImageAssetID
@@ -18,9 +19,11 @@ variant MaybePBRMaterialExtended : u8
 - 0 => void
 - 1 => ExtendedMaterial
 
-alias NormalizedUShort : u16  # normalized integer in [0, 65535] -> [0.0, 1.0]         
+pack NormalizedUShort
+- value : u16  # normalized integer in [0, 65535] -> [0.0, 1.0]         
 
-alias ImageTableID : u8 # table is limited to 16 entries ONLY. other ids are invalid
+pack ImageTableID
+- id : u8 # table is limited to 16 entries ONLY. other ids are invalid
 
 # Face culling
 enum FaceCulling : u8 
@@ -35,9 +38,6 @@ enum AlphaMode : u8
 - Blend = 2
 - Premultiplied = 3
 
-# Index of Refraction (IOR). Normalized between 1-5, x = ((IOR - 1.0) / 4.0) * 65535
-alias IOR : u16
-
 bits MatFlags : u16
 - 0   double_sided : u8
 - 1   unlit        : u8
@@ -48,18 +48,19 @@ bits MatFlags : u16
 - 8   has_orm_texture   : u8
 - 9   has_normal_map    : u8
 
-alias UVChannel : u8
+# UVChannel
+# UV channels are either 0 or 1
 
 bits TextureReference : u8
-- 0-1 channel   : UVChannel
-- 2-5 image_id  : ImageTableID 
+- 0-1 channel   : u8 # UVChannel
+- 2-5 image_id  : u8 # ImageTableID 
 
 pack PBRMaterialBase
 - flags      : MatFlags 
 - base_color : SRGBA8
 - roughness  : NormalizedUShort # Perceptual roughness [0,1] (normalized u16)
 - metallic   : NormalizedUShort # Metallic [0,1] (normalized u16)
-- ior        : IOR
+- ior        : u16 # Index of Refraction (IOR). Normalized between 1-5, x = ((IOR - 1.0) / 4.0) * 65535
 - color_map  : TextureReference
 - orm_map    : TextureReference
 - normal_map : TextureReference
@@ -90,9 +91,9 @@ pack ExtendedMaterial
 - clearcoat : Clearcoat
 - anisotropy : Anisotropy
 - parallax : Parallax
-- emission: Emission
-- uv0_transform: Affine2
-- uv1_transform: Affine2
+- emission : Emission
+- uv0_transform : Affine2
+- uv1_transform : Affine2
 
 pack Thickness
 - thickness : f32
@@ -115,10 +116,10 @@ bits ClearcoatImagePack : u32
 - 0     has_amount_map : u8
 - 1     has_roughness_map : u8
 - 2     has_normal_map : u8
-- 3-4   channel : UVChannel
-- 5-9   amount_map : ImageTableID
-- 10-13 roughness_map : ImageTableID
-- 14-17 normal_map : ImageTableID
+- 3-4   channel : u8        # UVChannel
+- 5-9   amount_map : u8     # ImageTableID 
+- 10-13 roughness_map : u8  # ImageTableID 
+- 14-17 normal_map : u8     # ImageTableID 
 
 pack Parallax
 - depth_bias : f32

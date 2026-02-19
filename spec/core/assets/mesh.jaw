@@ -4,7 +4,8 @@
 from "../../common.jaw" use {AssetID, Vec3}
 from "buffer.jaw" use {BufferView}
 
-alias MeshAssetID : AssetID
+pack MeshAssetID 
+- id : AssetID
 
 enum PrimitiveType : u8
 - Triangles = 0

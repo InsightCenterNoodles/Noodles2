@@ -56,9 +56,11 @@ pack LinearRGBA
 # Entity ID; bit 63 marks patch-local placeholders in proposals and must be clear for canonical IDs.
 # id & (1 << 63) == 0 → real entity
 # id & (1 << 63) != 0 → patch-only placeholder entity
-alias EntityID : u64
+pack EntityID
+- id : u64
 
-alias ExtensionID : u16
+pack ExtensionID
+- id : u16
 
 pack ComponentTypeID
 - extension : ExtensionID
@@ -72,7 +74,8 @@ pack AssetTypeID
 # Bit 63 marks patch-local placeholders in proposals and must be clear for canonical IDs.
 # id & (1 << 63) == 0 → real asset.
 # id & (1 << 63) != 0 → patch-only placeholder asset.
-alias AssetID : u64
+pack AssetID
+- id : u64
 
 pack AnAsset 
 - asset_type : AssetTypeID

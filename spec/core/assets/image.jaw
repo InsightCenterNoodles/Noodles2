@@ -4,7 +4,8 @@
 from "../../common.jaw" use {AssetID}
 from "buffer.jaw" use {BufferView}
 
-alias ImageAssetID : AssetID
+pack ImageAssetID
+- id : AssetID
 
 # Images must be one of the following formats
 # - PNG
@@ -16,8 +17,8 @@ alias ImageAssetID : AssetID
 # Clients may not have full support for these formats, but SHOULD make best effort have partial support
 
 seq ImageAsset
-- view: BufferView # buffer slice containing the encoded image
-- flags: ImageFlags # sampling and semantic info
+- view : BufferView # buffer slice containing the encoded image
+- flags : ImageFlags # sampling and semantic info
 
 enum ImageSemantic : u8
 - SRGB = 0

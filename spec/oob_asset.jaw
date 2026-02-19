@@ -5,16 +5,17 @@
 # Assets are not transferred in chunks; they are done all at once, in one transfer.
 # Servers must not truncate or pad content. Clients MUST reject OOB content that does not comply.
 
-alias OOBAssetID : u64
+pack OOBAssetID
+- id : u64
 
 variant OOBRequest : u8
 - 0 => OOBRequestContent
 
 seq OOBRequestContent
-- asset_id: OOBAssetID
+- asset_id : OOBAssetID
 
 pack OOBReplyHeader
-- asset_id: OOBAssetID
+- asset_id : OOBAssetID
 
 # This provides the canonical length of the data as well. 
 dyn_array OOBContent : u64 * u8
@@ -23,12 +24,12 @@ dyn_array OOBContent : u64 * u8
 dyn_array OOBString : u16 * u8
 
 seq OOBReplySuccess
-- header: OOBReplyHeader
-- content: OOBContent
+- header : OOBReplyHeader
+- content : OOBContent
 
 seq OOBReplyFailure
-- asset_id: OOBAssetID
-- reason: OOBString
+- asset_id : OOBAssetID
+- reason : OOBString
 
 variant OOBReply : u8
 - 0 => OOBReplySuccess

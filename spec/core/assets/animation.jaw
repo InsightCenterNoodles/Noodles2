@@ -21,8 +21,10 @@ from "buffer.jaw" use {BufferView}
 #   - If the sampled quaternion has near-zero norm, implementations SHOULD fall back to the previous valid rotation.
 
 
-alias AnimationAssetID : AssetID
-alias AnimSamplerAssetID : AssetID
+pack AnimationAssetID
+- id : AssetID
+pack AnimSamplerAssetID
+- id : AssetID
 
 enum AnimInterpolation : u8
 > Linear = 0
@@ -45,7 +47,7 @@ enum AnimationValueType : u8
 pack ComponentAnimTarget
 - entity : EntityID
 - component_id : ComponentTypeID
-- member_index: u16
+- member_index : u16
 - sub_index : u16 
 
 # A path to an a member of an asset to animate. The component_id describes the component this path targets.
@@ -53,7 +55,7 @@ pack ComponentAnimTarget
 # The sub-index can be used to address sub-parts of a component member. For example, morph weights.
 pack AssetAnimTarget
 - asset : AnAsset
-- member_index: u16
+- member_index : u16
 - sub_index : u16 
 
 # For CubicSpline, output values are laid out as [in_tangent, value, out_tangent]
@@ -69,7 +71,7 @@ pack AnimSamplerAsset
 - input : BufferView
 - output : BufferView  # value array shaped for target path and interpolation
 - interpolation : AnimInterpolation
-- value_type: AnimationValueType
+- value_type : AnimationValueType
 - keyframe_count : u32
 
 # Sampler indices refer to the AnimationAsset.samplers array.

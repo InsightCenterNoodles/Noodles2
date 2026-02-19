@@ -37,9 +37,6 @@ pack MyOtherPOD
 - first : MyPOD
 - second : FixedString # We could not use ShortString here, how could we read everything at once?
 
-# Types can be given other names
-alias Alpha : MyOtherPOD
-
 # Enums are like C++ scoped enums. They must use an unsigned integer base type. Unknown discriminants are errors
 # unless a default is defined.
 enum PlainEnum : u8

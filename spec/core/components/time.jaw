@@ -13,4 +13,4 @@
 #   auth_now_est = local_now + offset
 
 pack TimeSyncComponent
-- last: f64 # authority monotonic seconds at send time
+- last : f64 # authority monotonic seconds at send time

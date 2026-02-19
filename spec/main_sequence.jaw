@@ -79,9 +79,9 @@ dyn_array RPCArgumentList : u8 * Any
 # in any order. If this_invoke_id is 0, then the client is signalling that they are not interested in a response, and the server must elide the reply.
 # this_invoke_id values can be repeated iff used values are not currently in-flight. 
 seq RPCInvoke
-- this_invoke_id: u32
-- endpoint: EntityID
-- args: RPCArgumentList
+- this_invoke_id : u32
+- endpoint : EntityID
+- args : RPCArgumentList
 
 
 # ==========================
@@ -89,8 +89,8 @@ seq RPCInvoke
 
 # A response to an RPC endpoint invoke request. this_invoke_id is correlated with the request.
 seq RPCReply
-- this_invoke_id: u32
-- content: RPCReplyContent
+- this_invoke_id : u32
+- content : RPCReplyContent
 
 variant RPCReplyContent : u8
 - 0 => RPCComplete
@@ -99,12 +99,12 @@ variant RPCReplyContent : u8
 
 # The call has completed, with the given value result
 seq RPCComplete
-- result: Any
+- result : Any
 
 # The call is in process, and has yielded the given value. Additional RPCStreamResult replies may result, and will be terminated by a final RPCComplete.
 # An RPCError reply is also terminal to streams. Streaming is not legal with this_invoke_id == 0; a zero this_invoke_id implies the client is not interested in replies. 
 seq RPCStreamResult
-- result: Any
+- result : Any
 
 # UTF-8 error message
 dyn_array ErrorString : u32 * u8

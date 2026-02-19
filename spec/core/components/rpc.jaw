@@ -7,13 +7,13 @@
 from "../../any.jaw" use {AnyTypeID}
 
 seq RPCEndpointComponent
-- name: RPCName
-- arguments: RPCArgumentHintList # informational; implementations may enforce or ignore
+- name : RPCName
+- arguments : RPCArgumentHintList # informational; implementations may enforce or ignore
 
 dyn_array RPCName : u8 * u8
 
 dyn_array RPCArgumentHintList : u8 * RPCArgumentHint
 
 seq RPCArgumentHint
-- name: RPCName
-- type: AnyTypeID
+- name : RPCName
+- arg_type : AnyTypeID

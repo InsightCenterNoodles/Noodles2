@@ -36,17 +36,17 @@ enum AnimLoopMode : u8
 - PingPong = 2
 
 pack AnimLayer
-- animation : AnimationAssetID
-- start_time : f64 # authority monotonic seconds when this layer began (TimeSync timebase)
-- clip_time_offset : f64 # seconds into the clip at start_time
-- speed : f32 # 1.0 = realtime
-- weight : f32 # contribution; base layers should be normalized
-- loop_mode : AnimLoopMode
-- is_additive : u8 # additive layers apply deltas instead of overrides
+- animation         : AnimationAssetID
+- start_time        : f64 # authority monotonic seconds when this layer began (TimeSync timebase)
+- clip_time_offset  : f64 # seconds into the clip at start_time
+- speed             : f32 # 1.0 = realtime
+- weight            : f32 # contribution; base layers should be normalized
+- loop_mode         : AnimLoopMode
+- is_additive       : u8 # additive layers apply deltas instead of overrides
 
 dyn_array AnimLayerList : u8 * AnimLayer
 
-pack AnimatorComponent
+seq AnimatorComponent
 - layers : AnimLayerList # evaluated in array order
 
 # Current morph weights for an entity; length must match the mesh's morph target count.

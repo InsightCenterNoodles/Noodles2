@@ -11,7 +11,7 @@ from "../assets/buffer.jaw" use {BufferView}
 pack InstanceComponent
 - view : BufferView
 - instance_count : u32
-- type : InstanceType
+- instance_type : InstanceType
 - quant_bb_min : Vec3
 - quant_bb_max : Vec3
 - quant_scale  : Vec2
@@ -23,10 +23,10 @@ enum InstanceType : u8
 
 # 64B "fat" format. 
 pack FullFloatInstance
-- position: Vec4            # Px Py Pz _
-- rotation: UnitQuaternion  # 
-- texture : Vec4            # translate u v , scale u v
-- scale   : Vec4            # Sx Sy Sz _
+- position : Vec4            # Px Py Pz _
+- rotation : UnitQuaternion  # 
+- texture  : Vec4            # translate u v , scale u v
+- scale    : Vec4            # Sx Sy Sz _
 
 pack ReducedInstance
 - px : u16
