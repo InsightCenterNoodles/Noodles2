@@ -90,9 +90,9 @@ RFC 8174 when, and only when, they appear in all capitals.
 - `RPCInvoke` travels Downstream to Upstream and references the target entity. `RPCReply` travels Upstream to Downstream and returns zero or more `RPCStreamResult` values followed by exactly one terminal `RPCComplete` or `RPCError`. Replies for unknown or completed invocation IDs are protocol violations.
 - Deleting an endpoint entity does not cancel an invocation already accepted by Upstream. The invocation may complete normally or return an error; new invocations against the deleted endpoint are errors.
 - RPC side effects on authoritative ECS state are communicated through ordinary `Transaction` messages rather than RPC replies.
-- `InteractiveComponent` gates `CanTranslate`, `CanRotate`, `CanScale`, and `Activate`. Transform limits apply in parent-local space; rotation is unrestricted or constrained to one axis relative to a reference orientation. Activation invokes only the first/default RPC endpoint with empty arguments; remaining endpoints are alternate actions.
+- `InteractiveComponent` gates `CanTranslate`, `CanRotate`, `CanScale`, and `Activate`. Transform limits apply in parent-local space; rotation is unrestricted or constrained to one axis relative to a reference orientation. Buttons and entity activation use a shared action type that either invokes an RPC or emits a registered Event with arguments. The first activation action is the default; remaining entries are alternatives.
 - `IsSelectedComponent` is shared authoritative selection state; private selection may remain client-local, and multiple entities may be selected.
-- Parameter UI uses an acyclic entity graph with separate matching definition and state components. Disabled state inherits to descendants. Upstream validates downstream value and structural proposals; malformed date/time proposals may be rejected, while clients may ignore or display malformed authoritative values.
+- Parameter UI uses an acyclic entity graph with separate matching definition and state components. Disabled state inherits to descendants. Buttons execute RPC or Event actions without changing their empty state. Upstream validates downstream value and structural proposals; malformed date/time proposals may be rejected, while clients may ignore or display malformed authoritative values.
 
 ## Events
 

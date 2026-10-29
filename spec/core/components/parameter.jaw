@@ -13,8 +13,8 @@
 # multiple widget states from coexisting on one entity. A receiver MAY ignore an
 # invalid parameter entity rather than treating the entire connection as unusable.
 
-from "../../any.jaw" use {AnyArray}
 from "../../common.jaw" use {EntityID}
+from "interaction.jaw" use {InteractionAction}
 
 # Marks an entry point into a parameter graph. A root carrying GlobalComponent
 # is suitable for scene-wide UI such as a sidebar; otherwise it is local to the
@@ -123,11 +123,11 @@ seq ModesDefinition
 
 seq ToggleDefinition
 
-# target must already exist and have RPCEndpointComponent. Activating the button
-# invokes it with payload as the argument list.
+# Activating an enabled button executes its RPC or Event interaction action
+# directly; it does not submit a parameter-state proposal. ButtonState remains
+# empty because activation is transient and does not mutate parameter state.
 seq ButtonDefinition
-- target : EntityID
-- payload : AnyArray # passed to the existing RPC def in the component
+- action : InteractionAction
 - button_kind : ButtonKind
     
 # min, max, step, and RangeState.value use the same ParamValue variant. min must

@@ -33,6 +33,7 @@ Check in canonical binary fixtures for at least:
 - An accepted proposal, complete remaps, and its canonical transaction.
 - RPC streaming followed by completion and by error.
 - Event registry creation and a downstream-originated event broadcast back to all downstreams, including its sender; include `noodles.view.pose.v1`.
+- Button and entity activation actions covering both RPC invocation and Event emission.
 - Inline, URL, and OOB buffer descriptions.
 - PCM16 WAVE audio and a synchronized spatial audio source.
 - Transform sampling with interpolation, bounded extrapolation, and a hard-transform history reset.

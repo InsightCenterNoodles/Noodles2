@@ -1,4 +1,6 @@
+from "../../any.jaw" use {Any}
 from "../../common.jaw" use {EntityID, UnitQuaternion, Vec3}
+from "../../events.jaw" use {EventTypeID}
 
 # Gates the interaction affordances on an entity. CanTranslate, CanRotate,
 # CanScale, and Activate are ignored unless this marker is also present.
@@ -65,8 +67,35 @@ seq CanRotateComponent
 pack CanScaleComponent
 - axes : AllowedAxis # hard limits for scale per-axis
 
-# Each target must be an entity with RPCEndpointComponent. The first entry is
-# the primary/default action and is invoked with an empty argument list on normal
-# activation. Remaining entries are alternate actions a client may expose; they
-# are not automatically invoked with the primary action.
-dyn_array ActivateComponent : u8 * EntityID
+# Reusable interaction action for UI buttons and direct entity activation. The
+# u8 argument count matches direct RPCInvoke and EventMessage limits.
+dyn_array InteractionArgumentList : u8 * Any
+
+seq RPCInteractionAction
+- target : EntityID
+- args : InteractionArgumentList
+
+seq EventInteractionAction
+- event_type : EventTypeID
+- args : InteractionArgumentList
+
+variant InteractionAction : u8
+- 0 => RPCInteractionAction
+- 1 => EventInteractionAction
+
+# An RPC target must be a live entity carrying RPCEndpointComponent. An event
+# target must name a live registry entity and registered definition. Arguments
+# are passed unchanged to RPCInvoke or EventMessage. Active action references
+# must be removed or redirected before their endpoint entity, registry entity,
+# or event definition is removed.
+# RPC actions do not define UI-level reply routing. A client that does not consume
+# a reply uses this_invoke_id 0; one that does consume replies allocates a normal
+# nonzero invocation ID and obeys the ordinary RPC lifecycle.
+#
+# A Downstream executing an EventInteractionAction follows normal event flow: it
+# sends to Upstream without local dispatch and handles the returned broadcast.
+# Upstream policy still governs both RPC invocation and event emission.
+#
+# The first entry is the primary/default action. Remaining entries are alternate
+# actions a client may expose and are not automatically executed with it.
+dyn_array ActivateComponent : u8 * InteractionAction

@@ -37,7 +37,7 @@ Notes:
 | CanTranslate     | 6          | Translation affordance with hard per-axis limits. |
 | CanRotate        | 7          | Rotation affordance with hard per-axis limits. |
 | CanScale         | 8          | Scale affordance with hard per-axis limits. |
-| Activate         | 9          | Activation targets entities (with RPCEndpoint) to invoke. |
+| Activate         | 9          | Primary and alternate RPC/Event actions for entity activation. |
 | DirectionalLight | 10         | Directional light source. |
 | PointLight       | 11         | Point light source. |
 | SpotLight        | 12         | Spot light source. |
@@ -72,7 +72,7 @@ Notes:
 - An absent transform is identity. Parent graphs are acyclic, and ancestor invisibility suppresses descendants.
 - A `Global` environment applies to the whole scene. Producers should provide at most one; clients encountering several may select one. Non-global environments may be spatially blended at client discretion.
 - Instance records are interleaved and entity-local. Skins require unique, live joints and exact inverse-bind matrix storage; finite morph weights may extend outside `[0,1]`.
-- `Interactive` gates transform and activation affordances. Their limits are local to the parent; rotation is unrestricted or constrained to one parent-local axis relative to a reference orientation. Selection components represent shared authoritative selection; private client selection remains local.
+- `Interactive` gates transform and activation affordances. Their limits are local to the parent; rotation is unrestricted or constrained to one parent-local axis relative to a reference orientation. Buttons and activation share an action union that invokes RPC endpoints or emits registered Events with arguments. Selection components represent shared authoritative selection; private client selection remains local.
 - Parameter UI is an acyclic entity graph. Widget definition/state tags match, disabled state inherits to descendants, and numeric/option values obey their definitions.
 - Event registries provide entity-scoped type IDs and informational argument hints for transient broadcasts. Event names and identifiers are unique within a registry.
 - Transform samples are low-rate presentation hints in parent space. Full-support clients retain history and interpolate or derive bounded extrapolation; lightweight clients may snap to each newest sample. A hard `TransformComponent` update clears history and takes effect until a later ordered sample update. Reparenting or changing smoothing configuration also clears history. Initial snapshots preserve whether the hard transform or sample was updated last so late joiners reconstruct the same active source.

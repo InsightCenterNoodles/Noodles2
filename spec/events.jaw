@@ -1,0 +1,31 @@
+from "any.jaw" use {Any}
+from "common.jaw" use {EntityID}
+
+# Transient broadcast event type, scoped by an entity carrying Core's
+# EventRegistryComponent. The registry and definition identifier must already be
+# registered before an event is sent.
+pack EventTypeID
+- registry : EntityID
+- definition_identifier : u16
+
+dyn_array EventArgumentList : u8 * Any
+
+seq EventMessage
+- event_type : EventTypeID
+- args : EventArgumentList
+
+# Events are stateless and are not included in initial snapshots or replayed to
+# late joiners. Durable facts belong in ECS state.
+#
+# Downstream sends an event to Upstream but does not dispatch it locally yet.
+# Upstream validates it, places it in its total order with authoritative
+# Transactions and other events, handles it locally once, then broadcasts it
+# unchanged to every Downstream including the sender. The sender dispatches the
+# returned broadcast through the same receive path as every other Downstream.
+# Upstream-originated events are handled locally once and broadcast to all.
+#
+# Per-Downstream arrival order is preserved; Upstream chooses interleaving across
+# connections. An unknown registry or definition identifier is invalid. Argument
+# hints are informational. Upstream may drop/rate-limit events or disconnect
+# senders under application and resource policy. Automatic relaying across
+# separate Upstream sessions is not defined.
