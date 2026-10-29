@@ -1,6 +1,8 @@
-# Instance component: describes an instancing buffer and quantization ranges.
+# Instance component: describes an interleaved array-of-structures instancing
+# buffer and quantization ranges. Instance transforms are local to the entity
+# carrying this component; that entity's world transform is applied afterward.
 # Supports a full-float layout or a reduced, quantized layout for compact uploads.
-# Quantization values describe the world-space range used for Reduced instances.
+# Quantization values describe the entity-local range used for Reduced instances.
 # ReducedInstance values are normalized into [quant_bb_min, quant_bb_max] for
 # position (u16) and [quant_scale.x, quant_scale.y] for uniform scale (u16).
 # Texture translation/scale fields are normalized to [-1,1] using i16.
@@ -16,18 +18,26 @@ pack InstanceComponent
 - quant_bb_max : Vec3
 - quant_scale  : Vec2
 
+# The view must contain at least instance_count * layout_size bytes using checked
+# arithmetic. Trailing bytes are ignored. Instances are interleaved so each
+# record can be consumed as one GPU instance; implementations may repack if a
+# target API requires a different layout.
+
 enum InstanceType : u8
 - FullFloat = 0
 - Reduced   = 1
 
 
-# 64B "fat" format. 
+# 64-byte "fat" format. position.w and scale.w are ignored.
+# texture = [translate_u, translate_v, scale_u, scale_v].
 pack FullFloatInstance
 - position : Vec4            # Px Py Pz _
 - rotation : UnitQuaternion  # 
 - texture  : Vec4            # translate u v , scale u v
 - scale    : Vec4            # Sx Sy Sz _
 
+# 24-byte compact format, naturally grouped as three four-component GPU vertex
+# attributes: UNORM16 position/scale, SNORM16 rotation, and SNORM16 texture.
 pack ReducedInstance
 - px : u16
 - py : u16
@@ -41,3 +51,12 @@ pack ReducedInstance
 - ttv : i16 # tex translation v, normalized [-1,1]
 - tsu : i16 # tex scale u, normalized [-1,1]
 - tsv : i16 # tex scale v, normalized [-1,1]
+
+# Reduced decoding:
+# - px/py/pz map u16 / 65535 over [quant_bb_min, quant_bb_max].
+# - s maps u16 / 65535 over [quant_scale.x, quant_scale.y]. This interval may
+#   cross zero, so negative spatial scale is representable with a u16 code.
+# - i16 values use SNORM16: max(value / 32767, -1).
+# - Decoded rotations are normalized before use.
+# - Quantization minima must be <= maxima. If an interval's endpoints are equal,
+#   every encoded value decodes to that endpoint; producers should encode zero.

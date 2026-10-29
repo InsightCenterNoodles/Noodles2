@@ -13,10 +13,15 @@ The Core extension defines the baseline assets and components required for inter
 | PBRMaterial   |    4       | PBR surface parameters with optional extended features                   |
 | Animation     |    5       | Clip referencing sampler assets and channels targeting entities/assets.  |
 | AnimSampler   |    6       | Reusable keyframe sampler data (time/value arrays) referenced by Animation clips. |
+| PBRMaterialFeatureSet | 7   | Immutable material shader/pipeline topology shared by parameter instances. |
 
 Notes:
 - `BufferView` references must target `Buffer` assets; higher-level assets reference buffers via views.
 - Image/material tables are intentionally small (up to 16 entries) to align with typical sampler limits.
+- Core clients must decode PNG and JPEG. Other listed image codecs and environment-rendering features are optional and may be ignored when unsupported.
+- Meshes use right-handed coordinates, counterclockwise front faces, and glTF tangent handedness. Their bounding boxes describe the undeformed base pose.
+- PBR color and emission textures are sRGB; roughness/metallic, occlusion, normal, and other non-color maps are linear. Unsupported extended material features may be ignored or approximated.
+- `PBRMaterialFeatureSet` assets are immutable topology declarations. `PBRMaterial` assets are compact parameter instances; their optional extended block must agree structurally with the referenced feature set.
 - Animation clips target entities directly; mesh assets can include joint/weight attributes and morph targets to support skinning and blendshapes.
 
 
@@ -53,10 +58,18 @@ Notes:
 | Parameter        | 27         | Common parameter storage. |
 | ParamDefinition  | 28         | Parameter definition.                          | 
 | ParamState       | 29         | Parameter state storage.                          | 
+| EventRegistry    | 30         | Declares a registry-scoped namespace of transient broadcast events. |
 
 Notes:
 - Component payloads are complete replacements; partial updates are not defined.
 - `Global` marks entities whose effects may be scene-wide. See component documentation for more details.
+- An absent transform is identity. Parent graphs are acyclic, and ancestor invisibility suppresses descendants.
+- A `Global` environment applies to the whole scene. Producers should provide at most one; clients encountering several may select one. Non-global environments may be spatially blended at client discretion.
+- Instance records are interleaved and entity-local. Skins require unique, live joints and exact inverse-bind matrix storage; finite morph weights may extend outside `[0,1]`.
+- `Interactive` gates transform and activation affordances. Their limits are local to the parent; rotation is unrestricted or constrained to one parent-local axis relative to a reference orientation. Selection components represent shared authoritative selection; private client selection remains local.
+- Parameter UI is an acyclic entity graph. Widget definition/state tags match, disabled state inherits to descendants, and numeric/option values obey their definitions.
+- Event registries provide entity-scoped type IDs and informational argument hints for transient broadcasts. Event names and identifiers are unique within a registry.
+- Time synchronization is finite and monotonic within a session. Names are non-identifying display labels. Text uses local-unit height and sRGBA color; clients may render authored alpha as opaque.
 - `RPCEndpoint` exposes callable entry points; arguments/results use `Any` encoding.
 
 ## Animation Notes
@@ -64,6 +77,10 @@ Notes:
 ### Target Paths
 
 Animation channels address component or asset members for time-varying value animations.
+
+An asset channel animates the shared logical asset. Every entity referencing
+that asset observes the result. Per-entity material animation therefore requires
+a distinct material asset identity for that entity.
 
 Core-defined component targets:
 
@@ -91,12 +108,12 @@ Core-defined asset targets:
 | `PBRMaterial`     | (0, 4)        | 2 →`metallic`                | Float |
 | `PBRMaterial`     | (0, 4)        | 3 →`ior`                     | Float |
 
-If a component id is not known, or the animation value cannot be coerced to the target component member, the node is free to ignore this animation.
+If a target type or member is unknown, its referenced entity or asset does not exist, `sub_index` is invalid, or the sampled value cannot be coerced to the target member, the implementation MAY ignore that channel.
 
 
 ### Value Coercion
 
-It is possible, in this spec, to have an AnimationValueType that does not fully match with the target value type. The client may then coerce the animated value to the proper type. Legal conversions are provided:
+An `AnimationValueType` does not always exactly match the stored target type. An implementation MAY apply the following conversions:
 
 | From (v)          | To (y)        | Notes         |
 |---                |---            | ---           |
@@ -105,17 +122,21 @@ It is possible, in this spec, to have an AnimationValueType that does not fully 
 |SRGBA8             | SRGB8         | y = [v.r, v.g, v.b] |
 |SRGB8              | SRGBA8        | y = [v.r, v.g, v.b, 255] |
 
+`SRGBA8` samples are decoded to linear RGB before interpolation and blending;
+alpha is already linear. Results are converted back only when stored in an sRGB
+target. CubicSpline interpolation is not valid for `SRGBA8` samplers.
+
 ### Reference Evaluation
 
-Example code for components. Similar approach is used for assets. Cocercion is not added in this sample.
+The following pseudocode reflects the schema's separate `component_channels` and `asset_channels`. A target key contains every addressing field in the corresponding target pack. `read_target` converts stored values into their animation evaluation domain (including linear color), while `write_target` converts and clamps back to the stored representation. Other value coercion is omitted for clarity.
 
 ```
-function eval_animator(entity, animator, now_seconds):
-    # Accumulate per target path:
-    # overrides[path] = list of (value_type, weight, value)
-    # additives[path] = list of (value_type, weight, value) in layer order
-    overrides = Map<Path, List<Contribution>>()
-    additives = Map<Path, List<Contribution>>()
+function eval_animator(animator, now_seconds):
+    # Accumulate per component/asset target:
+    # overrides[target] = list of (value_type, weight, value)
+    # additives[target] = list of (value_type, weight, value) in layer order
+    overrides = Map<TargetKey, List<Contribution>>()
+    additives = Map<TargetKey, List<Contribution>>()
 
     for layer in animator.layers (in array order):
         if layer.weight <= 0:
@@ -133,57 +154,85 @@ function eval_animator(entity, animator, now_seconds):
         clip_t_raw = (now_seconds - layer.start_time) * layer.speed + layer.clip_time_offset
         clip_t = map_time(clip_t_raw, layer.loop_mode, asset.duration_seconds)
 
-        for channel in asset.channels:
-            if channel.target.entity != entity:
-                continue
+        for channel in asset.component_channels:
+            target = ComponentTargetKey(
+                channel.target.entity,
+                channel.target.component_id,
+                channel.target.member_index,
+                channel.target.sub_index)
+            accumulate_channel(asset, channel.sampler, target, layer, clip_t,
+                               overrides, additives)
 
-            path = channel.target.path
-            sampler_asset_id = asset.samplers[channel.sampler]
-            sampler = resolve_anim_sampler_asset(sampler_asset_id)
-            if sampler is missing:
-                continue
-            # Sample value at time clip_t (in seconds)
-            value = sample_sampler(sampler, clip_t)  # returns typed value (Float/Float3/Rotation)
+        for channel in asset.asset_channels:
+            target = AssetTargetKey(
+                channel.target.asset,
+                channel.target.member_index,
+                channel.target.sub_index)
+            accumulate_channel(asset, channel.sampler, target, layer, clip_t,
+                               overrides, additives)
 
-            c = Contribution(
-                value_type = sampler.value_type,
-                weight = max(layer.weight, 0),
-                value = value,
-                is_additive = (layer.is_additive != 0)
-            )
+    apply_contributions(overrides, additives)
 
-            if c.is_additive:
-                additives[path].push(c)   # preserves layer order naturally
-            else:
-                overrides[path].push(c)
 
-    # Apply per-path evaluation:
+function accumulate_channel(asset, sampler_index, target, layer, clip_t,
+                            overrides, additives):
+    if sampler_index >= asset.samplers.size:
+        return
+
+    sampler_asset_id = asset.samplers[sampler_index]
+    sampler = resolve_anim_sampler_asset(sampler_asset_id)
+    if sampler is missing:
+        return
+    # Sample value at time clip_t (in seconds)
+    value = sample_sampler(sampler, clip_t)
+
+    c = Contribution(
+        value_type = sampler.value_type,
+        weight = max(layer.weight, 0),
+        value = value,
+        is_additive = (layer.is_additive != 0)
+    )
+
+    if c.is_additive:
+        additives[target].push(c)   # preserves layer order naturally
+    else:
+        overrides[target].push(c)
+
+
+function apply_contributions(overrides, additives):
+
+    # Apply per-target evaluation:
     # First overrides (blended), then additives (applied in order).
-    all_paths = union(keys(overrides), keys(additives))
+    all_targets = union(keys(overrides), keys(additives))
 
-    for path in all_paths:
-        base = read_value(entity, path)   # current value in the component member
+    for target in all_targets:
+        base = read_target(target)
 
         # ----- Override stage -----
-        if path in overrides:
-            list = overrides[path]
+        if target in overrides:
+            list = overrides[target]
             if list.size > 0:
-                vt = list[0].value_type  # MUST match across contributors; otherwise ignore mismatches
+                vt = list[0].value_type
+                list = [ci for ci in list if ci.value_type == vt]
                 sum_w = Σ(ci.weight for ci in list)
 
                 if sum_w > 0:
                     if vt == Float:
                         v = 0
                         for ci in list:
-                            if ci.value_type != Float: continue
                             v += ci.weight * ci.value
                         base = v / sum_w
 
                     else if vt == Float3:
                         v = (0,0,0)
                         for ci in list:
-                            if ci.value_type != Float3: continue
                             v += ci.weight * ci.value
+                        base = v / sum_w
+
+                    else if vt == SRGBA8:
+                        v = (0,0,0,0)
+                        for ci in list:
+                            v += ci.weight * decode_srgba8_linear(ci.value)
                         base = v / sum_w
 
                     else if vt == Rotation:
@@ -200,8 +249,8 @@ function eval_animator(entity, animator, now_seconds):
                         base = normalize(q)
 
         # ----- Additive stage -----
-        if path in additives:
-            for ci in additives[path] (in stored order):
+        if target in additives:
+            for ci in additives[target] (in stored order):
                 if ci.weight <= 0:
                     continue
 
@@ -217,7 +266,10 @@ function eval_animator(entity, animator, now_seconds):
                     base = base * slerp(identity_quat(), delta, clamp01(ci.weight))
                     base = normalize(base)
 
-        write_value(entity, path, base)
+                else if ci.value_type == SRGBA8:
+                    base = base + ci.weight * decode_srgba8_linear(ci.value)
+
+        write_target(target, base)
 
 
 function map_time(t, loop_mode, duration):

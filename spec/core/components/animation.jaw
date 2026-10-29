@@ -14,9 +14,13 @@ from "../assets/animation.jaw" use {AnimationAssetID}
 # - Override blending is performed per-path using only layers that contribute to that path.
 # - Implementations MUST clamp negative weights to 0.
 # - Override weights are normalized by sum_w per-path.
+# - start_time, clip_time_offset, speed, and weight must be finite.
+# - Negative speed is valid and plays the clip backward.
 
 # Additive semantics:
 # - Float / Float3 additive: base += weight * sample
+# - SRGBA8 additive: decode to linear RGBA, then base += weight * sample;
+#   conversion back to a byte color clamps to its representable range.
 # - Rotation additive: treat sample as a delta from identity and apply multiplicatively:
 #     base = base * slerp(identity, sample, weight)
 #   (Rotation additive is therefore "no-op" when sample == identity.)
@@ -29,6 +33,10 @@ from "../assets/animation.jaw" use {AnimationAssetID}
 # - Clamp:   clip_t = clamp(clip_t, 0, duration_seconds)
 # - PingPong:reflect within [0, duration_seconds] (triangle wave)
 # If duration_seconds == 0, the layer contributes no samples.
+#
+# Producers SHOULD ensure that at most one AnimatorComponent contributes to a
+# target path at a time. If multiple animators do so, clients MAY choose which
+# animator to evaluate for that path.
 
 enum AnimLoopMode : u8
 - Loop = 0
@@ -42,7 +50,7 @@ pack AnimLayer
 - speed             : f32 # 1.0 = realtime
 - weight            : f32 # contribution; base layers should be normalized
 - loop_mode         : AnimLoopMode
-- is_additive       : u8 # additive layers apply deltas instead of overrides
+- is_additive       : bool # additive layers apply deltas instead of overrides
 
 dyn_array AnimLayerList : u8 * AnimLayer
 
@@ -51,4 +59,8 @@ seq AnimatorComponent
 
 # Current morph weights for an entity; length must match the mesh's morph target count.
 # If absent, implementations SHOULD treat all weights as 0.
+# Values must be finite; negative values and values greater than one are valid.
+# Before changing an entity to a mesh with a different morph-target count, the
+# existing weights must be removed. New matching weights may be added after the
+# mesh change in the same Transaction.
 dyn_array MorphWeightsComponent : u16 * f32

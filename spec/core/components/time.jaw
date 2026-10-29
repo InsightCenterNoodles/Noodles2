@@ -1,6 +1,8 @@
 # Common timebase support
 # This is intended for use by animations, not for simulation times. It is strongly recommended
 # for implementations to update this value at ~1 Hz.
+# `last` must be finite and non-decreasing during one main-channel session.
+# Clients reset their offset estimate when a new session begins.
 
 # Implementations should maintain a local clock. When this component is updated, compute:
 #   tA = TimeSyncComponent.last
@@ -11,6 +13,8 @@
 #   offset = lerp(offset, offset_est, alpha) where alpha ranges between 0.02–0.1 depending on update rate.
 # Then compute “estimated authority time now” locally as:
 #   auth_now_est = local_now + offset
+# The exposed estimate must not move backward. If an offset update would cause a
+# reversal, clients converge gradually while preserving monotonic output.
 
 pack TimeSyncComponent
 - last : f64 # authority monotonic seconds at send time

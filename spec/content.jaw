@@ -8,14 +8,30 @@ variant ContentMessage : u8
 - 4 => ContentModifyAsset
 - 5 => ContentDeleteAsset
 
+# Unsupported/unnegotiated extension content may be skipped: receivers skip an
+# entire ContentModifyComponents.content or ContentModifyAsset.content buffer,
+# ignore the associated component/asset deletion, and create no placeholder
+# local state. Active-reference validation applies only to understood state.
+# An unknown type identifier inside a negotiated extension is a protocol
+# violation rather than skippable extension evolution.
+
 dyn_array EntityList : u32 * EntityID
 
 # ===================================================
 # Add or remove entities
 
+# In authoritative Transactions, every created ID is canonical (bit 63 clear),
+# unique in this list, not alive, and never previously deleted in this session.
+# In proposals, new entities instead use patch-local IDs (bit 63 set). Duplicate
+# creation, reuse of a tombstoned ID, or authoritative creation with bit 63 set
+# is malformed. An entity remains alive even when it has no components.
 seq ContentCreateEntities
 - list : EntityList
 
+# Deletion removes the entity and all its components and permanently tombstones
+# its ID for this session. Active references must have been removed or redirected
+# by earlier Transaction operations. A never-seen ID may be ignored. Deleting a
+# known tombstone is suspicious; a receiver MAY disconnect.
 seq ContentDeleteEntities
 - list : EntityList
 
@@ -25,16 +41,24 @@ seq ContentDeleteEntities
 dyn_array Content : u32 * u8
 
 # ===================================================
-# Modify components attached to entities
-# Entities that do not exist are created. 
-# The content is structured as a byte stream of (EntityID, Component) pairs. The count of such pairs is provided in the message for optimization, 
-# but readers should treat the count strictly as a hint (e.g., for preallocation) and must parse until the content buffer is fully consumed.
+# Modify components attached to entities. Each entity has at most one component
+# for a ComponentTypeID, and modification completely replaces its prior value.
+# Repeated pairs are applied in order, so the later value wins.
+#
+# In an authoritative Transaction, a never-seen canonical entity is implicitly
+# created before its component is applied. A tombstoned ID cannot be recreated.
+# In a proposal, an unknown canonical ID is invalid; a patch-local pair may
+# implicitly create its placeholder entity before applying the component.
+# The content is structured as a byte stream of (EntityID, Component) pairs.
+# The count is a non-authoritative hint for preallocation. Readers MUST parse
+# until the content buffer is fully consumed and need not verify the count.
 seq ContentModifyComponents
 - component : ComponentTypeID
 - count : u32
 - content : Content
 
-# Delete components from entities. Entities that do not exist are ignored.
+# Deleting an absent component or deleting from an unknown entity is a no-op and
+# never creates an entity.
 seq ContentDeleteComponents
 - component : ComponentTypeID
 - list : EntityList
@@ -42,16 +66,25 @@ seq ContentDeleteComponents
 # ===================================================
 # Modify asset
 
-# Adds or updates an existing asset to the world. When added to the world, the asset is retained for use by components or other assets.
-# This use could be in the future, and so implementations MUST NOT remove the asset from the world until informed to do so.
-# The content should be parsed as the corresponding *Asset type for the given extension/asset type
+# Adds an asset or atomically replaces the value of an existing logical asset.
+# New authoritative asset IDs are canonical (bit 63 clear), while proposal-local
+# asset creation uses bit 63 set. A tombstoned identity cannot be resurrected.
+# (AssetTypeID, AssetID) is the stable identity, so existing references observe
+# the replacement without being rewritten. Intermediate replacement state is
+# not observable. Clients must invalidate decoded, cached, or GPU resources for
+# the old value, but may retain them internally until outstanding work finishes.
+#
+# A replacement BufferAsset must leave every active BufferView in bounds when
+# the containing Transaction commits. The content is parsed as the corresponding
+# *Asset type for the given extension and asset type.
 seq ContentModifyAsset
 - an_asset : AnAsset
 - content : Content
 
-# Schedules an asset for deletion. 
-# It should be anticipated by clients that a server may delete an asset, even though it is being referenced. In this case, the client is informed that the asset should be removed
-# only after all references to it are deleted (shared_ptr like semantics). 
-# Clients MAY NOT propose asset deletion. 
+# Tombstones an asset identity. Existing references continue to resolve to the
+# last value and keep it alive until those references are removed, but new
+# references to the tombstoned identity are invalid. A tombstoned identity must
+# not be reused during the same main-channel session.
+# Clients MAY NOT propose asset deletion.
 seq ContentDeleteAsset
 - an_asset : AnAsset

@@ -1,0 +1,33 @@
+# Declares transient event types in a namespace scoped by the entity carrying
+# this component. EventMessage addresses a type by (registry entity,
+# definition_identifier), so equal names in separate registries do not collide.
+
+from "../../any.jaw" use {AnyTypeID}
+
+dyn_array EventName : u8 * u8 # UTF-8
+
+seq EventArgumentHint
+- name : EventName
+- arg_type : AnyTypeID
+
+dyn_array EventArgumentHintList : u8 * EventArgumentHint
+
+seq EventDefinition
+- definition_identifier : u16
+- name : EventName
+- arguments : EventArgumentHintList
+
+dyn_array EventDefinitionList : u16 * EventDefinition
+
+seq EventRegistryComponent
+- events : EventDefinitionList
+
+# Identifiers and names are unique within one registry. Once assigned during the
+# registry entity's lifetime, an identifier is not reassigned to another meaning;
+# removed identifiers remain reserved. Argument hints are informational and may
+# be validated or ignored by applications.
+#
+# Downstreams register or update a registry through ordinary proposals after
+# InitialStateComplete. Upstream remains authoritative and may reject changes.
+# Any Upstream or Downstream may emit any registered event, subject to Upstream
+# policy; registration describes the event namespace, not sender ownership.

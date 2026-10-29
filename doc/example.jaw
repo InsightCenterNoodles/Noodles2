@@ -1,7 +1,8 @@
-# Jaw is a (soon to be published) DSL for binary messages
+# JAW is a DSL for binary messages.
 
 # Each file is a list of declarations of Types. 
-# Builtin types are integers of 8 to 64 bits, floats f32 f64, and void
+# Builtin types are bool, integers of 8 to 64 bits, floats f32/f64, and void.
+# bool occupies one wire byte and accepts only 0 or 1.
 
 # This is a basic declaration of a sequence of types that are to be read 
 # from a byte stream. Each member of this type will be read/written in sequence.
@@ -37,17 +38,16 @@ pack MyOtherPOD
 - first : MyPOD
 - second : FixedString # We could not use ShortString here, how could we read everything at once?
 
-# Enums are like C++ scoped enums. They must use an unsigned integer base type. Unknown discriminants are errors
-# unless a default is defined.
+# Enums use an unsigned integer base type. Unknown and reserved values are errors.
 enum PlainEnum : u8
 - F1 = 0
 - F2 = 1
 
-# Enums can also define a default value to substitute when an unknown discriminant is read.
+# Values or inclusive ranges can be reserved for future use.
 enum BetterEnum : u8
 - A = 0
 - B = 1
-> DEFAULT = 255
+- reserve 2..=255
 
 # Bitfields/flags: the underlying type must be an integer or enum, and bit positions are numbered from LSB=0.
 # On write, fields are masked/truncated to their declared width; on read, fields are zero-extended from that width.

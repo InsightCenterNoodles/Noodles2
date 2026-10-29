@@ -7,14 +7,10 @@ from "buffer.jaw" use {BufferView}
 pack ImageAssetID
 - id : AssetID
 
-# Images must be one of the following formats
-# - PNG
-# - JPEG
-# - WEBP
-# - KTX2
-# - HDR
-# - EXR
-# Clients may not have full support for these formats, but SHOULD make best effort have partial support
+# Encoded image format is detected from the bytes; it is not duplicated in this
+# asset. Core clients MUST support PNG and JPEG. WebP, KTX2, Radiance HDR, and
+# OpenEXR are optional; clients SHOULD support as many as practical. Producers
+# seeking baseline interoperability SHOULD use PNG or JPEG.
 
 seq ImageAsset
 - view : BufferView # buffer slice containing the encoded image
@@ -38,7 +34,7 @@ enum ImageSamplerBorderColor : u8
 - TransparentBlack = 0
 - OpaqueBlack = 1
 - OpaqueWhite = 2
-- Zero = 3
+- reserve 3
 
 bits ImageFlags : u32
 - 0-1   address_mode_u : ImageAddressMode

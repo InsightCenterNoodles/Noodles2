@@ -10,16 +10,19 @@ pack EnvironmentAssetID
 seq EnvironmentAsset
 - flags : EnvironmentFlags
 - table : EnvImageTable # images referenced by indices below
-- env_map_index : u8 # zero-based index into table; ignored if has_env_map=0
-- sky_map_index : u8 # zero-based index into table; ignored if has_sky_map=0
+- env_map_index : u8 # must index table when has_env_map=1; otherwise ignored
+- sky_map_index : u8 # must index table when has_sky_map=1; otherwise ignored
 
 dyn_array EnvImageTable : u8 * ImageAssetID
 
 enum EnvironmentFormat : u8
-> Equirect = 0
+- Equirect = 0
 
 bits EnvironmentFlags : u32
 - 0   is_skybox_visible : u8
 - 1-2 format            : EnvironmentFormat
 - 3   has_env_map       : u8
 - 4   has_sky_map       : u8
+
+# Unsupported environment rendering features or optional image codecs may be
+# ignored without treating the asset or connection as malformed.

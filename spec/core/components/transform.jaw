@@ -1,4 +1,9 @@
 # Transform component: local transform; always sent as a full replacement.
+# An entity without this component has identity translation, rotation, and scale.
+# Position, rotation, and scale must be finite. Rotation must be unit length
+# within implementation tolerance; consumers may normalize it. Zero and
+# negative scale are valid. Negative scale reverses handedness and mesh winding;
+# an entity with zero scale may be culled by the client.
 
 from "../../common.jaw" use {UnitQuaternion, Vec3}
 

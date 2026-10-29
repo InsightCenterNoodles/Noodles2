@@ -6,9 +6,11 @@ from "../../common.jaw" use {AnAsset, AssetID, ComponentTypeID, EntityID}
 from "buffer.jaw" use {BufferView}
 
 # Sampling / evaluation notes:
-# - All times are in seconds. Sampler input times must be finite and non-decreasing.
-# - Channels with an unresolved target path MUST be ignored (and SHOULD emit a validation warning).
-# - The sampler's output buffer MUST match the expected f32 stride for (value_type, interpolation).
+# - All times are in seconds. Sampler input times must be finite and strictly increasing.
+# - Every channel sampler index must address AnimationAsset.samplers.
+# - Channel target entities/assets and referenced sampler assets must already be
+#   alive when the AnimationAsset is created or replaced.
+# - Float outputs must be finite.
 
 # Rotation requirements:
 # - Rotation key values MUST be unit quaternions (implementation SHOULD normalize on load).
@@ -27,21 +29,23 @@ pack AnimSamplerAssetID
 - id : AssetID
 
 enum AnimInterpolation : u8
-> Linear = 0
+- Linear = 0
 - Step = 1
 - CubicSpline = 2
 
 # Supported animation value types
 # For rotations, quaternions must be stored as unit. There must be hemisphere continuity. Linear interpolation is by spherical linear (slerp).
-# Colors are provided with alpha, but that channel can be ignored: See coercion in the extension doc.
-# No non-alpha color is provided; that breaks the 4-byte size many systems prefer. Color animation is component-wise, as if they were f32.
+# Colors retain a compact four-byte representation. Step and Linear sampling
+# decode RGB from sRGB to linear, interpolate component-wise in linear RGBA, and
+# convert to the target representation afterward. CubicSpline is invalid for
+# SRGBA8 because packed bytes cannot represent signed tangents.
 enum AnimationValueType : u8
-> Float = 0         # f32, can be used for scalars and morph weights, etc.
+- Float = 0         # f32, can be used for scalars and morph weights, etc.
 - Float3 = 1        # Vec3 (3 * f32)
 - Rotation = 2      # UnitQuaternion (4 * f32, same definition as in common)
 - SRGBA8   = 3      # Color, ubyte, with alpha (1 * u32, packed as 1 byte per channel) 
 
-# A path to an a member of a component to animate. The component_id describes the component this path targets.
+# A path to a member of a component to animate. The component_id describes the component this target addresses.
 # The member index identifies the component member to animate. These are documented in the extension.
 # The sub-index can be used to address sub-parts of a component member. For example, morph weights.
 pack ComponentAnimTarget
@@ -50,7 +54,7 @@ pack ComponentAnimTarget
 - member_index : u16
 - sub_index : u16 
 
-# A path to an a member of an asset to animate. The component_id describes the component this path targets.
+# A path to a member of an asset to animate. The asset type is carried by target.asset.
 # The member index identifies the asset member to animate. These are documented in the extension.
 # The sub-index can be used to address sub-parts of a component member. For example, morph weights.
 pack AssetAnimTarget
@@ -58,15 +62,13 @@ pack AssetAnimTarget
 - member_index : u16
 - sub_index : u16 
 
-# For CubicSpline, output values are laid out as [in_tangent, value, out_tangent]
-# per keyframe for the target type.
-# - input is a f32 time array, length = keyframe_count. Values must not decrease.
-# - output depends on the value type and the interpolation, but must be of size (N * 4 * keyframe_count),
-#   Where N is (* 3 if interpolation is cubic spline):
-#   - Float => 1
-#   - Float3 => 3
-#   - Rotation => 4
-#   
+# input contains exactly keyframe_count f32 values, so its BufferView length is
+# exactly 4 * keyframe_count bytes. output length is exactly:
+# - Step/Linear: element_size * keyframe_count
+# - CubicSpline: 3 * element_size * keyframe_count, laid out per keyframe as
+#   [in_tangent, value, out_tangent]
+# Element sizes are Float=4, Float3=12, Rotation=16, and SRGBA8=4 bytes.
+# CubicSpline with SRGBA8 is invalid. All size arithmetic is checked for overflow.
 pack AnimSamplerAsset
 - input : BufferView
 - output : BufferView  # value array shaped for target path and interpolation
@@ -93,3 +95,6 @@ seq AnimationAsset
 - component_channels : AnimCChannelList
 - asset_channels     : AnimAChannelList
 - duration_seconds   : f64 # total clip length; MUST be >= max sampler input time (or 0 for empty clips)
+
+# duration_seconds must be finite and non-negative. Every channel sampler index
+# must be in bounds.

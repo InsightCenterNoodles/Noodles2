@@ -1,6 +1,5 @@
-# PBR material asset: base metallic-roughness material with optional extended
-# features (transmission, clearcoat, parallax, emission). References textures
-# via a small image table (up to 16 entries).
+# PBR material feature sets declare immutable shader/pipeline topology. Material
+# assets are compact parameter instances that share those feature sets.
 
 from "../../common.jaw" use {AssetID, LinearRGB, SRGBA8}
 from "image.jaw" use {ImageAssetID}
@@ -8,16 +7,38 @@ from "image.jaw" use {ImageAssetID}
 pack PBRMaterialAssetID
 - id : AssetID
 
+pack PBRMaterialFeatureSetAssetID
+- id : AssetID
+
+# Feature sets MUST be created before materials refer to them and are immutable
+# during a main-channel session. A topology change uses a new asset identity.
+# Clients may compile/cache a rendering variant as soon as this asset arrives.
+seq PBRMaterialFeatureSetAsset
+- base : PBRMaterialBaseFeatures
+- extension : MaybePBRMaterialExtendedFeatures
+
 seq PBRMaterialAsset
+- feature_set : PBRMaterialFeatureSetAssetID
 - base : PBRMaterialBase
 - extension : MaybePBRMaterialExtended
 - table : MaterialImageTable # up to 16 entries for texture references
 
+# The material's extension variant MUST agree with its feature set: both are
+# void for a base-only material, or both are present. Values and references for
+# features not enabled by the feature set are ignored. Unsupported requested
+# features may be ignored or approximated by the client.
+
+# Although the count prefix can represent more, a valid table has at most 16
+# entries because texture references carry four-bit indices.
 dyn_array MaterialImageTable : u8 * ImageAssetID
 
 variant MaybePBRMaterialExtended : u8 
 - 0 => void
 - 1 => ExtendedMaterial
+
+variant MaybePBRMaterialExtendedFeatures : u8
+- 0 => void
+- 1 => PBRMaterialExtendedFeatures
 
 pack NormalizedUShort
 - value : u16  # normalized integer in [0, 65535] -> [0.0, 1.0]         
@@ -38,37 +59,51 @@ enum AlphaMode : u8
 - Blend = 2
 - Premultiplied = 3
 
-bits MatFlags : u16
-- 0   double_sided : u8
-- 1   unlit        : u8
-- 2   fog_disabled : u8
-- 3-4 culling    : FaceCulling
-- 5-6 alpha      : AlphaMode
-- 7   has_color_texture : u8
-- 8   has_orm_texture   : u8
+bits PBRMaterialBaseFeatures : u16
+- 0   unlit        : u8
+- 1   fog_disabled : u8
+- 2-3 culling    : FaceCulling
+- 4-5 alpha      : AlphaMode
+- 6   has_color_texture : u8
+- 7   has_rm_texture    : u8
+- 8   has_occ_texture   : u8
 - 9   has_normal_map    : u8
 
 # UVChannel
 # UV channels are either 0 or 1
 
 bits TextureReference : u8
-- 0-1 channel   : u8 # UVChannel
-- 2-5 image_id  : u8 # ImageTableID 
+- 0-1 channel   : u8 # UVChannel; only 0 and 1 are valid
+- 2-5 image_id  : u8 # ImageTableID; must index table when its feature flag is set
 
 pack PBRMaterialBase
-- flags      : MatFlags 
 - base_color : SRGBA8
 - roughness  : NormalizedUShort # Perceptual roughness [0,1] (normalized u16)
 - metallic   : NormalizedUShort # Metallic [0,1] (normalized u16)
 - ior        : u16 # Index of Refraction (IOR). Normalized between 1-5, x = ((IOR - 1.0) / 4.0) * 65535
+- alpha_cutoff : NormalizedUShort # used only with AlphaMode.Mask; fragments below it are discarded
 - color_map  : TextureReference
-- orm_map    : TextureReference
+- rm_map     : TextureReference
+- occ_map    : TextureReference
 - normal_map : TextureReference
 
-# Extended material information. May clients may not be able to support all these features, and may
-# omit or emulate them (i.e. simple alpha for transmission).
+# Texture conventions:
+# - color_map: sRGB RGBA; multiplied by base_color.
+# - rm_map: linear data; perceptual roughness is G and metallic is B.
+# - occ_map: linear occlusion in R.
+# - normal_map: linear tangent-space XYZ, remapped from [0,1] to [-1,1].
+# - Emission maps are sRGB. Every other non-color map in this asset is linear.
+#   Referenced ImageAsset.semantic values must match these requirements.
+#
+# When feature_set.base.unlit is set, lighting-related PBR values and extended
+# lighting features are ignored. Base color, color texture, alpha mode/cutoff,
+# culling, UV transforms, and emission remain meaningful.
 
-bits ExtendedMaterialFlags : u16
+# Extended material information. Clients unable to implement a feature MAY
+# ignore or approximate it (for example, simple alpha for transmission) without
+# rejecting the material or connection.
+
+bits PBRMaterialExtendedFeatures : u32
 - 0  has_thickness : u8
 - 1  has_thickness_texture : u8
 - 2  has_transmission : u8
@@ -83,9 +118,11 @@ bits ExtendedMaterialFlags : u16
 - 11 has_emission_map : u8
 - 12 has_uv0_transform : u8
 - 13 has_uv1_transform : u8
+- 14 has_clearcoat_amount_map : u8
+- 15 has_clearcoat_roughness_map : u8
+- 16 has_clearcoat_normal_map : u8
 
 pack ExtendedMaterial
-- flags : ExtendedMaterialFlags
 - thickness : Thickness
 - transmission : Transmission
 - clearcoat : Clearcoat
@@ -110,16 +147,16 @@ pack Transmission
 pack Clearcoat
 - amount : NormalizedUShort
 - roughness : NormalizedUShort
-- pack : ClearcoatImagePack
+- images : ClearcoatImagePack
 
 bits ClearcoatImagePack : u32
-- 0     has_amount_map : u8
-- 1     has_roughness_map : u8
-- 2     has_normal_map : u8
-- 3-4   channel : u8        # UVChannel
-- 5-9   amount_map : u8     # ImageTableID 
-- 10-13 roughness_map : u8  # ImageTableID 
-- 14-17 normal_map : u8     # ImageTableID 
+- 0-1   channel : u8        # UVChannel
+- 2-5   amount_map : u8     # ImageTableID
+- 6-9   roughness_map : u8  # ImageTableID
+- 10-13 normal_map : u8     # ImageTableID
+
+# Each map index above must address PBRMaterialAsset.table when its corresponding
+# feature-set flag is enabled. Otherwise the index is ignored.
 
 pack Parallax
 - depth_bias : f32
@@ -129,12 +166,12 @@ pack Parallax
 
 pack Emission
 - color : LinearRGB
-- exposure : NormalizedUShort
+- intensity : f32 # finite, non-negative multiplier; 1.0 leaves color unchanged
 - map : TextureReference
 
 pack Anisotropy
 - strength : NormalizedUShort
-- rotation : NormalizedUShort
+- rotation : NormalizedUShort # maps [0,65535] to [0,2*pi] radians
 - texture : TextureReference
 
 fixed_array Mat22 : 4 * f32

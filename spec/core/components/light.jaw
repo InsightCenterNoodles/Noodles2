@@ -1,5 +1,8 @@
 # Light components: directional, point, and spot lights with simple color,
-# intensity, range, and shadow casting flag.
+# intensity, range, and shadow casting flag. Colors are decoded from sRGB to
+# linear before lighting. Intensities and ranges must be finite and non-negative.
+# Directional and spot lights point along local -Z. Point lights use transform
+# position and ignore rotation; directional lights ignore position.
 
 from "../../common.jaw" use {SRGB8}
 
@@ -21,6 +24,9 @@ pack SpotLightComponent
 - inner_angle_rads : f32
 - outer_angle_rads : f32
 - flags : LightFlags
+
+# Spot angles must be finite and satisfy:
+#   0 <= inner_angle_rads <= outer_angle_rads <= pi/2
 
 bits LightFlags : u32
 - 0 casts_shadows : u8

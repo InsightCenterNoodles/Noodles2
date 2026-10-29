@@ -7,6 +7,7 @@ from "assets/pbr_material.jaw" use *
 from "components/animation.jaw" use *
 from "components/billboard.jaw" use *
 from "components/environment.jaw" use *
+from "components/event.jaw" use *
 from "components/global.jaw" use *
 from "components/instance.jaw" use *
 from "components/interaction.jaw" use *
@@ -25,3 +26,44 @@ from "components/transform.jaw" use *
 from "components/visibility.jaw" use *
 
 const EXTENSION_CORE : u16 = 0
+
+const CORE_ASSET_BUFFER     : u16 = 0
+const CORE_ASSET_ENVIRON    : u16 = 1
+const CORE_ASSET_IMAGE      : u16 = 2
+const CORE_ASSET_MESH       : u16 = 3
+const CORE_ASSET_PBRMAT     : u16 = 4
+const CORE_ASSET_ANIMATION  : u16 = 5
+const CORE_ASSET_ANIM_SAMPL : u16 = 6
+const CORE_ASSET_PBRMAT_FEATURES : u16 = 7
+
+const CORE_COMP_GLOBAL : u16 = 0
+const CORE_COMP_RPC_ENDPOINT : u16 = 1
+const CORE_COMP_BILLBOARD : u16 = 2
+const CORE_COMP_ENVIRONMENT : u16 = 3
+const CORE_COMP_INSTANCE : u16 = 4
+const CORE_COMP_INTERACTIVE : u16 = 5
+const CORE_COMP_CAN_TRANSLATE : u16 = 6
+const CORE_COMP_CAN_ROTATE : u16 = 7
+const CORE_COMP_CAN_SCALE : u16 = 8
+const CORE_COMP_ACTIVATE : u16 = 9
+const CORE_COMP_DIRECTIONAL_LIGHT : u16 = 10
+const CORE_COMP_POINT_LIGHT : u16 = 11
+const CORE_COMP_SPOT_LIGHT : u16 = 12
+const CORE_COMP_PBR_MATERIAL : u16 = 13
+const CORE_COMP_MESH : u16 = 14
+const CORE_COMP_NAME : u16 = 15
+const CORE_COMP_CHILD_OF : u16 = 16
+const CORE_COMP_CAN_SELECT : u16 = 17
+const CORE_COMP_IS_SELECTED : u16 = 18
+const CORE_COMP_TEXT : u16 = 19
+const CORE_COMP_TRANSFORM : u16 = 20
+const CORE_COMP_VISIBILITY : u16 = 21
+const CORE_COMP_ANIMATOR : u16 = 22
+const CORE_COMP_SKIN : u16 = 23
+const CORE_COMP_MORPH_WEIGHTS : u16 = 24
+const CORE_COMP_TIME_SYNC : u16 = 25
+const CORE_COMP_PARAMETER_ROOT : u16 = 26
+const CORE_COMP_PARAMETER : u16 = 27
+const CORE_COMP_PARAM_DEFINITION : u16 = 28
+const CORE_COMP_PARAM_STATE : u16 = 29
+const CORE_COMP_EVENT_REGISTRY : u16 = 30

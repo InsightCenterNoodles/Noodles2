@@ -8,44 +8,98 @@ variant MainSequenceMessage : u8
 - 3 => ProposedTransactionReply
 - 4 => RPCInvoke
 - 5 => RPCReply
+- 6 => InitialStateComplete
+- 7 => EventMessage
+
+# Direction is strict:
+# - Upstream -> Downstream: Transaction, InitialStateComplete,
+#   ProposedTransactionReply (to proposer only), RPCReply (to invoker only).
+# - Downstream -> Upstream: ProposedChangeTransaction, RPCInvoke.
+# - Both directions: EventMessage. A Downstream sends an event to Upstream;
+#   Upstream broadcasts it to every Downstream, including its sender.
+# Receiving a MainSequenceMessage in the wrong direction is a protocol violation
+# and the connection must be closed.
 
 
 # ==========================
 # Transaction
 
-# Content is to be applied in the order of the array
+# Content is applied in array order. A Transaction is atomic: its intermediate
+# states must not be exposed to rendering, queries, systems, or other observers.
+# Every active reference must resolve at the point its operation is applied: the
+# target must already be alive before the Transaction or have been created by an
+# earlier operation in the same Transaction. Forward references are invalid.
+# Fields disabled by their surrounding flags are not active references.
+# A malformed or semantically invalid authoritative Transaction is a protocol
+# violation and must not be partially applied.
 
 dyn_array ContentArray : u32 * ContentMessage
 
 seq Transaction
 - content : ContentArray
 
+# Sent exactly once by Upstream after all Transactions that comprise the
+# initial world snapshot. An empty world is represented by sending this without
+# any preceding Transaction. Downstream must not send proposals or RPC invokes
+# before receiving this message. Downstream also must not send events before it.
+# Transactions after it are live updates.
+seq InitialStateComplete
+
 # ==========================
 # Proposed transaction
 
-# Proposal from Downstream to Upstream to modify the world. Upstream MUST process proposals in arrival order
-# and serialize application. Any accepted proposal MUST be signalled by a ProposedTransactionReply and then
-# followed (in that order) by a Transaction message with the updated world state, which can include cascade
-# effects beyond the original proposal.
+# Proposal from Downstream to Upstream to modify the world. Arrival order is
+# preserved on each Downstream connection. Upstream chooses one total serialized
+# order across all connections and may interleave their proposal streams.
+#
+# On the proposing connection, acceptance is signalled by a code-0
+# ProposedTransactionReply immediately followed by the canonical Transaction
+# applying that proposal, including any cascade effects. No unrelated Transaction
+# may appear between them. Other Downstreams receive only the canonical
+# Transaction, broadcast in Upstream's serialization order.
 # 
 # To create content (entities or assets), Downstream uses patch local addresses for new content, while still being able to reference existing. 
 # Patch-local means that these are IDs that are scoped to this specific proposal only.
 # id & (1 << 63) == 0 → real entity or asset.
 # id & (1 << 63) != 0 → patch-only placeholder entity or asset.
 # The authority will realize these placeholders into real content. It is an error to try and use 'real' ids that have not been created by the authority.
+# A patch-local entity or asset must be created by an earlier operation in the
+# proposal before any later operation may refer to it.
+# Entity placeholders are unique within the proposal. Asset placeholders are
+# scoped by AssetTypeID, so the same numeric AssetID may be used by different
+# asset types.
 #
 # For assets: payloads MUST be provided inline (buffer-backed) from downstream to upstream;
 # no OOB channels or URLs are permitted. Asset deletion cannot be proposed and MUST be rejected.
 #
 # There are no partial applications. Either the proposal is accepted in full, or rejected in full.
+# Downstream MAY display proposal-local optimistic/placeholder state while the
+# proposal is pending. It must remove/revert that state on rejection. On
+# acceptance, remaps and the immediately following canonical Transaction replace
+# the placeholder; only canonical content is authoritative.
 seq ProposedChangeTransaction
-- transaction_id : u32
+- transaction_id : u32 # unique among this Downstream's in-flight proposals; reusable after reply
 - content : ContentArray
 
 # Reply from Upstream to a proposed change. If accepted, and the change includes creation of assets or entities,
 # Downstream may need a way to understand which of the created items relates to the proposed items, thus
 # there are two lists to remap entities and assets. Otherwise, the lists are empty. The lists are also empty upon a rejection.
-# Mappings are one-to-one, and must include all placeholders provided by Downstream. If an asset or entity cannot be realized, that would be a rejection.
+# Mappings are one-to-one and must include every placeholder created by
+# Downstream. Upstream replaces patch-local IDs everywhere they occur in known
+# component and asset payloads. Because proposals are limited to the shared
+# extension set, Upstream must parse payloads deeply enough to find embedded
+# references; failure to understand or remap one rejects the proposal. A
+# referenced placeholder that is not created by the proposal also causes the
+# entire proposal to be rejected.
+#
+# Every source ID has bit 63 set and every destination has it clear. Destinations
+# are newly allocated and unique. Asset source/destination pairs retain the same
+# AssetTypeID. Explicit and implicit creations each appear exactly once.
+#
+# Upstream may normalize accepted values (for example, a quaternion or bounded
+# UI value). The canonical Transaction carries the actual result. A materially
+# different operation is rejected rather than silently substituted. Authority
+# cascades may add changes beyond the proposal without additional remap entries.
 seq ProposedTransactionReply
 - transaction_id    : u32
 - code              : u16 # 0 = accepted, non-zero = see table
@@ -57,6 +111,9 @@ seq ProposedTransactionReply
 # 2 => Resource exhaustion: insufficient resources to complete.
 # 3 => Malformed payload: failed to parse or contained disallowed content (e.g., asset deletion).
 # >= 256 => application-specific.
+# A rejected proposal has empty remap tables and no corresponding canonical
+# Transaction. Invalid proposals normally receive code 3 without closing the
+# connection; repeated malicious or resource-exhausting input may be disconnected.
 
 pack EntityPairMap
 - from : EntityID
@@ -69,15 +126,22 @@ pack AssetPairMap
 dyn_array RemappedEntities : u16 * EntityPairMap
 dyn_array RemappedAssets : u16 * AssetPairMap
 
+# The u16 counts limit each remap table to 65,535 creations. A larger proposal
+# cannot be acknowledged completely and is rejected with code 2. Producers
+# SHOULD split such work into smaller proposals.
+
 # ==========================
 # RPC Invoke
 
 dyn_array RPCArgumentList : u8 * Any
 
-# A request to invoke an RPC endpoint with given arguments
+# A Downstream-to-Upstream request to invoke an RPC endpoint with given arguments.
 # this_invoke_id is used to correlate requests with responses, as the server may handle requests
 # in any order. If this_invoke_id is 0, then the client is signalling that they are not interested in a response, and the server must elide the reply.
 # this_invoke_id values can be repeated iff used values are not currently in-flight. 
+# Deleting the endpoint entity after accepting an invocation does not cancel it;
+# the invocation may complete normally or terminate with RPCError. New invokes
+# against an endpoint that does not exist are errors.
 seq RPCInvoke
 - this_invoke_id : u32
 - endpoint : EntityID
@@ -87,7 +151,14 @@ seq RPCInvoke
 # ==========================
 # RPC Reply
 
-# A response to an RPC endpoint invoke request. this_invoke_id is correlated with the request.
+# An Upstream-to-Downstream response to an RPC endpoint invoke request.
+# this_invoke_id is correlated with the request. A nonzero invocation receives
+# zero or more RPCStreamResult replies followed by exactly one terminal
+# RPCComplete or RPCError. A reply for an unknown or completed ID, or any reply
+# after the terminal reply, is a protocol violation.
+#
+# RPC side effects on authoritative ECS state are communicated through ordinary
+# Transaction messages, not through RPCReply.
 seq RPCReply
 - this_invoke_id : u32
 - content : RPCReplyContent
@@ -113,3 +184,35 @@ dyn_array ErrorString : u32 * u8
 seq RPCError
 - code : u16
 - message : ErrorString
+
+# ==========================
+# Event
+
+# Transient broadcast event type, scoped by an entity carrying Core's
+# EventRegistryComponent. The registry and definition identifier must already be
+# registered before an event is sent.
+pack EventTypeID
+- registry : EntityID
+- definition_identifier : u16
+
+dyn_array EventArgumentList : u8 * Any
+
+seq EventMessage
+- event_type : EventTypeID
+- args : EventArgumentList
+
+# Events are stateless and are not included in initial snapshots or replayed to
+# late joiners. Durable facts belong in ECS state.
+#
+# Downstream sends an event to Upstream but does not dispatch it locally yet.
+# Upstream validates it, places it in its total order with authoritative
+# Transactions and other events, handles it locally once, then broadcasts it
+# unchanged to every Downstream including the sender. The sender dispatches the
+# returned broadcast through the same receive path as every other Downstream.
+# Upstream-originated events are handled locally once and broadcast to all.
+#
+# Per-Downstream arrival order is preserved; Upstream chooses interleaving across
+# connections. An unknown registry or definition identifier is invalid. Argument
+# hints are informational. Upstream may drop/rate-limit events or disconnect
+# senders under application and resource policy. Automatic relaying across
+# separate Upstream sessions is not defined.

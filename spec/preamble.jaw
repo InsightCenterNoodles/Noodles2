@@ -1,6 +1,7 @@
 # Core preamble messages exchanged before the main sequence starts.
 
 from "common.jaw" use {ExtensionID}
+from "oob_asset.jaw" use {OOBSessionToken}
 
 # This is the core message that is sent during the preamble phase
 variant PreMessage : u8
@@ -9,10 +10,16 @@ variant PreMessage : u8
 - 2 => Introduction
 - 3 => IntroductionReply
 
-# This spec corresponds to version 1u16.
+# Covers the base protocol, common types, and the mandatory Core extension.
+# This remains version 1 while the protocol is under development.
+const PROTOCOL_VERSION : u16 = 1
 
 dyn_array PreambleName : u8 * u8
+# Encoded image bytes. Receivers identify the format from the content and may
+# ignore an unsupported or unrecognized image. An empty array means no icon.
 dyn_array PreambleIcon : u32 * u8
+# Set of supported extension IDs. Order and duplicates have no meaning. Core
+# (0x0000) and every dependency of each advertised extension must be included.
 dyn_array PreambleCaps : u16 * ExtensionID
 
 seq Probe
@@ -39,9 +46,12 @@ seq IntroductionHeader
 
 dyn_array OOBPorts : u8 * u16
 
-# OOB Channels are to be provided over the given ports with Websockets.
+# OOB channels are provided over WebSockets on the listed ports.
+# token is a bearer credential for this main-channel session and must be
+# included in every OOBRequest. It expires when the main channel closes.
 seq OOBAssetChannels
 - ports : OOBPorts
+- token : OOBSessionToken
 
 variant OOBAssetInfo : u8
 - 0 => void

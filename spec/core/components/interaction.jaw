@@ -1,6 +1,8 @@
-from "../../common.jaw" use {EntityID}
+from "../../common.jaw" use {EntityID, UnitQuaternion, Vec3}
 
-seq InteractiveComponent # marker that entity supports interaction/affordances
+# Gates the interaction affordances on an entity. CanTranslate, CanRotate,
+# CanScale, and Activate are ignored unless this marker is also present.
+seq InteractiveComponent
 
 pack AxisRange
 - min : f32
@@ -20,21 +22,51 @@ pack AllowedAxis
 - z : AxisRange
 - flags : AllowedAxisFlags
 
-# Can users interactively translate this entity? 
-# Optional hard limits for translation per-axis are in scene units
+# Range values must be finite. For an axis with both limits enabled, min must be
+# <= max. Values whose corresponding enable bit is clear are ignored.
+
+# Can users interactively translate this entity?
+# Optional hard limits apply to local translation relative to the parent and are
+# expressed in scene units. Clients propose complete TransformComponent values;
+# Upstream remains authoritative and may reject them.
 pack CanTranslateComponent
 - axes : AllowedAxis 
 
-# Can users interactively rotate this entity? 
-# Optional hard limits for rotating per-axis are in radians
-pack CanRotateComponent
-- axes : AllowedAxis # hard limits for rotation per-axis, described as Euler angles
+# Can users interactively rotate this entity? Rotation is either unrestricted or
+# constrained to one parent-local axis. More complex constraint variants may be
+# added later.
+variant RotationConstraint : u8
+- 0 => void # unrestricted rotation
+- 1 => AxisRotationConstraint
 
-# Can users interactively scale this entity? 
-# Optional hard limits for scaling per-axis are in absolute scale
+bits AxisRotationLimitFlags : u8
+- 0 min_enable : u8
+- 1 max_enable : u8
+
+# The constrained local orientation is:
+#   axis_angle(parent_local_axis, angle) * reference
+# reference and axis must be finite and unit length within implementation
+# tolerance; clients may normalize them. angle is the canonical relative angle
+# in [-pi, pi]. Enabled limits must be finite and within that interval, and when
+# both are enabled min_angle must be <= max_angle. Disabled values are ignored.
+pack AxisRotationConstraint
+- reference : UnitQuaternion
+- parent_local_axis : Vec3
+- min_angle : f32
+- max_angle : f32
+- flags : AxisRotationLimitFlags
+
+seq CanRotateComponent
+- constraint : RotationConstraint
+
+# Can users interactively scale this entity?
+# Optional hard limits apply to local scale relative to the parent and are in
+# absolute scale units.
 pack CanScaleComponent
 - axes : AllowedAxis # hard limits for scale per-axis
 
-# entity ID should have an RPC component. The first entry should be considered the primary action to take; 
-# that is an action on 'click'.
-dyn_array ActivateComponent : u8 * EntityID # target entities (with RPCEndpoint) to invoke on activation
+# Each target must be an entity with RPCEndpointComponent. The first entry is
+# the primary/default action and is invoked with an empty argument list on normal
+# activation. Remaining entries are alternate actions a client may expose; they
+# are not automatically invoked with the primary action.
+dyn_array ActivateComponent : u8 * EntityID

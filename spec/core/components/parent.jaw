@@ -1,4 +1,8 @@
 # Parent component: establishes a parent-child relationship between entities.
+# The parent must be alive before this component is applied. Self-parenting and
+# cycles are invalid. Reparenting is atomic with its containing Transaction.
+# Before deleting a parent entity, its children must be reparented, have this
+# component removed, or be deleted by earlier operations in the same Transaction.
 
 from "../../common.jaw" use {EntityID}
 

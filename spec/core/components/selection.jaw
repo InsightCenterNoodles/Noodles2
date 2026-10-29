@@ -1,4 +1,7 @@
-# Selection components: opt-in to selection and expose outline styling when selected.
+# Selection components: opt in to selection and expose outline styling when
+# selected. IsSelectedComponent is authoritative shared ECS state visible to all
+# downstreams; private client selection need not be transmitted. Multiple
+# entities may be selected simultaneously.
 
 from "../../common.jaw" use {SRGB8}
 

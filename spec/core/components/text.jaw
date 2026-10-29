@@ -1,10 +1,15 @@
-# Text component: world/local space text rendering with color and nominal height.
+# Text component: local-space text rendering with color and nominal height.
+# Height must be finite and positive, is measured in local scene units, and is
+# affected by entity scale. Newlines are supported. Clients choose the font and
+# may substitute missing glyphs; exact layout is not portable without an
+# extension. Color is sRGB with authored alpha. Clients MAY ignore alpha and
+# render text as opaque to avoid blending.
 
-from "../../common.jaw" use {SRGB8}
+from "../../common.jaw" use {SRGBA8}
 
 seq TextComponent
-- color : SRGB8
-- height : f32 # nominal text height in local/world units
+- color : SRGBA8
+- height : f32 # nominal text height in local scene units
 - text : TextComponentContent
 
 

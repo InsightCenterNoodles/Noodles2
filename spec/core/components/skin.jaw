@@ -24,3 +24,12 @@ seq SkinComponent
 - inverse_bind_matrices : BufferView # Mat4 array, count == joints length (view length MUST be 64 * joint_count)
 - skeleton_root : EntityID # optional root for evaluating the joint tree, valid only if flags.is_root is != 0
 - joints : SkinJointList
+
+# A skin has at least one joint. Joint entity IDs are unique and must already be
+# alive when this component is applied. Every mesh joint index must be less than
+# joints.length. inverse_bind_matrices has exactly 64 * joints.length bytes and
+# contains finite column-major Mat4 values. When is_root is set, skeleton_root
+# must already be alive and be an ancestor of every joint.
+#
+# If the mesh entity's world transform is non-invertible (for example, because
+# of zero scale), clients may skip skin evaluation or cull the mesh.

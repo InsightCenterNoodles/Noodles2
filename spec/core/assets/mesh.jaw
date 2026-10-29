@@ -1,5 +1,10 @@
 # Mesh asset: uncompressed geometry layout referencing a buffer slice for
 # attributes and indices. Flags describe which attributes are valid.
+#
+# Spatial conventions follow glTF: coordinates are right-handed and front
+# faces have counterclockwise winding. For TangentAttribute, xyz is the tangent
+# direction and w is the bitangent handedness sign:
+#   bitangent = cross(normal, tangent.xyz) * tangent.w
 
 from "../../common.jaw" use {AssetID, Vec3}
 from "buffer.jaw" use {BufferView}
@@ -32,6 +37,14 @@ bits UncompressedFlags : u16
 pack UncompressedAttribCommon
 - view_byte_offset : u32 # byte offset from BufferView start
 - vertex_stride : u16 # stride between vertices
+
+# For every enabled attribute and vertex_count > 0, checked arithmetic must
+# establish:
+#   view_byte_offset + (vertex_count - 1) * vertex_stride + element_size
+#       <= MeshAsset.view.length
+# vertex_stride must be at least element_size. Wire attributes need not satisfy
+# GPU-specific alignment requirements; producers should naturally align data
+# where practical, and consumers may repack it before upload.
 
 
 enum PositionFormat : u8
@@ -89,6 +102,12 @@ pack UncompressedIndex
 - view_byte_offset : u32 # byte offset from BufferView start
 - index_count : u32 # ignored when IndexFormat=None
 
+# When indexed, the index byte range must fit in MeshAsset.view using checked
+# arithmetic, every index must be less than vertex_count, and index_count must
+# be divisible by three. With IndexFormat=None, index metadata is ignored,
+# vertex_count vertices are drawn directly, and vertex_count must be divisible
+# by three. Clients without native u8 index support may expand indices.
+
 bits MorphTargetFlags : u8
 - 0 has_position : u8
 - 1 has_normal : u8
@@ -104,7 +123,9 @@ dyn_array MorphTargetList : u16 * MorphTarget
 
 # Morph targets apply per-vertex deltas for position/normal/tangent in list
 # order; MorphWeightsComponent and animation channels should use matching counts.
-# If flags.has_morph_targets == 0, morph_targets MUST have count == 0.
+# flags.has_morph_targets must be true exactly when morph_targets is nonempty.
+# Every enabled morph attribute contains exactly vertex_count elements and obeys
+# the same bounds and stride validation as a base attribute.
 # Tangent morph values are deltas; implementations MAY ignore the w component (and producers SHOULD set it to 0).
 #
 # Typical evaluation (per vertex):
@@ -121,8 +142,8 @@ seq MeshAsset
 - view : BufferView
 - vertex_count : u32 
 - flags : UncompressedFlags
-- bb_min : Vec3
-- bb_max : Vec3 
+- bb_min : Vec3 # finite base-pose bound; component-wise <= bb_max
+- bb_max : Vec3 # finite base-pose bound enclosing every base position
 - position : PositionAttribute
 - index : UncompressedIndex
 - normal : NormalAttribute
@@ -134,3 +155,12 @@ seq MeshAsset
 - weight_0 : WeightAttribute
 - weight_1 : WeightAttribute
 - morph_targets : MorphTargetList
+
+# Joint/weight enablement rules:
+# - joint_0 and weight_0 are enabled together.
+# - joint_1 and weight_1 are enabled together.
+# - set 1 is not enabled unless set 0 is enabled.
+#
+# The bounding box covers the undeformed base pose only. Consumers must use
+# conservative bounds or disable bounds-based culling when morphing or skinning
+# may move vertices beyond it.

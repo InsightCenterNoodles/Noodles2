@@ -31,15 +31,25 @@ variant BufferSource : u8
 # Proposals to add buffer assets MUST use inline content only. 
 dyn_array InlineContent : u32 * u8
 
-# Content should be fetched from a URL. This is not allowed for use in client asset proposals. The byte size must be given for clients to preallocate space.
-# Clients MUST reject the asset if the fetched size differs.
+# Content should be fetched from a URL. This is not allowed for use in client
+# asset proposals. The byte size must be given for client preallocation.
+# Clients MUST reject the asset if the fetched size differs. Clients MAY reject
+# URL schemes, origins, redirects, credentials, or other fetch behavior under
+# local security policy. A URL denotes an immutable payload snapshot; a producer
+# must use a distinct URL when the bytes change so in-flight revisions cannot be
+# confused.
 seq BufferFromURL
 - byte_size : u64
 - url : BufferURL
 
 dyn_array BufferURL : u16 * u8
 
-# For the OOB asset, assets are provided after a request. Sizes are provided in the stream for client allocation. 
+# An OOBAssetID is scoped to one main-channel session and remains valid while a
+# live BufferAsset references it. It has no meaning after that session closes.
+# An ID must not be reassigned to different bytes during the session. A changed
+# OOB-backed buffer revision therefore uses a fresh OOBAssetID. Multiple buffer
+# assets may share an ID when they intentionally refer to the same bytes.
+# OOB assets are provided after a request; sizes are included for allocation.
 
 # A reference to a slices of a BufferAsset. Multiple BufferViews may point to the same or overlapping slices.
 # As long as a view is referring to a BufferAsset, that BufferAsset must be kept alive.

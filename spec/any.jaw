@@ -5,27 +5,63 @@ dyn_array AnyString : u32 * u8 # UTF-8
 dyn_array AnyArray : u32 * Any
 dyn_array AnyMap : u32 * AnyKeyPair
 
+# Map keys support text and every integer width. Key identity consists of the
+# AnyKey variant plus its exact value: for example, u8(1), u64(1), and i64(1)
+# are distinct keys. String keys compare by their encoded byte sequence.
+#
+# Producers MUST emit unique keys. Receivers MAY reject a map with duplicate
+# keys, ignore duplicates, or overwrite an earlier value. Tooling may preserve
+# maps as ordered lists of pairs rather than constructing a native hash map.
+variant AnyKey : u8
+- 0 => AnyString
+- 1 => u8
+- 2 => u16
+- 3 => u32
+- 4 => u64
+- 5 => i8
+- 6 => i16
+- 7 => i32
+- 8 => i64
+
 seq AnyKeyPair
-- key : Any
+- key : AnyKey
 - value : Any
 
 variant Any : u8
 - 0 => void
-- 1 => u8
-- 2 => i64
-- 3 => f64
-- 4 => AnyString
-- 5 => AnyArray
-- 6 => AnyMap
-- 7 => AnyBytes
-- 8 => Vec3
-- 9 => Vec4
-- 10 => UnitQuaternion
-- 11 => UUID
-- 12 => ComponentTypeID
-- 13 => AssetTypeID
-- 14 => AnAsset
-- 15 => EntityID
+- 1 => bool
+- 2 => u8
+- 3 => i64
+- 4 => f64
+- 5 => AnyString
+- 6 => AnyArray
+- 7 => AnyMap
+- 8 => AnyBytes
+- 9 => Vec3
+- 10 => Vec4
+- 11 => UnitQuaternion
+- 12 => UUID
+- 13 => ComponentTypeID
+- 14 => AssetTypeID
+- 15 => AnAsset
+- 16 => EntityID
 
-pack AnyTypeID
-- type_id : u8
+# RPC argument-hint type. Values exactly match the Any discriminants above.
+enum AnyTypeID : u8
+- Void = 0
+- Bool = 1
+- U8 = 2
+- I64 = 3
+- F64 = 4
+- String = 5
+- Array = 6
+- Map = 7
+- Bytes = 8
+- Vec3 = 9
+- Vec4 = 10
+- UnitQuaternion = 11
+- UUID = 12
+- ComponentTypeID = 13
+- AssetTypeID = 14
+- AnAsset = 15
+- EntityID = 16

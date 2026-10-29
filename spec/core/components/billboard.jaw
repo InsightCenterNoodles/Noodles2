@@ -1,6 +1,9 @@
 # Billboard component: controls whether the entity faces the camera fully or
 # only rotates around the up axis.
-# The rotational component of the Transform component is thus ignored.
+# The rotational component of TransformComponent is ignored for rendering;
+# position and scale are unchanged, and parent transforms still apply. Local +Z
+# is the billboard forward axis and faces the viewer. YAxisOnly rotates around
+# parent-space +Y.
 
 enum BillboardMode : u8
 - FaceCamera = 0  # fully face camera orientation
