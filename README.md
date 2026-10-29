@@ -100,6 +100,7 @@ RFC 8174 when, and only when, they appear in all capitals.
 - Any Upstream or Downstream may emit a registered event, subject to Upstream policy. A Downstream sends it to Upstream without dispatching locally; Upstream validates and orders it with transactions and other events, handles it locally once, and broadcasts it unchanged to every Downstream including the sender. The sender dispatches the returned broadcast normally.
 - Per-Downstream arrival order is preserved and Upstream chooses interleaving across connections. Unknown registry/type IDs are invalid. Upstream may drop, rate-limit, or disconnect under application/resource policy.
 - Events are scoped to one Upstream session. Automatic relay across separate Upstream sessions is not defined.
+- Protocol-wide semantic event contracts are registered in the [well-known events document](spec/well_known_events.md). Their versioned names are stable, while numeric definition identifiers remain local to each registry. The initial `noodles.view.pose.v1` contract provides optional world-space view-pose telemetry and is limited to 4 Hz per registry entity.
 
 ## Assets and OOB Transfer
 

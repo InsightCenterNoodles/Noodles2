@@ -21,3 +21,7 @@ Notes:
 - Old and new extension IDs may be advertised together. Producing the same logical component through both versions on one entity is discouraged unless their specifications explicitly define coexistence.
 - Submit new extension IDs alongside a short description and contact so they can be recorded here.
 - Components should have a "Component" postfix. Assets should have an "Asset" postfix.
+
+Well-known semantic event contracts are registered separately in
+`well_known_events.md`; their numeric definition identifiers are scoped to the
+registry entity rather than assigned globally.
