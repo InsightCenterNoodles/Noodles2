@@ -1,8 +1,8 @@
-# Deferred CI and Wire-Compatibility Work
+# CI and Wire-Compatibility Work
 
-CI is intentionally deferred while its workflow is being designed. This file
-records the intended checks without making them part of the current build or
-release process.
+GitHub Actions runs `scripts/check-spec.sh` for pushes, pull requests, and manual
+dispatches. This file also records the remaining wire-compatibility work that is
+not yet automated.
 
 ## Compiler pin
 

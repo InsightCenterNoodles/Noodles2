@@ -1,0 +1,53 @@
+name: Specification
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spec-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-spec:
+    name: Generate and compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out specification
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read pinned JAW revision
+        id: jaw-pin
+        shell: bash
+        run: |
+          revision="$(tr -d '[:space:]' < JAW_REVISION)"
+          if [[ ! "$revision" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Invalid JAW_REVISION: $revision" >&2
+            exit 1
+          fi
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+
+      - name: Check out JAW
+        uses: actions/checkout@v7.0.1
+        with:
+          repository: InsightCenterNoodles/jaw
+          ref: ${{ steps.jaw-pin.outputs.revision }}
+          path: jaw
+          persist-credentials: false
+
+      - name: Build JAW
+        run: cargo build --locked --manifest-path jaw/Cargo.toml --bin jaw
+
+      - name: Check specification
+        env:
+          JAW_BIN: ${{ github.workspace }}/jaw/target/debug/jaw
+          JAW_REPO: ${{ github.workspace }}/jaw
+        run: ./scripts/check-spec.sh

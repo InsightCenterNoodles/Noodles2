@@ -156,6 +156,6 @@ The specification is designed for expandability and modularity through Extension
 ## Status and Roadmap
 
 - Pre-release; while the protocol remains under development at version 1, Base/Core wire layouts may change without incrementing `protocol_version`. After the first release, every incompatible Base/Core change increments `protocol_version`, while incompatible optional-extension changes receive new extension IDs.
-- The compatible JAW compiler commit is recorded in `JAW_REVISION`. Run `./scripts/check-spec.sh` to generate and validate the complete specification; set `JAW_BIN` when the compiler is not installed or built in the adjacent `jaw` repository. Deferred CI and cross-language fixture plans are recorded in `CI_NOTES.md`.
+- The compatible JAW compiler commit is recorded in `JAW_REVISION`. Run `./scripts/check-spec.sh` to generate and validate the complete specification; set `JAW_BIN` when the compiler is not installed or built in the adjacent `jaw` repository. GitHub Actions runs the same check against the pinned compiler. Further cross-language fixture plans are recorded in `CI_NOTES.md`.
 - Systems (runtime behavior), richer capability negotiation, and transport options (e.g., libp2p) remain on the roadmap.
 - Feedback and implementation notes are welcome; keep the `.jaw` schemas and markdown docs in sync as behavior evolves.
