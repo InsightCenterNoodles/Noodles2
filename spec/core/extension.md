@@ -59,6 +59,12 @@ Notes:
 | ParamDefinition  | 28         | Parameter definition.                          | 
 | ParamState       | 29         | Parameter state storage.                          | 
 | EventRegistry    | 30         | Declares a registry-scoped namespace of transient broadcast events. |
+| TransformSmoothingSettings | 31 | Interpolation delay and bounded extrapolation duration. |
+| TransformSmoothingMode | 32 | Selects interpolation or sample-derived extrapolation. |
+| TransformPositionSmoothing | 33 | Marks sampled position for smoothing. |
+| TransformRotationSmoothing | 34 | Marks sampled rotation for smoothing. |
+| TransformScaleSmoothing | 35 | Marks sampled scale for smoothing. |
+| TransformSample | 36 | Timestamped complete local transform sample. |
 
 Notes:
 - Component payloads are complete replacements; partial updates are not defined.
@@ -69,6 +75,8 @@ Notes:
 - `Interactive` gates transform and activation affordances. Their limits are local to the parent; rotation is unrestricted or constrained to one parent-local axis relative to a reference orientation. Selection components represent shared authoritative selection; private client selection remains local.
 - Parameter UI is an acyclic entity graph. Widget definition/state tags match, disabled state inherits to descendants, and numeric/option values obey their definitions.
 - Event registries provide entity-scoped type IDs and informational argument hints for transient broadcasts. Event names and identifiers are unique within a registry.
+- Transform samples are low-rate presentation hints in parent space. Full-support clients retain history and interpolate or derive bounded extrapolation; lightweight clients may snap to each newest sample. A hard `TransformComponent` update clears history and takes effect until a later ordered sample update. Reparenting or changing smoothing configuration also clears history. Initial snapshots preserve whether the hard transform or sample was updated last so late joiners reconstruct the same active source.
+- Transform animation and transform sampling on one entity are strongly discouraged. Clients may resolve the conflict locally; ignoring sampling in favor of animation is recommended.
 - Time synchronization is finite and monotonic within a session. Names are non-identifying display labels. Text uses local-unit height and sRGBA color; clients may render authored alpha as opaque.
 - `RPCEndpoint` exposes callable entry points; arguments/results use `Any` encoding.
 

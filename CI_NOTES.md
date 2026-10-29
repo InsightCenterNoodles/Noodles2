@@ -35,6 +35,7 @@ Check in canonical binary fixtures for at least:
 - Event registry creation and a downstream-originated event broadcast back to all downstreams, including its sender; include `noodles.view.pose.v1`.
 - Inline, URL, and OOB buffer descriptions.
 - PCM16 WAVE audio and a synchronized spatial audio source.
+- Transform sampling with interpolation, bounded extrapolation, and a hard-transform history reset.
 - Representative Core assets and components, including animation and material
   feature-set/material-instance pairs.
 

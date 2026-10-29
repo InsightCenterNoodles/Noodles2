@@ -65,6 +65,7 @@ RFC 8174 when, and only when, they appear in all capitals.
 - Canonical entity IDs are never reused within a session. Deletion removes all components and tombstones the ID; empty entities remain alive until explicitly deleted. A never-seen deletion target may be ignored, while deleting a known tombstone is suspicious and may cause disconnection.
 - Each entity has at most one component of each type. Component modification is complete replacement; later repeated updates win, and deleting an absent component is a no-op. Authoritative component modification may implicitly create a never-seen canonical entity but never resurrects a tombstone.
 - An entity without a transform has the identity transform. Parent graphs must be acyclic; parents must exist before they are referenced. Ancestor invisibility suppresses descendants, including descendants explicitly marked visible.
+- Core transform sampling can smooth low-rate motion updates. Timestamped complete samples retain local history for interpolation or bounded sample-derived extrapolation, with independent position, rotation, and scale markers. A hard `TransformComponent` update resets sampling until a later sample update. Clients may opt out of smoothing work and snap to every newest sample.
 - A `GlobalComponent` paired with an environment marks the whole-scene environment. Producers should provide at most one; clients encountering several may choose one. Non-global environments may be spatially blended at client discretion.
 - Instance transforms are interleaved and local to their entity, whose world transform is applied afterward. Reduced instances use GPU-friendly UNORM16/SNORM16 groups. Skins require unique live joints; morph weights are finite but need not lie in `[0,1]`.
 
@@ -136,6 +137,7 @@ RFC 8174 when, and only when, they appear in all capitals.
 - Core includes an `AnimationAsset` (samplers/channels) plus `AnimatorComponent` for layered playback.
 - Keyframe times are finite and strictly increasing; sampler indices and buffer sizes are exact. Compact `SRGBA8` colors are interpolated in linear space and do not support cubic interpolation.
 - Asset animation affects every entity referencing that shared asset. Per-entity material animation requires a distinct material asset identity. Producers should avoid multiple animators targeting the same path; clients encountering that conflict may choose one.
+- Transform animation and transform sampling on the same entity are strongly discouraged. Clients may choose how to resolve the conflict; ignoring sampling and evaluating the animation is recommended.
 - Mesh assets now describe joint/weight attributes for skinning and optional morph targets; `SkinComponent` supplies joint palettes and inverse bind matrices.
 - `MorphWeightsComponent` carries per-entity weights; animation channels may target specific weights by index.
 - Animation time estimates remain monotonic within a session. Entity names are display-only and need not be unique. Text uses local-unit height and sRGBA color; clients may ignore authored alpha and render it as opaque.

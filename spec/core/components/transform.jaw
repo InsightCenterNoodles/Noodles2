@@ -11,3 +11,92 @@ pack TransformComponent
 - position : Vec3
 - rotation : UnitQuaternion
 - scale : Vec3
+
+# Transform sampling is an optional presentation optimization within Core. It
+# lets a producer send relatively infrequent complete pose samples while clients
+# interpolate or extrapolate locally. A client may decline the history and math:
+# it still parses these components, but may snap every selected and unselected
+# field to the newest TransformSampleComponent.
+#
+# The newest sample is the logical current pose while sampling is active. The
+# presentation pose is derived from local sample history; it never overwrites the
+# received components. Unmarked fields snap to the newest sample. Marked fields
+# use TransformSmoothingModeComponent when settings and enough history exist.
+# Samples and velocities derived from them are expressed in parent space.
+
+pack TransformSmoothingSettingsComponent
+- interpolation_delay_seconds : f32
+- max_extrapolation_seconds : f32
+
+# interpolation_delay_seconds is used only by Interpolate;
+# max_extrapolation_seconds is used only by Extrapolate. Both must be finite and
+# non-negative.
+
+enum TransformSmoothingModeComponent : u8
+- Interpolate = 0
+- Extrapolate = 1
+
+# Empty marker components select fields to smooth. Any unmarked field takes its
+# value directly from the newest sample. With no markers, every field snaps.
+seq TransformPositionSmoothingComponent
+seq TransformRotationSmoothingComponent
+seq TransformScaleSmoothingComponent
+
+pack TransformSampleComponent
+- sample_time : f64
+- position : Vec3
+- rotation : UnitQuaternion
+- scale : Vec3
+
+# sample_time uses the authority-monotonic TimeSyncComponent timebase. Every
+# value must be finite, rotation must be unit length within implementation
+# tolerance, and zero or negative scale remains valid. Producers SHOULD provide
+# strictly increasing sample times. A non-increasing time clears history and the
+# newest sample is treated as a new first sample rather than interpolated across.
+#
+# A client records at most the final TransformSampleComponent value committed for
+# an entity by one Transaction; repeated replacements inside that atomic
+# Transaction do not create observable history samples.
+#
+# Ordered TransformComponent and TransformSampleComponent operations control the
+# active source. Modifying TransformComponent clears sample history, immediately
+# snaps to that hard transform, and suspends the existing sample value. A later
+# TransformSampleComponent modification reactivates sampling and becomes its
+# first sample. If both occur in one Transaction, the later operation in content
+# order wins this choice, although no intermediate pose is presented. Deleting
+# TransformSampleComponent also clears history and returns to TransformComponent
+# (or identity when it is absent).
+#
+# Because both components may remain stored after a hard reset, Upstream MUST
+# preserve this active/suspended choice when constructing an initial snapshot.
+# If sampling is active, its ordered snapshot operations place the final sample
+# modification after the final hard-transform modification. If sampling is
+# suspended, they place the final hard-transform modification after the final
+# sample modification. These operations may be in one or multiple ordered
+# Transactions before InitialStateComplete. An Upstream therefore retains enough
+# last-update ordering state to reproduce the choice for a late joiner.
+#
+# Reparenting, changing smoothing mode or settings, or adding/removing a field
+# marker clears history. If sampling remains active, the current sample becomes
+# the sole first sample and is presented immediately until more history arrives.
+#
+# Interpolate evaluates at:
+#
+#   presentation_time = authority_time_now - interpolation_delay_seconds
+#
+# It linearly interpolates marked position and scale and uses shortest-path slerp
+# for marked rotation between bracketing samples. Before/after available history
+# it holds the oldest/newest sample respectively.
+#
+# Extrapolate derives a rate from the two newest samples. Position and scale use
+# component-wise finite differences. Rotation first chooses quaternion hemisphere
+# continuity, then obtains a parent-space scaled-axis rate from
+# `q1 * inverse(q0)`. Prediction applies that rate on the left of q1. Prediction
+# time after the newest sample is clamped to max_extrapolation_seconds; after the
+# bound the last predicted pose is held. With fewer than two samples it snaps.
+# Correction from a wrong prediction is client presentation policy.
+#
+# Transform sampling and AnimatorComponent channels targeting TransformComponent
+# on the same entity are STRONGLY DISCOURAGED. A client may choose either or
+# combine them according to local policy; the recommended fallback is to discard
+# transform sampling and evaluate the animation.

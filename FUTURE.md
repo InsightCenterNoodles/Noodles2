@@ -18,8 +18,8 @@ interleaving without making optimistic reconciliation ambiguous.
 ## JAW named variant alternatives
 
 Migrate variants to explicit case names if/when the JAW compiler supports them.
-The current compiler at revision `18520eb` derives generated case names from the
-payload type and numeric tag.
+The compiler revision pinned by `JAW_REVISION` currently derives generated case
+names from the payload type and numeric tag.
 
 ## Richer rotation constraints
 
@@ -35,6 +35,9 @@ constraints.
 ## Rendering and synchronization extensions
 
 - Round-trip clock synchronization for applications needing tighter timing.
+- Revisit producer-supplied transform velocities, acceleration, Hermite curves,
+  and standardized extrapolation-correction blending if sample-derived linear
+  prediction proves insufficient.
 - Portable font assets and deterministic text layout.
 - Defined spatial blending semantics for non-global environments.
 - Additional 2D-specific rendering and interaction facilities.
