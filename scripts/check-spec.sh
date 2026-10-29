@@ -93,7 +93,7 @@ printf '%s\n' \
     > "$check_dir/rust/Cargo.toml"
 RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }-Awarnings" \
     CARGO_TARGET_DIR="$check_dir/cargo-target" \
-    "$cargo_bin" check --quiet --offline --manifest-path "$check_dir/rust/Cargo.toml"
+    "$cargo_bin" check --quiet --manifest-path "$check_dir/rust/Cargo.toml"
 
 echo "Compiling generated C++"
 printf '%s\n' '#include "full.hpp"' > "$check_dir/full.cpp"
