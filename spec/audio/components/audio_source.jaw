@@ -1,0 +1,56 @@
+# Spatial point source attached to an entity. The source position is the world
+# position of the entity origin after hierarchy evaluation. The entity's own
+# rotation and scale do not affect the source, and VisibilityComponent does not
+# mute it. Removing this component or deleting the entity stops playback.
+
+from "../assets/audio.jaw" use {AudioAssetID}
+
+pack AudioSourceComponent
+- audio : AudioAssetID
+- start_time : f64
+- audio_time_offset : f64
+- gain : f32
+- playback_rate : f32
+- min_distance : f32
+- max_distance : f32
+- playing : bool
+- looping : bool
+
+# All numeric fields must be finite. gain and audio_time_offset must be
+# non-negative, playback_rate must be greater than zero, and distances must obey
+# 0 <= min_distance <= max_distance. gain is a linear amplitude multiplier and
+# may exceed one; clients may limit output for safety.
+#
+# start_time uses the same authority-monotonic timebase estimated by
+# TimeSyncComponent. When playing is true, playback is silent before start_time;
+# at and after start_time its nominal playhead is:
+#
+#   (authority_time_now - start_time) * playback_rate + audio_time_offset
+#
+# With looping true, a non-negative playhead is reduced modulo the decoded clip
+# duration. With looping false, playback is silent after the clip ends. When
+# playing is false, audio_time_offset is the paused playhead and start_time is
+# ignored. To resume, the producer preserves audio_time_offset, sets a new
+# start_time, and sets playing true. A producer sending active sources SHOULD
+# maintain a TimeSyncComponent; until a client has a usable authority-time
+# estimate it may begin approximately and correct to the nominal playhead later.
+# Replacing the referenced AudioAsset does not restart the timeline: the new
+# content is evaluated at the nominal playhead.
+#
+# The listener is local downstream state, normally its active view or camera.
+# It is not an authoritative entity. With several views, a client may choose one
+# listener or an implementation-specific mix. Let d be the world-space distance
+# from source to listener. Distance attenuation is:
+#
+#   1                                      when d <= min_distance
+#   0                                      when d >= max_distance
+#   1 - (d-min_distance)/(max_distance-min_distance) otherwise
+#
+# When min_distance equals max_distance, attenuation is one at or inside that
+# distance and zero outside it. Distances are scene units, not necessarily
+# meters. Directional cones, Doppler, filters, reverb, and a protocol listener
+# component are not defined. Clients choose their panning or HRTF technique.
+#
+# Audio output is best-effort. Clients may mute audio, defer playback until user
+# interaction, cap simultaneous voices, or reject audio under resource, safety,
+# accessibility, or platform policy. Such behavior is not a protocol failure.

@@ -122,6 +122,14 @@ RFC 8174 when, and only when, they appear in all capitals.
     - OOB errors include the requested `asset_id` plus a UTF-8 reason string.
     - Receivers may reject URL schemes, origins, redirects, credentials, or other fetch behavior according to local security policy.
 
+## Spatial Audio
+
+- Optional Audio extension `0x0001` depends on Core and provides buffer-backed `AudioAsset` clips plus `AudioSourceComponent` spatial point sources. Peers without audio support do not advertise it.
+- Baseline audio is mono or stereo signed PCM16 RIFF/WAVE. Spatial evaluation uses a mono signal; stereo baseline content is downmixed before playback. Other codecs and channel layouts are optional.
+- Playback is anchored to the authority time estimate with a start time, clip offset, positive playback rate, playing state, and looping state. This permits synchronized playback and lets late joiners evaluate the current playhead.
+- A source is located at its entity's world-space origin. It is omnidirectional, unaffected by its own rotation, scale, or visibility, and attenuates linearly from full gain at `min_distance` to silence at `max_distance`. The listener is local downstream view state rather than authoritative ECS state.
+- Directional cones, Doppler, filters, reverb, and protocol listener components are not defined. Clients may mute, defer, limit, or reject audio for resource, safety, accessibility, autoplay, or platform policy.
+
 ## Animation and Deformation
 
 - Core includes an `AnimationAsset` (samplers/channels) plus `AnimatorComponent` for layered playback.

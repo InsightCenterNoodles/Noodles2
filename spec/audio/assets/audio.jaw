@@ -1,0 +1,22 @@
+# Encoded audio referenced through a Core buffer. The format is detected from
+# the bytes rather than duplicated in this asset.
+
+from "../../common.jaw" use {AssetID}
+from "../../core/assets/buffer.jaw" use {BufferView}
+
+pack AudioAssetID
+- id : AssetID
+
+seq AudioAsset
+- view : BufferView
+
+# Every Audio implementation MUST decode RIFF/WAVE with format tag 1 (linear
+# PCM), signed 16-bit little-endian samples, and one or two channels. A spatial
+# source is evaluated from one mono signal. Stereo baseline content is downmixed
+# as (left + right) / 2 before gain and spatialization. Other channel layouts and
+# codecs, including Opus, MP3, and FLAC, are optional.
+#
+# Producers seeking baseline interoperability SHOULD use mono PCM16 WAVE. A
+# decoder MUST reject malformed headers, inconsistent chunk sizes, invalid sample
+# rates, or truncated sample data. Implementations MAY impose limits on decoded
+# duration, sample rate, channel count, allocation size, and decode work.

@@ -60,18 +60,17 @@ generate() {
 
 cd "$repo_root"
 
-echo "Generating complete Basic + Core specification"
-generate rust "$check_dir/full.rs" spec/basic.jaw spec/core/core.jaw
-generate cpp "$check_dir/full.hpp" spec/basic.jaw spec/core/core.jaw
-generate python "$check_dir/full.py" spec/basic.jaw spec/core/core.jaw
+echo "Generating complete Basic + Core + Audio specification"
+generate rust "$check_dir/full.rs" spec/basic.jaw spec/core/core.jaw spec/audio/audio.jaw
+generate cpp "$check_dir/full.hpp" spec/basic.jaw spec/core/core.jaw spec/audio/audio.jaw
+generate python "$check_dir/full.py" spec/basic.jaw spec/core/core.jaw spec/audio/audio.jaw
 
 echo "Checking separate schema roots"
-for root in basic core; do
-    if [[ "$root" == "basic" ]]; then
-        input="spec/basic.jaw"
-    else
-        input="spec/core/core.jaw"
-    fi
+root_names=(basic core audio)
+root_inputs=(spec/basic.jaw spec/core/core.jaw spec/audio/audio.jaw)
+for index in "${!root_names[@]}"; do
+    root="${root_names[$index]}"
+    input="${root_inputs[$index]}"
 
     generate rust "$check_dir/$root.rs" "$input"
     generate cpp "$check_dir/$root.hpp" "$input"

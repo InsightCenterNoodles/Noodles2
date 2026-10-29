@@ -9,6 +9,7 @@ MAY skip unsupported extension payloads.
 | Extension | Identifier | Description |
 |-----------|------------|-------------|
 | Core      | 0x0000     | Base assets and components required for interoperability. |
+| Audio     | 0x0001     | Optional buffer-backed spatial audio sources; depends on Core. |
 
 Notes:
 - Identifiers are little-endian on the wire.

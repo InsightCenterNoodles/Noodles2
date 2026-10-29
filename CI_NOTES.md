@@ -17,10 +17,11 @@ Run the same entry point locally and in CI:
 JAW_BIN=<path-to-pinned-jaw> JAW_REPO=<jaw-checkout> ./scripts/check-spec.sh
 ```
 
-The script generates the combined Basic + Core specification for Rust, C++, and
-Python; generates each root separately; compiles the combined Rust and C++
-output; and executes the combined Python output. `JAW_REPO` is optional locally,
-but CI should set it so the script verifies the checkout against `JAW_REVISION`.
+The script generates the combined Basic + Core + Audio specification for Rust,
+C++, and Python; generates each root separately; compiles the combined Rust and
+C++ output; and executes the combined Python output. `JAW_REPO` is optional
+locally, but CI should set it so the script verifies the checkout against
+`JAW_REVISION`.
 
 ## Cross-language fixtures
 
@@ -33,6 +34,7 @@ Check in canonical binary fixtures for at least:
 - RPC streaming followed by completion and by error.
 - Event registry creation and a downstream-originated event broadcast back to all downstreams, including its sender.
 - Inline, URL, and OOB buffer descriptions.
+- PCM16 WAVE audio and a synchronized spatial audio source.
 - Representative Core assets and components, including animation and material
   feature-set/material-instance pairs.
 

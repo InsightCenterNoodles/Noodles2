@@ -1,0 +1,10 @@
+from "assets/audio.jaw" use *
+from "components/audio_source.jaw" use *
+
+# Audio is an optional extension that depends on Core for BufferView, transforms,
+# hierarchy, and the authority timebase.
+const EXTENSION_AUDIO : u16 = 1
+
+const AUDIO_ASSET_AUDIO : u16 = 0
+
+const AUDIO_COMP_SOURCE : u16 = 0
