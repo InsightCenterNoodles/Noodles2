@@ -13,12 +13,24 @@ pack Vec4
 - z : f32
 - w : f32
 
-# Axis-aligned bounding box. The coordinate space and whether the bound is exact
-# or conservative are defined by the field or component containing it. Uses of
-# AABB require finite coordinates with min <= max on every axis.
+# Conservative axis-aligned bounding box. Uses require finite coordinates with
+# min <= max on every axis. Equal endpoints are valid; equality on every axis
+# represents a point rather than an empty bound. The containing field or
+# component defines the coordinate space.
 pack AABB
 - min : Vec3
 - max : Vec3
+
+# Conservative bounding sphere. Center and radius must be finite and radius
+# must be non-negative. A zero radius represents a point. The containing field
+# or component defines the coordinate space.
+pack BoundingSphere
+- center : Vec3
+- radius : f32
+
+variant ConservativeBounds : u8
+- 0 => AABB
+- 1 => BoundingSphere
 
 pack UnitQuaternion
 - x : f32

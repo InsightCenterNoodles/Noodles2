@@ -5,11 +5,14 @@
 # and the node may want to prioritize these methods on a UI
 
 from "../../any.jaw" use {AnyTypeID}
+from "semantics.jaw" use {DescriptionText, SemanticTagList}
 
 # Pair with a DescriptionComponent to provide semantics for this RPC call
 seq RPCEndpointComponent
 - name : RPCName
 - arguments : RPCArgumentHintList # informational; implementations may enforce or ignore
+- terminal_result : RPCResultHint
+- stream_result : RPCStreamResultHint
 
 dyn_array RPCName : u8 * u8
 
@@ -17,4 +20,17 @@ dyn_array RPCArgumentHintList : u8 * RPCArgumentHint
 
 seq RPCArgumentHint
 - name : RPCName
+- description : DescriptionText
+- semantic_tags : SemanticTagList
 - arg_type : AnyTypeID
+
+seq RPCResultHint
+- description : DescriptionText
+- semantic_tags : SemanticTagList
+- result_type : AnyTypeID
+
+# Absence means the endpoint does not advertise streaming results. Presence
+# describes each value yielded by RPCStreamResult. All hints are informational.
+variant RPCStreamResultHint : u8
+- 0 => void
+- 1 => RPCResultHint

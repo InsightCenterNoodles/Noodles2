@@ -28,17 +28,21 @@ locally, but CI should set it so the script verifies the checkout against
 Check in canonical binary fixtures for at least:
 
 - Introduction and IntroductionReply, including OOB session information.
-- An empty initial snapshot and `InitialStateComplete`.
+- An empty initial snapshot and `InitialStateComplete`, plus a multi-transaction
+  consistent snapshot followed by incrementing live scene generations.
 - Entity creation and component modification.
 - An accepted proposal, complete remaps, and its canonical transaction.
-- RPC streaming followed by completion and by error.
+- RPC streaming followed by completion, error, and best-effort cancellation.
 - Event registry creation and a downstream-originated event broadcast back to all downstreams, including its sender; include `noodles.view.pose.v1`.
 - Button and entity activation actions covering both RPC invocation and Event emission.
 - Inline, URL, and OOB buffer descriptions.
+- Asset publication, replacement, discard while referenced, republication, and
+  final deletion after the last protocol reference is removed.
 - PCM16 WAVE audio and a synchronized spatial audio source.
 - Transform sampling with interpolation, bounded extrapolation, and a hard-transform history reset.
 - Representative Core assets and components, including animation and material
-  feature-set/material-instance pairs.
+  feature-set/material-instance pairs, relationship definition/result entities,
+  semantic discovery hints, and AABB/sphere conservative bounds.
 
 Each generated backend should decode every fixture, validate its values, and
 re-encode it byte-for-byte. At least one fixture should be authored by each

@@ -25,3 +25,7 @@ Notes:
 Well-known semantic event contracts are registered separately in
 `well_known_events.md`; their numeric definition identifiers are scoped to the
 registry entity rather than assigned globally.
+
+Stable semantic tag and property contracts are registered separately in
+`well_known_semantics.md`. Adding a new semantic identifier does not change the
+wire protocol; clients that do not recognize it ignore its meaning.

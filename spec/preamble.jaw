@@ -11,8 +11,10 @@ variant PreMessage : u8
 - 3 => IntroductionReply
 
 # Covers the base protocol, common types, and the mandatory Core extension.
-# This remains version 1 while the protocol is under development.
-const PROTOCOL_VERSION : u16 = 1
+# This remains version 0 while the protocol is under development.
+# IMPORTANT: 0 means NO PRODUCTION IMPL ALLOWED YET. Testing only.
+# IMPORTANT: When we are done with initial implementation, this MUST be incremented to 1
+const PROTOCOL_VERSION : u16 = 0
 
 dyn_array PreambleName : u8 * u8
 # Encoded image bytes. Receivers identify the format from the content and may

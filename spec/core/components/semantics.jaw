@@ -1,18 +1,28 @@
 from "../../any.jaw" use {Any, AnyMap}
-from "../../common.jaw" use {AABB, EntityID}
+from "../../common.jaw" use {ConservativeBounds, EntityID}
 
 # =========================== SEMANTICS
 
 # Human-readable UTF-8 explanatory text. This is not an identifier and has no
-# prescribed markup language.
-dyn_array DescriptionComponent : u16 * u8
+# prescribed markup language. The reusable text type is also used by discovery
+# hints whose definitions are not themselves entities.
+dyn_array DescriptionText : u16 * u8
+
+seq DescriptionComponent
+- text : DescriptionText
 
 # A whitespace-delimited set of stable UTF-8 semantic identifiers. Delimiters
 # are ASCII whitespace bytes (09-0D and 20). Identifiers therefore cannot
 # contain unescaped ASCII whitespace. URI-like identifiers are recommended.
 # Ordering carries no meaning and producers MUST NOT repeat an identifier.
-# This compact representation deliberately avoids a nested dynamic array.
-dyn_array SemanticTagComponent : u16 * u8
+# Leading, trailing, and repeated delimiters are ignored; an empty value is the
+# empty set. Identity is exact token bytes after ordinary malformed-UTF-8
+# handling; implementations do not perform URI or Unicode normalization. This
+# compact representation deliberately avoids a nested dynamic array.
+dyn_array SemanticTagList : u16 * u8
+
+seq SemanticTagComponent
+- tags : SemanticTagList
 
 # Describes values and aspects of an entity. Every AnyMap key MUST be an
 # AnyString containing a stable semantic identifier; integer keys are invalid
@@ -21,18 +31,13 @@ dyn_array SemanticTagComponent : u16 * u8
 seq SemanticPropertyComponent
 - properties : AnyMap
 
-# Core relationship meanings. The entity carrying RelationshipComponent is the
-# relationship subject and target is its object. Additional values may be
-# registered by future revisions; unknown values carry no implied behavior.
-const RELATIONSHIP_RELATED_TO : u16 = 0
-const RELATIONSHIP_PART_OF : u16 = 1
-const RELATIONSHIP_ANNOTATES : u16 = 2
-const RELATIONSHIP_CREATED_BY : u16 = 3
-const RELATIONSHIP_DERIVED_FROM : u16 = 4
-const RELATIONSHIP_RESULT_OF : u16 = 5
-
+# The entity carrying RelationshipComponent is the relationship subject and
+# target is its object. definition identifies an entity carrying
+# RelationshipDefinitionComponent. Name, Description, SemanticTag,
+# SemanticProperty, and Relationship components on that definition entity may
+# describe its meaning or link it to external vocabularies.
 pack Relationship
-- relationship_type : u16
+- definition : EntityID
 - target : EntityID
 
 dyn_array RelationshipList : u16 * Relationship
@@ -40,12 +45,16 @@ dyn_array RelationshipList : u16 * Relationship
 seq RelationshipComponent
 - relationships : RelationshipList
 
-# Relationship targets are weak semantic references. A canonical target may be
-# absent or tombstoned, does not have to precede the relationship, and does not
-# prevent deletion of the target. Consumers resolve it only while that EntityID
-# is alive. Proposal references must still name an existing canonical entity or
-# a patch-local entity created earlier in that proposal so they can be remapped.
-# Relationships do not inherit through ChildOfComponent.
+# Marks an entity as a relationship definition. It is a registry entry by
+# identity rather than an integer stored in a separate registry list.
+seq RelationshipDefinitionComponent
+
+# Relationship definition and target IDs are weak semantic references. A
+# canonical reference may be absent or tombstoned, does not have to precede the
+# relationship, and does not prevent deletion. Consumers resolve it only while
+# that EntityID is alive. Proposal references must still name an existing
+# canonical entity or a patch-local entity created earlier in that proposal so
+# they can be remapped. Relationships do not inherit through ChildOfComponent.
 
 # =========================== PROVENANCE AND PARTICIPATION
 
@@ -82,8 +91,8 @@ pack ObservationSubjectComponent
 # Optional region described by an observation, in the observation entity's
 # local coordinate space before applying its TransformComponent and ancestor
 # transforms. Bounds must satisfy the common AABB rules.
-pack ObservationBoundsComponent
-- bounds : AABB
+seq ObservationBoundsComponent
+- bounds : ConservativeBounds
 
 # =========================== TASKS
 
@@ -96,13 +105,18 @@ enum TaskState : u8
 
 # Persistent task identity and current lifecycle state. Completion changes the
 # state rather than removing this component. Semantic properties may describe
-# progress, cost, errors, or other application-specific task metadata.
+# progress, cost, errors, or other application-specific task metadata. Succeeded,
+# Failed, and Cancelled are terminal: once any terminal state is authoritative,
+# later modification to a different TaskState is invalid. Result entities and
+# other task metadata may still be added or modified afterward.
 pack TaskComponent
 - state : TaskState
 
-# Optional result content for a task. It may be installed while a task is
-# running for partial results and remains available after a terminal state.
-# Entity-valued results may instead, or additionally, use a RESULT_OF
-# relationship from the result entity to the task.
-seq TaskResultComponent
+# Result content lives on a separate result entity. That entity relates itself
+# to its owning task using a relationship definition carrying the well-known
+# noodles.relationship.result_of semantic tag. A task may therefore have zero,
+# one, or many results. Any void explicitly means the operation returned no
+# value; absence of a ResultComponent means no result has been published on
+# that entity. Results may appear before the task reaches Succeeded.
+seq ResultComponent
 - content : Any

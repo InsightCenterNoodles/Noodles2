@@ -11,11 +11,12 @@ variant MainSequenceMessage : u8
 - 5 => RPCReply
 - 6 => InitialStateComplete
 - 7 => EventMessage
+- 8 => RPCCancel
 
 # Direction is strict:
 # - Upstream -> Downstream: Transaction, InitialStateComplete,
 #   ProposedTransactionReply (to proposer only), RPCReply (to invoker only).
-# - Downstream -> Upstream: ProposedChangeTransaction, RPCInvoke.
+# - Downstream -> Upstream: ProposedChangeTransaction, RPCInvoke, RPCCancel.
 # - Both directions: EventMessage. A Downstream sends an event to Upstream;
 #   Upstream broadcasts it to every Downstream, including its sender.
 # Receiving a MainSequenceMessage in the wrong direction is a protocol violation
@@ -37,14 +38,22 @@ variant MainSequenceMessage : u8
 dyn_array ContentArray : u32 * ContentMessage
 
 seq Transaction
+- scene_generation : u64
 - content : ContentArray
 
-# Sent exactly once by Upstream after all Transactions that comprise the
-# initial world snapshot. An empty world is represented by sending this without
-# any preceding Transaction. Downstream must not send proposals or RPC invokes
-# before receiving this message. Downstream also must not send events before it.
-# Transactions after it are live updates.
+# Scene generation is monotonically increasing and never wraps during a
+# main-channel session. Every live Transaction after InitialStateComplete has
+# the preceding generation plus one. All Transactions used to construct an
+# initial snapshot carry the generation of the consistent snapshot point; the
+# marker repeats it so an empty snapshot still communicates its generation.
+#
+# Upstream selects one serialization point, sends state representing that point,
+# and queues later live Transactions and events. It sends this marker exactly
+# once, then releases the queued messages in authoritative order. It MUST NOT
+# send a live event to this Downstream before the marker. Downstream must not
+# send proposals, RPC invokes, RPC cancellations, or events before receiving it.
 seq InitialStateComplete
+- scene_generation : u64
 
 # ==========================
 # Proposed transaction
@@ -52,6 +61,9 @@ seq InitialStateComplete
 # Proposal from Downstream to Upstream to modify the world. Arrival order is
 # preserved on each Downstream connection. Upstream chooses one total serialized
 # order across all connections and may interleave their proposal streams.
+# Complete component replacements use last-accepted-proposal-wins semantics.
+# Independently authored contributions SHOULD use separate entities to avoid
+# conflicting read-modify-write updates to one component.
 #
 # On the proposing connection, acceptance is signalled by a code-0
 # ProposedTransactionReply immediately followed by the canonical Transaction
@@ -70,8 +82,9 @@ seq InitialStateComplete
 # scoped by AssetTypeID, so the same numeric AssetID may be used by different
 # asset types.
 #
-# For assets: payloads MUST be provided inline (buffer-backed) from downstream to upstream;
-# no OOB channels or URLs are permitted. Asset deletion cannot be proposed and MUST be rejected.
+# For assets: payloads MUST be provided inline (buffer-backed) from downstream
+# to upstream; no OOB channels or URLs are permitted. Asset discard and deletion
+# cannot be proposed and MUST be rejected.
 #
 # There are no partial applications. Either the proposal is accepted in full, or rejected in full.
 # Downstream MAY display proposal-local optimistic/placeholder state while the
@@ -110,7 +123,7 @@ seq ProposedTransactionReply
 # Error Codes (u16)
 # 1 => Denied: change not permitted for any reason (auth/policy/capability).
 # 2 => Resource exhaustion: insufficient resources to complete.
-# 3 => Malformed payload: failed to parse or contained disallowed content (e.g., asset deletion).
+# 3 => Malformed payload: failed to parse or contained disallowed content (e.g., asset discard/deletion).
 # >= 256 => application-specific.
 # A rejected proposal has empty remap tables and no corresponding canonical
 # Transaction. Invalid proposals normally receive code 3 without closing the
@@ -147,6 +160,14 @@ seq RPCInvoke
 - this_invoke_id : u32
 - endpoint : EntityID
 - args : RPCArgumentList
+
+# Best-effort request to cancel a nonzero invocation on this Downstream's
+# connection. Unknown or already completed IDs are ignored because completion
+# may race cancellation. Cancellation does not complete the invocation and its
+# ID remains in flight: Upstream MUST still send exactly one terminal
+# RPCComplete or RPCError unless the transport closes.
+seq RPCCancel
+- this_invoke_id : u32
 
 
 # ==========================

@@ -68,14 +68,15 @@ Notes:
 | Description | 37 | Human-readable UTF-8 explanatory text. |
 | SemanticTag | 38 | Whitespace-delimited stable semantic identifiers. |
 | SemanticProperty | 39 | Semantic identifier to `Any` property values. |
-| Relationship | 40 | Weak typed relationships to entities. |
-| Participant | 41 | Marks a persistent known actor; does not imply presence. |
-| Observation | 42 | Marks an observation, measurement, inference, or annotation. |
-| ObservationSubject | 43 | Optional weak subject of an observation. |
-| ObservationBounds | 44 | Optional local-space AABB for an observation region. |
-| Task | 45 | Persistent task lifecycle state. |
-| TaskResult | 46 | Optional task result content. |
-| InteractionBounds | 47 | Optional local-space AABB for interaction picking. |
+| Relationship | 40 | Weak relationships using definition entities. |
+| RelationshipDefinition | 41 | Marks an entity that defines a relationship meaning. |
+| Participant | 42 | Marks a persistent known actor; does not imply presence. |
+| Observation | 43 | Marks an observation, measurement, inference, or annotation. |
+| ObservationSubject | 44 | Optional weak subject of an observation. |
+| ObservationBounds | 45 | Optional local-space conservative bound for an observation. |
+| Task | 46 | Persistent task lifecycle state. |
+| Result | 47 | Result content on an entity related to its owning task. |
+| InteractionBounds | 48 | Optional local-space conservative interaction bound. |
 
 Notes:
 - Component payloads are complete replacements; partial updates are not defined.
@@ -85,45 +86,40 @@ Notes:
 - Instance records are interleaved and entity-local. Skins require unique, live joints and exact inverse-bind matrix storage; finite morph weights may extend outside `[0,1]`.
 - `Interactive` gates transform and activation affordances. Their limits are local to the parent; rotation is unrestricted or constrained to one parent-local axis relative to a reference orientation. Buttons and activation share an action union that invokes RPC endpoints or emits registered Events with arguments. Selection components represent shared authoritative selection; private client selection remains local.
 - Parameter UI is an acyclic entity graph. Widget definition/state tags match, disabled state inherits to descendants, and numeric/option values obey their definitions.
-- Event registries provide entity-scoped type IDs and informational argument hints for transient broadcasts. Event names and identifiers are unique within a registry.
+- Event registries provide entity-scoped type IDs plus descriptions, semantic
+  tags, and informational argument hints for transient broadcasts. Event names
+  and identifiers are unique within a registry.
 - Transform samples are low-rate presentation hints in parent space. Full-support clients retain history and interpolate or derive bounded extrapolation; lightweight clients may snap to each newest sample. A hard `TransformComponent` update clears history and takes effect until a later ordered sample update. Reparenting or changing smoothing configuration also clears history. Initial snapshots preserve whether the hard transform or sample was updated last so late joiners reconstruct the same active source.
 - Transform animation and transform sampling on one entity are strongly discouraged. Clients may resolve the conflict locally; ignoring sampling in favor of animation is recommended.
 - Time synchronization is finite and monotonic within a session. Names are non-identifying display labels. Text uses local-unit height and sRGBA color; clients may render authored alpha as opaque.
-- `RPCEndpoint` exposes callable entry points; arguments/results use `Any` encoding.
-- Semantic tags use compact whitespace-delimited identifiers; semantic property
-  keys are string identifiers. Relationships and observation subjects are weak:
-  they may refer to absent or deleted entities and never keep targets alive.
+- `RPCEndpoint` exposes callable entry points; arguments/results use `Any`
+  encoding, with descriptions and semantic tags for arguments, terminal
+  results, and optional streaming results.
+- Semantic tags use compact whitespace-delimited identifiers; leading,
+  trailing, and repeated ASCII whitespace is ignored, and an empty value is the
+  empty set. Semantic property keys are string identifiers. Relationship
+  definitions, relationship targets, and observation subjects are weak: they
+  may refer to absent or deleted entities and never keep targets alive.
   Semantic metadata does not inherit through the transform hierarchy.
 - Participant entities describe known actors without identifying connections or
   asserting current presence. A Downstream may propose zero or many of them;
   connection establishment never implicitly creates one. Participant transform
   updates should remain low rate, with approximately 4 Hz or less recommended;
   clients may interpolate locally. Observations are marker entities with
-  optional weak subjects and local bounds.
-  Tasks retain their component through terminal states and may publish `Any`
-  result content or relate result entities back to the task.
-- Interaction bounds provide an optional entity-local AABB for picking without
-  requiring clients to derive a region from rendered geometry.
-
-### Relationship types
-
-The entity carrying `RelationshipComponent` is the subject. Its relationship
-entries use these Core-defined integer types; the target is the object.
-
-| Name | Identifier | Meaning |
-|------|------------|---------|
-| RelatedTo | 0 | General association. |
-| PartOf | 1 | Subject is a constituent or region of target. |
-| Annotates | 2 | Subject annotates target. |
-| CreatedBy | 3 | Subject was created by target. |
-| DerivedFrom | 4 | Subject was derived from target. |
-| ResultOf | 5 | Subject is a result of target. |
-
-Future revisions may register additional values. An unknown value has no
-implied behavior, but its weak target still does not constrain entity lifetime.
-Relationships, including `CreatedBy`, are semantic assertions rather than
-authenticated provenance. Upstream applies ordinary proposal policy but is not
-required to verify that a sender controls or represents either endpoint.
+  optional weak subjects and local conservative box-or-sphere bounds.
+- Relationship meanings are entities carrying `RelationshipDefinition`; their
+  ordinary semantic components may provide stable identifiers, descriptions,
+  and external links. The entity carrying `Relationship` is the subject. Both
+  its definition and target references are weak. Relationships such as
+  `created_by` are assertions, not authenticated provenance.
+- Tasks retain their component through terminal states, which cannot transition
+  again. Zero or more separate result entities carry `Result` content and link
+  themselves to a task through a `result_of` relationship definition. A void
+  result is distinct from an entity with no Result component.
+- Observation and interaction bounds are conservative local-space AABB or
+  bounding-sphere variants. Zero-volume/radius bounds denote points. Without
+  InteractionBounds an interactive entity cannot be spatially picked, though
+  clients may still expose non-spatial actions.
 
 ## Animation Notes
 

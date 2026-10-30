@@ -3,13 +3,14 @@
 # definition_identifier), so equal names in separate registries do not collide.
 
 from "../../any.jaw" use {AnyTypeID}
+from "semantics.jaw" use {DescriptionText, SemanticTagList}
 
 dyn_array EventName : u8 * u8 # UTF-8
-dyn_array EventDescription : u16 * u8 # UTF-8 text
 
 seq EventArgumentHint
 - name : EventName
-- description : EventDescription
+- description : DescriptionText
+- semantic_tags : SemanticTagList
 - arg_type : AnyTypeID
 
 dyn_array EventArgumentHintList : u8 * EventArgumentHint
@@ -17,7 +18,8 @@ dyn_array EventArgumentHintList : u8 * EventArgumentHint
 seq EventDefinition
 - definition_identifier : u16
 - name : EventName
-- description : EventDescription
+- description : DescriptionText
+- semantic_tags : SemanticTagList
 - arguments : EventArgumentHintList
 
 dyn_array EventDefinitionList : u16 * EventDefinition

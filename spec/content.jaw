@@ -6,12 +6,14 @@ variant ContentMessage : u8
 - 2 => ContentModifyComponents
 - 3 => ContentDeleteComponents
 - 4 => ContentModifyAsset
-- 5 => ContentDeleteAsset
+- 5 => ContentDiscardAsset
+- 6 => ContentDeleteAsset
 
 # Unsupported/unnegotiated extension content may be skipped: receivers skip an
 # entire ContentModifyComponents.content or ContentModifyAsset.content buffer,
-# ignore the associated component/asset deletion, and create no placeholder
-# local state. Active-reference validation applies only to understood state.
+# ignore associated component/asset deletion or discard operations, and create
+# no placeholder local state. Active-reference validation applies only to
+# understood state.
 # An unknown type identifier inside a negotiated extension is a protocol
 # violation rather than skippable extension evolution.
 
@@ -64,7 +66,7 @@ seq ContentDeleteComponents
 - list : EntityList
 
 # ===================================================
-# Modify asset
+# Asset lifecycle
 
 # Adds an asset or atomically replaces the value of an existing logical asset.
 # New authoritative asset IDs are canonical (bit 63 clear), while proposal-local
@@ -81,10 +83,22 @@ seq ContentModifyAsset
 - an_asset : AnAsset
 - content : Content
 
-# Tombstones an asset identity. Existing references continue to resolve to the
-# last value and keep it alive until those references are removed, but new
-# references to the tombstoned identity are invalid. A tombstoned identity must
-# not be reused during the same main-channel session.
-# Clients MAY NOT propose asset deletion.
+# Drops the strong reference held by the receiver's active asset table while
+# retaining a weak lookup entry. Component and asset references are strong and
+# continue to keep the logical asset alive. A later reference can resolve the
+# discarded asset only while at least one such live reference keeps the weak
+# entry upgradeable. Otherwise Upstream must send ContentModifyAsset first,
+# which republishes the asset and restores the table's strong reference.
+# ContentDiscardAsset is invalid for an unknown, already discarded, or deleted
+# identity. Downstreams may not propose asset discard.
+seq ContentDiscardAsset
+- an_asset : AnAsset
+
+# Final deletion is sent only after discard and after earlier operations have
+# removed the final protocol-visible asset/component reference. It removes the
+# weak lookup entry and permanently tombstones the identity for this session.
+# Receivers may still retain private implementation references for in-flight
+# rendering or decoding, but those are no longer addressable by the protocol.
+# Downstreams may not propose asset deletion.
 seq ContentDeleteAsset
 - an_asset : AnAsset

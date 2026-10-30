@@ -12,7 +12,6 @@ interleaving without making optimistic reconciliation ambiguous.
 
 ## RPC lifecycle
 
-- Consider a best-effort `RPCCancel` message for long-running streams.
 - Consider standardized Core `RPCError` codes; codes are currently application-defined.
 
 ## JAW named variant alternatives
