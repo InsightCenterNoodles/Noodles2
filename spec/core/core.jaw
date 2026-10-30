@@ -19,6 +19,7 @@ from "components/parameter.jaw" use *
 from "components/parent.jaw" use *
 from "components/rpc.jaw" use *
 from "components/selection.jaw" use *
+from "components/semantics.jaw" use *
 from "components/skin.jaw" use *
 from "components/text.jaw" use *
 from "components/time.jaw" use *
@@ -73,3 +74,14 @@ const CORE_COMP_TRANSFORM_POSITION_SMOOTHING : u16 = 33
 const CORE_COMP_TRANSFORM_ROTATION_SMOOTHING : u16 = 34
 const CORE_COMP_TRANSFORM_SCALE_SMOOTHING : u16 = 35
 const CORE_COMP_TRANSFORM_SAMPLE : u16 = 36
+const CORE_COMP_DESCRIPTION : u16 = 37
+const CORE_COMP_SEMANTIC_TAG : u16 = 38
+const CORE_COMP_SEMANTIC_PROPERTY : u16 = 39
+const CORE_COMP_RELATIONSHIP : u16 = 40
+const CORE_COMP_PARTICIPANT : u16 = 41
+const CORE_COMP_OBSERVATION : u16 = 42
+const CORE_COMP_OBSERVATION_SUBJECT : u16 = 43
+const CORE_COMP_OBSERVATION_BOUNDS : u16 = 44
+const CORE_COMP_TASK : u16 = 45
+const CORE_COMP_TASK_RESULT : u16 = 46
+const CORE_COMP_INTERACTION_BOUNDS : u16 = 47

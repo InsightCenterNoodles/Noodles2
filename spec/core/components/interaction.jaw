@@ -1,10 +1,17 @@
 from "../../any.jaw" use {Any}
-from "../../common.jaw" use {EntityID, UnitQuaternion, Vec3}
+from "../../common.jaw" use {AABB, EntityID, UnitQuaternion, Vec3}
 from "../../events.jaw" use {EventTypeID}
 
 # Gates the interaction affordances on an entity. CanTranslate, CanRotate,
 # CanScale, and Activate are ignored unless this marker is also present.
 seq InteractiveComponent
+
+# Optional entity-local hit region for interaction. When present, clients SHOULD
+# use this box when picking or presenting interaction affordances rather than
+# requiring rendered geometry. The box is defined before the entity's transform
+# and must satisfy the common AABB rules. It is ignored without Interactive.
+pack InteractionBoundsComponent
+- bounds : AABB
 
 pack AxisRange
 - min : f32

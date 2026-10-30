@@ -1,0 +1,108 @@
+from "../../any.jaw" use {Any, AnyMap}
+from "../../common.jaw" use {AABB, EntityID}
+
+# =========================== SEMANTICS
+
+# Human-readable UTF-8 explanatory text. This is not an identifier and has no
+# prescribed markup language.
+dyn_array DescriptionComponent : u16 * u8
+
+# A whitespace-delimited set of stable UTF-8 semantic identifiers. Delimiters
+# are ASCII whitespace bytes (09-0D and 20). Identifiers therefore cannot
+# contain unescaped ASCII whitespace. URI-like identifiers are recommended.
+# Ordering carries no meaning and producers MUST NOT repeat an identifier.
+# This compact representation deliberately avoids a nested dynamic array.
+dyn_array SemanticTagComponent : u16 * u8
+
+# Describes values and aspects of an entity. Every AnyMap key MUST be an
+# AnyString containing a stable semantic identifier; integer keys are invalid
+# here. Values may use any Any variant, including an array for a multi-valued
+# property. The ordinary AnyMap uniqueness rules apply.
+seq SemanticPropertyComponent
+- properties : AnyMap
+
+# Core relationship meanings. The entity carrying RelationshipComponent is the
+# relationship subject and target is its object. Additional values may be
+# registered by future revisions; unknown values carry no implied behavior.
+const RELATIONSHIP_RELATED_TO : u16 = 0
+const RELATIONSHIP_PART_OF : u16 = 1
+const RELATIONSHIP_ANNOTATES : u16 = 2
+const RELATIONSHIP_CREATED_BY : u16 = 3
+const RELATIONSHIP_DERIVED_FROM : u16 = 4
+const RELATIONSHIP_RESULT_OF : u16 = 5
+
+pack Relationship
+- relationship_type : u16
+- target : EntityID
+
+dyn_array RelationshipList : u16 * Relationship
+
+seq RelationshipComponent
+- relationships : RelationshipList
+
+# Relationship targets are weak semantic references. A canonical target may be
+# absent or tombstoned, does not have to precede the relationship, and does not
+# prevent deletion of the target. Consumers resolve it only while that EntityID
+# is alive. Proposal references must still name an existing canonical entity or
+# a patch-local entity created earlier in that proposal so they can be remapped.
+# Relationships do not inherit through ChildOfComponent.
+
+# =========================== PROVENANCE AND PARTICIPATION
+
+# Marks an entity as a known participant or other actor. It does not imply that
+# the participant is currently connected and does not identify a transport
+# connection. A Downstream may propose zero or more participant entities, such
+# as multiple tracked people represented by one immersive client, and may pair
+# them with Name, Description, SemanticTag, SemanticProperty, Transform, or
+# other negotiated components. Ordinary Upstream proposal policy applies.
+# Upstream MUST NOT infer or implicitly create a participant merely because a
+# Downstream connected, though it may explicitly author participants known from
+# application state. Participant records may remain alive after their source
+# disconnects so semantic references remain meaningful.
+#
+# A participant TransformComponent may disclose its pose using ordinary
+# transform and hierarchy semantics. Downstreams SHOULD propose pose changes at
+# a low rate; approximately 4 Hz or less is recommended. Upstream may coalesce,
+# rate-limit, or reject excessive pose proposals under normal resource policy.
+# Clients needing smoother presentation should interpolate locally.
+seq ParticipantComponent
+
+# =========================== OBSERVATIONS
+
+# Marks an entity as an observation, measurement, inference, annotation, or
+# other reported finding. Semantic tags and properties describe its kind, value,
+# unit, time, uncertainty, confidence, and provenance as applicable.
+seq ObservationComponent
+
+# Optional weak subject of an observation. Like a relationship target, the
+# subject does not keep an entity alive and is resolved only while alive.
+pack ObservationSubjectComponent
+- subject : EntityID
+
+# Optional region described by an observation, in the observation entity's
+# local coordinate space before applying its TransformComponent and ancestor
+# transforms. Bounds must satisfy the common AABB rules.
+pack ObservationBoundsComponent
+- bounds : AABB
+
+# =========================== TASKS
+
+enum TaskState : u8
+- Pending = 0
+- Running = 1
+- Succeeded = 2
+- Failed = 3
+- Cancelled = 4
+
+# Persistent task identity and current lifecycle state. Completion changes the
+# state rather than removing this component. Semantic properties may describe
+# progress, cost, errors, or other application-specific task metadata.
+pack TaskComponent
+- state : TaskState
+
+# Optional result content for a task. It may be installed while a task is
+# running for partial results and remains available after a terminal state.
+# Entity-valued results may instead, or additionally, use a RESULT_OF
+# relationship from the result entity to the task.
+seq TaskResultComponent
+- content : Any

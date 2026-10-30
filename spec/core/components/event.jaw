@@ -5,9 +5,11 @@
 from "../../any.jaw" use {AnyTypeID}
 
 dyn_array EventName : u8 * u8 # UTF-8
+dyn_array EventDescription : u16 * u8 # UTF-8 text
 
 seq EventArgumentHint
 - name : EventName
+- description : EventDescription
 - arg_type : AnyTypeID
 
 dyn_array EventArgumentHintList : u8 * EventArgumentHint
@@ -15,6 +17,7 @@ dyn_array EventArgumentHintList : u8 * EventArgumentHint
 seq EventDefinition
 - definition_identifier : u16
 - name : EventName
+- description : EventDescription
 - arguments : EventArgumentHintList
 
 dyn_array EventDefinitionList : u16 * EventDefinition

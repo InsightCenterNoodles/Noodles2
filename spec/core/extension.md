@@ -65,6 +65,17 @@ Notes:
 | TransformRotationSmoothing | 34 | Marks sampled rotation for smoothing. |
 | TransformScaleSmoothing | 35 | Marks sampled scale for smoothing. |
 | TransformSample | 36 | Timestamped complete local transform sample. |
+| Description | 37 | Human-readable UTF-8 explanatory text. |
+| SemanticTag | 38 | Whitespace-delimited stable semantic identifiers. |
+| SemanticProperty | 39 | Semantic identifier to `Any` property values. |
+| Relationship | 40 | Weak typed relationships to entities. |
+| Participant | 41 | Marks a persistent known actor; does not imply presence. |
+| Observation | 42 | Marks an observation, measurement, inference, or annotation. |
+| ObservationSubject | 43 | Optional weak subject of an observation. |
+| ObservationBounds | 44 | Optional local-space AABB for an observation region. |
+| Task | 45 | Persistent task lifecycle state. |
+| TaskResult | 46 | Optional task result content. |
+| InteractionBounds | 47 | Optional local-space AABB for interaction picking. |
 
 Notes:
 - Component payloads are complete replacements; partial updates are not defined.
@@ -79,6 +90,40 @@ Notes:
 - Transform animation and transform sampling on one entity are strongly discouraged. Clients may resolve the conflict locally; ignoring sampling in favor of animation is recommended.
 - Time synchronization is finite and monotonic within a session. Names are non-identifying display labels. Text uses local-unit height and sRGBA color; clients may render authored alpha as opaque.
 - `RPCEndpoint` exposes callable entry points; arguments/results use `Any` encoding.
+- Semantic tags use compact whitespace-delimited identifiers; semantic property
+  keys are string identifiers. Relationships and observation subjects are weak:
+  they may refer to absent or deleted entities and never keep targets alive.
+  Semantic metadata does not inherit through the transform hierarchy.
+- Participant entities describe known actors without identifying connections or
+  asserting current presence. A Downstream may propose zero or many of them;
+  connection establishment never implicitly creates one. Participant transform
+  updates should remain low rate, with approximately 4 Hz or less recommended;
+  clients may interpolate locally. Observations are marker entities with
+  optional weak subjects and local bounds.
+  Tasks retain their component through terminal states and may publish `Any`
+  result content or relate result entities back to the task.
+- Interaction bounds provide an optional entity-local AABB for picking without
+  requiring clients to derive a region from rendered geometry.
+
+### Relationship types
+
+The entity carrying `RelationshipComponent` is the subject. Its relationship
+entries use these Core-defined integer types; the target is the object.
+
+| Name | Identifier | Meaning |
+|------|------------|---------|
+| RelatedTo | 0 | General association. |
+| PartOf | 1 | Subject is a constituent or region of target. |
+| Annotates | 2 | Subject annotates target. |
+| CreatedBy | 3 | Subject was created by target. |
+| DerivedFrom | 4 | Subject was derived from target. |
+| ResultOf | 5 | Subject is a result of target. |
+
+Future revisions may register additional values. An unknown value has no
+implied behavior, but its weak target still does not constrain entity lifetime.
+Relationships, including `CreatedBy`, are semantic assertions rather than
+authenticated provenance. Upstream applies ordinary proposal policy but is not
+required to verify that a sender controls or represents either endpoint.
 
 ## Animation Notes
 

@@ -13,6 +13,13 @@ pack Vec4
 - z : f32
 - w : f32
 
+# Axis-aligned bounding box. The coordinate space and whether the bound is exact
+# or conservative are defined by the field or component containing it. Uses of
+# AABB require finite coordinates with min <= max on every axis.
+pack AABB
+- min : Vec3
+- max : Vec3
+
 pack UnitQuaternion
 - x : f32
 - y : f32

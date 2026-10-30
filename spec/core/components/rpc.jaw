@@ -6,6 +6,7 @@
 
 from "../../any.jaw" use {AnyTypeID}
 
+# Pair with a DescriptionComponent to provide semantics for this RPC call
 seq RPCEndpointComponent
 - name : RPCName
 - arguments : RPCArgumentHintList # informational; implementations may enforce or ignore
