@@ -5,14 +5,16 @@ normative specification prose take precedence.
 
 ## Suggested layers
 
-Keep four concerns separate:
+Keep five concerns separate:
 
-1. **Wire codec** — generated JAW encoding and decoding, guarded by local limits.
-2. **Semantic validator** — IDs, references, numeric constraints, component
+1. **Transport adapter** — obtains one bounded logical message, including
+   consuming byte-oriented record prefixes when required.
+2. **Wire codec** — generated JAW encoding and decoding, guarded by local limits.
+3. **Semantic validator** — IDs, references, numeric constraints, component
    relationships, lifecycle transitions, and direction rules.
-3. **World applicator** — stages and atomically commits valid transactions,
+4. **World applicator** — stages and atomically commits valid transactions,
    maintains scene generation, reverse references, tombstones, and snapshots.
-4. **Authority policy** — accepts or rejects proposals, RPCs, events, assets,
+5. **Authority policy** — accepts or rejects proposals, RPCs, events, assets,
    and resource use according to the application and trust boundary.
 
 A parse failure, invalid authoritative transaction, malformed proposal, and
@@ -68,6 +70,16 @@ proposals, event rates, and snapshot queues. Use checked arithmetic for every
 byte-size and offset calculation. Limits are local policy and may differ between
 an embedded viewer and a server, but they should fail deterministically rather
 than relying on allocation failure.
+
+For a byte-oriented transport, validate the main-channel `u32` or OOB-channel
+`u64` record length before allocating or converting it to a platform-sized
+integer. Expose exactly that many bytes to the JAW decoder through a bounded
+input. The transport adapter may use a reusable contiguous buffer or feed the
+bounded input incrementally; the record prefix does not require a second full
+message allocation and is not part of the generated codec. Require exact
+consumption so truncation and trailing bytes cannot cross a record boundary.
+The outer bound complements rather than replaces limits on nested collection
+counts, recursion, decoded assets, and transaction staging.
 
 ## Conformance
 

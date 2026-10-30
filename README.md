@@ -24,8 +24,28 @@ RFC 8174 when, and only when, they appear in all capitals.
 - Messages are in binary, little-endian, IEEE-754. 
 - Messages are described by the Jaw format. 
 - JAW `bool` occupies one byte; only `0` and `1` are valid encodings.
-- For frame-based transports, there is one message per transport frame. For byte-oriented transports, no prefix is required, messages are simply parsed as the next in the sequence as given by the connection flow.
-- A top-level parse failure is fatal to the connection. Byte-oriented transports do not attempt to resynchronize after malformed input.
+- For message-oriented transports, one complete NOODLES2 message occupies one
+  logical transport message. A logical transport message may itself be
+  fragmented by the transport; for example, one WebSocket binary message may
+  occupy multiple WebSocket frames. No additional NOODLES2 length prefix is
+  used when the transport supplies the logical message boundary.
+- Byte-oriented transports use a fixed-width little-endian length prefix before
+  each encoded top-level JAW message. The length covers only the JAW payload,
+  not the prefix:
+    - Main-channel records use a `u32` payload length.
+    - OOB-channel records use a `u64` payload length.
+  Main and OOB messages are never multiplexed on one channel, so the channel
+  binding determines the prefix width without inspecting message content.
+- Transport record framing is not part of JAW. A transport implementation
+  removes the prefix, if present, and supplies exactly one bounded top-level
+  message to the JAW decoder.
+- A zero record length, a truncated length or payload, a top-level parse
+  failure, unconsumed trailing bytes, or a length exceeding local limits is
+  fatal to that connection. Byte-oriented transports do not attempt to
+  resynchronize after malformed input.
+- Main-channel messages are therefore limited to `u32::MAX` encoded bytes.
+  Large payloads should use the OOB asset mechanism, whose content and
+  byte-oriented transport records use 64-bit lengths.
 - Byte arrays documented as UTF-8 SHOULD contain valid UTF-8. Receivers MAY reject malformed text or replace malformed subsequences when decoding it.
 - Nodes MAY impose implementation-defined limits on message sizes, collection lengths, asset sizes, nesting, memory use, and other resource consumption. A node MAY reject content or disconnect when input is malformed, exceeds those limits, or otherwise threatens safe operation.
 
