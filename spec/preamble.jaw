@@ -46,13 +46,53 @@ seq IntroductionHeader
 - name : PreambleName
 - capabilities : PreambleCaps # extensions supported by the sender
 
-dyn_array OOBPorts : u8 * u16
+# Network endpoints inherit the host name or address that the Downstream used
+# to reach the main channel. The advertised port replaces only the port and
+# MUST be nonzero; the Upstream does not need to know its externally reachable
+# host name or address. A Downstream without an applicable network host ignores
+# network endpoints. WebSocket transport security and TCP transport wrapping
+# are selected by the applicable transport binding or application
+# configuration.
+# This path MUST be valid UTF-8, nonempty, and begin with '/'.
+dyn_array OOBWebSocketPath : u16 * u8
 
-# OOB channels are provided over WebSockets on the listed ports.
-# token is a bearer credential for this main-channel session and must be
-# included in every OOBRequest. It expires when the main channel closes.
+seq OOBWebSocketEndpoint
+- port : u16
+- path : OOBWebSocketPath
+
+pack OOBTCPEndpoint
+- port : u16
+
+# This MUST be a nonempty absolute filesystem path encoded as platform path
+# bytes. Zero bytes, relative paths, and Linux abstract-namespace addresses are
+# not permitted. Downstreams for which the path is not meaningful ignore this
+# endpoint.
+dyn_array OOBUnixPath : u16 * u8
+
+seq OOBUnixStreamEndpoint
+- path : OOBUnixPath
+
+# WebSocket is message-oriented. TCP and Unix stream sockets are byte-oriented
+# and use the u64 OOB record prefix defined by the transport framing rules. TCP
+# means reliable ordered TCP, and Unix means SOCK_STREAM; datagram transports
+# are not supported. Main and OOB channels are distinct connections and may use
+# different transport types.
+variant OOBEndpoint : u8
+- 0 => OOBWebSocketEndpoint
+- 1 => OOBTCPEndpoint
+- 2 => OOBUnixStreamEndpoint
+
+# Endpoints are listed in Upstream preference order. Upstreams SHOULD list
+# WebSocket endpoints before other supported transports. Downstreams skip
+# unsupported or inapplicable endpoints and SHOULD attempt usable endpoints in
+# order, with fallback allowed after connection failure.
+dyn_array OOBEndpoints : u8 * OOBEndpoint
+
+# endpoints MUST be nonempty. token is a bearer credential for this main-channel
+# session and must be included in every OOBRequest. It expires when the main
+# channel closes.
 seq OOBAssetChannels
-- ports : OOBPorts
+- endpoints : OOBEndpoints
 - token : OOBSessionToken
 
 variant OOBAssetInfo : u8
