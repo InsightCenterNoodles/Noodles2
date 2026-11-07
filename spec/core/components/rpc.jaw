@@ -32,5 +32,5 @@ seq RPCResultHint
 # Absence means the endpoint does not advertise streaming results. Presence
 # describes each value yielded by RPCStreamResult. All hints are informational.
 variant RPCStreamResultHint : u8
-- 0 => void
-- 1 => RPCResultHint
+- Absent = 0 => void
+- Present = 1 => RPCResultHint

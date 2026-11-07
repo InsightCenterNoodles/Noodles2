@@ -35,7 +35,9 @@ Check in canonical binary fixtures for at least:
 - RPC streaming followed by completion, error, and best-effort cancellation.
 - Event registry creation and a downstream-originated event broadcast back to all downstreams, including its sender; include `noodles.view.pose.v1`.
 - Button and entity activation actions covering both RPC invocation and Event emission.
-- Inline, URL, and OOB buffer descriptions.
+- Inline, URL, and OOB buffer descriptions. Include OOB failure and success
+  controls, plus zero-length and nonempty raw payloads under both message- and
+  byte-oriented transport framing.
 - Asset publication, replacement, discard while referenced, republication, and
   final deletion after the last protocol reference is removed.
 - PCM16 WAVE audio and a synchronized spatial audio source.
@@ -50,7 +52,9 @@ backend so the test does not rely on a single implementation as the encoder of
 record.
 
 Include negative fixtures for malformed discriminants, invalid booleans,
-truncated arrays, excessive guarded lengths, and invalid semantic combinations.
+truncated arrays, excessive guarded lengths, invalid semantic combinations, an
+OOB success without its immediately following raw payload, a truncated raw
+payload, and an intervening server-to-client OOB control.
 
 ## Not currently planned
 

@@ -60,14 +60,15 @@ bits MyFlags : u8
 seq SmallSeq
 - list : Data
 
-# A variant is a branch (never POD) with an unsigned integer discriminant and explicit options per value. Unknown discriminants
-# are errors (no defaults). Variants may include void to represent an empty branch.
+# A variant is a branch (never POD) with an unsigned integer discriminant and
+# explicit, stable case names and options per value. Unknown discriminants are
+# errors (no defaults). Variants may include void to represent an empty branch.
 # These are for describing forks in the road for your messages.
 variant MyVariant : u8
-- 0 => MyPOD
-- 1 => MyOtherPOD
-- 2 => void
-- 3 => SmallSeq
+- Pod = 0 => MyPOD
+- OtherPod = 1 => MyOtherPOD
+- Empty = 2 => void
+- Small = 3 => SmallSeq
 
 seq Root
 - name : ShortString

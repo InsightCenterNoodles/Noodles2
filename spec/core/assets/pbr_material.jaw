@@ -23,9 +23,9 @@ seq PBRMaterialAsset
 - extension : MaybePBRMaterialExtended
 - table : MaterialImageTable # up to 16 entries for texture references
 
-# The material's extension variant MUST agree with its feature set: both are
-# void for a base-only material, or both are present. Values and references for
-# features not enabled by the feature set are ignored. Unsupported requested
+# The material's extension variant MUST agree with its feature set: both use
+# BaseOnly for a base-only material, or both use Extended. Values and references
+# for features not enabled by the feature set are ignored. Unsupported requested
 # features may be ignored or approximated by the client.
 
 # Although the count prefix can represent more, a valid table has at most 16
@@ -33,12 +33,12 @@ seq PBRMaterialAsset
 dyn_array MaterialImageTable : u8 * ImageAssetID
 
 variant MaybePBRMaterialExtended : u8 
-- 0 => void
-- 1 => ExtendedMaterial
+- BaseOnly = 0 => void
+- Extended = 1 => ExtendedMaterial
 
 variant MaybePBRMaterialExtendedFeatures : u8
-- 0 => void
-- 1 => PBRMaterialExtendedFeatures
+- BaseOnly = 0 => void
+- Extended = 1 => PBRMaterialExtendedFeatures
 
 pack NormalizedUShort
 - value : u16  # normalized integer in [0, 65535] -> [0.0, 1.0]         

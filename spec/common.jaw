@@ -29,8 +29,8 @@ pack BoundingSphere
 - radius : f32
 
 variant ConservativeBounds : u8
-- 0 => AABB
-- 1 => BoundingSphere
+- AABB = 0 => AABB
+- BoundingSphere = 1 => BoundingSphere
 
 pack UnitQuaternion
 - x : f32

@@ -71,14 +71,20 @@ byte-size and offset calculation. Limits are local policy and may differ between
 an embedded viewer and a server, but they should fail deterministically rather
 than relying on allocation failure.
 
-For a byte-oriented transport, validate the main-channel `u32` or OOB-channel
-`u64` record length before allocating or converting it to a platform-sized
-integer. Expose exactly that many bytes to the JAW decoder through a bounded
-input. The transport adapter may use a reusable contiguous buffer or feed the
-bounded input incrementally; the record prefix does not require a second full
-message allocation and is not part of the generated codec. Require exact
-consumption so truncation and trailing bytes cannot cross a record boundary.
-The outer bound complements rather than replaces limits on nested collection
+For a byte-oriented transport, validate each main-channel or OOB-control `u32`
+record length before allocating or converting it to a platform-sized integer.
+Expose exactly that many bytes to the JAW decoder through a bounded input and
+require exact consumption so truncation and trailing bytes cannot cross a
+control-record boundary.
+
+After decoding an OOB success, switch the receive state from JAW controls to one
+raw asset payload. Validate its byte-oriented `u64` length before converting it
+to a platform-sized integer. Stream the following bytes directly to their final
+storage or consumer where practical; the payload is not passed to the generated
+JAW decoder and does not require a second full allocation. On a message-oriented
+transport, use the following logical message's boundary as the raw payload
+length instead. After exact payload consumption, switch back to OOB controls.
+The outer bounds complement rather than replace limits on nested collection
 counts, recursion, decoded assets, and transaction staging.
 
 ## Conformance

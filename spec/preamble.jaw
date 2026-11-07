@@ -5,10 +5,10 @@ from "oob_asset.jaw" use {OOBSessionToken}
 
 # This is the core message that is sent during the preamble phase
 variant PreMessage : u8
-- 0 => Probe
-- 1 => ProbeReply
-- 2 => Introduction
-- 3 => IntroductionReply
+- Probe = 0 => Probe
+- ProbeReply = 1 => ProbeReply
+- Introduction = 2 => Introduction
+- IntroductionReply = 3 => IntroductionReply
 
 # Covers the base protocol, common types, and the mandatory Core extension.
 # This remains version 0 while the protocol is under development.
@@ -72,15 +72,16 @@ dyn_array OOBUnixPath : u16 * u8
 seq OOBUnixStreamEndpoint
 - path : OOBUnixPath
 
-# WebSocket is message-oriented. TCP and Unix stream sockets are byte-oriented
-# and use the u64 OOB record prefix defined by the transport framing rules. TCP
-# means reliable ordered TCP, and Unix means SOCK_STREAM; datagram transports
-# are not supported. Main and OOB channels are distinct connections and may use
-# different transport types.
+# WebSocket is message-oriented. TCP and Unix stream sockets are byte-oriented:
+# JAW request/reply control records use a u32 prefix, while the raw asset payload
+# immediately following a successful reply uses a u64 prefix. TCP means reliable
+# ordered TCP, and Unix means SOCK_STREAM; datagram transports are not supported.
+# Main and OOB channels are distinct connections and may use different transport
+# types.
 variant OOBEndpoint : u8
-- 0 => OOBWebSocketEndpoint
-- 1 => OOBTCPEndpoint
-- 2 => OOBUnixStreamEndpoint
+- WebSocket = 0 => OOBWebSocketEndpoint
+- TCP = 1 => OOBTCPEndpoint
+- UnixStream = 2 => OOBUnixStreamEndpoint
 
 # Endpoints are listed in Upstream preference order. Upstreams SHOULD list
 # WebSocket endpoints before other supported transports. Downstreams skip
@@ -96,8 +97,8 @@ seq OOBAssetChannels
 - token : OOBSessionToken
 
 variant OOBAssetInfo : u8
-- 0 => void
-- 1 => OOBAssetChannels
+- Unavailable = 0 => void
+- Channels = 1 => OOBAssetChannels
 
 seq IntroductionReply
 - header : IntroductionHeader

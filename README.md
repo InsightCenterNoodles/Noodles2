@@ -24,28 +24,31 @@ RFC 8174 when, and only when, they appear in all capitals.
 - Messages are in binary, little-endian, IEEE-754. 
 - Messages are described by the Jaw format. 
 - JAW `bool` occupies one byte; only `0` and `1` are valid encodings.
-- For message-oriented transports, one complete NOODLES2 message occupies one
-  logical transport message. A logical transport message may itself be
-  fragmented by the transport; for example, one WebSocket binary message may
-  occupy multiple WebSocket frames. No additional NOODLES2 length prefix is
-  used when the transport supplies the logical message boundary.
+- For message-oriented transports, one complete encoded top-level JAW message
+  occupies one logical transport message. A logical transport message may
+  itself be fragmented by the transport; for example, one WebSocket binary
+  message may occupy multiple WebSocket frames. No additional NOODLES2 length
+  prefix is used when the transport supplies the logical message boundary.
 - Byte-oriented transports use a fixed-width little-endian length prefix before
   each encoded top-level JAW message. The length covers only the JAW payload,
-  not the prefix:
-    - Main-channel records use a `u32` payload length.
-    - OOB-channel records use a `u64` payload length.
-  Main and OOB messages are never multiplexed on one channel, so the channel
-  binding determines the prefix width without inspecting message content.
-- Transport record framing is not part of JAW. A transport implementation
+  not the prefix. Main-channel messages and OOB request/reply control messages
+  use a `u32` payload length.
+- A successful OOB reply is followed immediately by a raw asset payload that is
+  not JAW. On a byte-oriented OOB channel, this raw payload uses a little-endian
+  `u64` length followed by exactly that many asset bytes. On a message-oriented
+  OOB channel, one separate logical transport message contains exactly the raw
+  asset bytes and its transport-supplied boundary provides the length.
+- JAW message-record framing is not part of JAW. A transport implementation
   removes the prefix, if present, and supplies exactly one bounded top-level
   message to the JAW decoder.
-- A zero record length, a truncated length or payload, a top-level parse
-  failure, unconsumed trailing bytes, or a length exceeding local limits is
-  fatal to that connection. Byte-oriented transports do not attempt to
-  resynchronize after malformed input.
-- Main-channel messages are therefore limited to `u32::MAX` encoded bytes.
-  Large payloads should use the OOB asset mechanism, whose content and
-  byte-oriented transport records use 64-bit lengths.
+- A zero JAW message-record length, a truncated record length or payload, a
+  top-level parse failure, unconsumed trailing bytes, or a record length
+  exceeding local limits is fatal to that connection. Byte-oriented transports
+  do not attempt to resynchronize after malformed input. A raw OOB asset payload
+  may have zero length.
+- Main-channel and OOB control messages are therefore limited to `u32::MAX`
+  encoded bytes. Large asset payloads use the OOB mechanism's separate raw
+  transfer, whose byte-oriented length is 64 bits.
 - Byte arrays documented as UTF-8 SHOULD contain valid UTF-8. Receivers MAY reject malformed text or replace malformed subsequences when decoding it.
 - Nodes MAY impose implementation-defined limits on message sizes, collection lengths, asset sizes, nesting, memory use, and other resource consumption. A node MAY reject content or disconnect when input is malformed, exceeds those limits, or otherwise threatens safe operation.
 
@@ -147,17 +150,19 @@ RFC 8174 when, and only when, they appear in all capitals.
 - Environment image indices must be in bounds when enabled. Material image tables contain at most 16 entries, and every enabled texture index must address an existing entry; disabled reference fields are ignored.
 - PBR color and emission maps are sRGB. Roughness/metallic, occlusion, normal, and other non-color maps are linear. Clients may ignore or approximate unsupported extended material features without rejecting the scene.
 - Immutable `PBRMaterialFeatureSet` assets declare shader/pipeline topology for early compilation and caching. `PBRMaterial` assets are parameter instances sharing a feature set. Base-only instances omit the extended parameter block; its presence must agree with the referenced feature set.
-- OOB support is provided through one or more separate channels, where asynchronous asset requests can be made. An Upstream advertises an ordered list of typed endpoints: WebSocket, TCP, or Unix stream socket. WebSocket is preferred for interoperability, and Upstreams SHOULD list WebSocket endpoints before other supported transports, but it is not required. Content uses the JAW binary format with the restricted `OOBRequest` and `OOBReply` message sets.
+- OOB support is provided through one or more separate channels, where asynchronous asset requests can be made. An Upstream advertises an ordered list of typed endpoints: WebSocket, TCP, or Unix stream socket. WebSocket is preferred for interoperability, and Upstreams SHOULD list WebSocket endpoints before other supported transports, but it is not required. Control messages use the JAW binary format with the restricted `OOBRequest` and `OOBReply` message sets; successful asset payloads are raw bytes outside JAW.
     - Network endpoints inherit the host name or address that the Downstream used to reach the main channel; an endpoint supplies a nonzero replacement port. A WebSocket endpoint also supplies a nonempty UTF-8 absolute path beginning with `/`. The Upstream therefore does not need to advertise or discover its own externally reachable host name or address. A Downstream without an applicable network host ignores network endpoints.
     - A Unix endpoint supplies a nonempty absolute filesystem path as platform path bytes. It denotes a Unix `SOCK_STREAM` socket; zero bytes, relative paths, Linux abstract-namespace addresses, and datagram sockets are not supported. A Downstream ignores a Unix endpoint when its path is not meaningful in that environment.
     - Endpoints are listed in Upstream preference order. A Downstream skips unsupported or inapplicable endpoints and SHOULD attempt usable endpoints in order; it may fall back after a connection failure. TCP means reliable ordered TCP, not UDP. Main and OOB channels are distinct connections and may use different transport types.
-    - WebSocket OOB channels are message-oriented and add no NOODLES2 record prefix. TCP and Unix stream OOB channels are byte-oriented and use the `u64` OOB record prefix.
+    - WebSocket OOB channels are message-oriented and add no NOODLES2 record prefix. TCP and Unix stream OOB channels are byte-oriented: JAW request/reply control records use a `u32` prefix, while raw asset payloads use a `u64` prefix.
     - Transport security and wrapping are selected by the applicable transport binding or application configuration. The bearer token associates an OOB connection with a main session; it does not authenticate the server or make an unprotected transport confidential. Implementations should use appropriate TLS, trusted-network policy, and Unix filesystem permissions for their environment.
     - `IntroductionReply` supplies an unpredictable 256-bit bearer token for the main-channel session. Every OOB request must contain that token, and it expires when the main channel closes.
     - OOB asset IDs are scoped to the main-channel session and remain valid while referenced by a live buffer asset. They are never reassigned to different bytes during that session, although multiple buffer assets may intentionally share the same OOB payload.
     - OOB connections may be kept open only while their associated main channel remains open.
-    - A request is made by a `OOBRequest`, and serviced by a single `OOBReply` response.
-    - An asset occupies one logical reply. Transport fragmentation and incremental consumption are allowed, but application-level chunk numbering and resumable transfer are not defined.
+    - A request is made by an `OOBRequest` control message and is answered by one `OOBReply` control message. A failure reply is complete. A success contains the requested `asset_id` but no asset bytes and is followed immediately by one raw asset payload.
+    - A success and its following payload form one indivisible logical reply. No other Upstream-to-Downstream OOB control message or asset payload may occur between them. Traffic in the opposite direction does not violate this adjacency. After the payload ends, the receiver resumes decoding OOB control messages.
+    - On WebSocket, the raw payload is the complete binary message immediately following the success control message. On TCP and Unix stream sockets, it is a `u64` little-endian length followed by exactly that many bytes. A zero-length asset payload is valid.
+    - Transport fragmentation and incremental payload consumption are allowed, but application-level chunk numbering and resumable transfer are not defined. Truncation is fatal to the OOB connection. A receiver that cannot accept an advertised payload length may drain and reject that payload or close the OOB connection according to local policy.
     - A buffer asset may contain an OOBAssetID, or blob of bytes, that can be requested from Upstream.
     - OOB errors include the requested `asset_id` plus a UTF-8 reason string.
     - Receivers may reject URL schemes, origins, redirects, credentials, or other fetch behavior according to local security policy.

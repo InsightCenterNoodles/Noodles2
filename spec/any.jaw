@@ -13,38 +13,38 @@ dyn_array AnyMap : u32 * AnyKeyPair
 # keys, ignore duplicates, or overwrite an earlier value. Tooling may preserve
 # maps as ordered lists of pairs rather than constructing a native hash map.
 variant AnyKey : u8
-- 0 => AnyString
-- 1 => u8
-- 2 => u16
-- 3 => u32
-- 4 => u64
-- 5 => i8
-- 6 => i16
-- 7 => i32
-- 8 => i64
+- String = 0 => AnyString
+- U8 = 1 => u8
+- U16 = 2 => u16
+- U32 = 3 => u32
+- U64 = 4 => u64
+- I8 = 5 => i8
+- I16 = 6 => i16
+- I32 = 7 => i32
+- I64 = 8 => i64
 
 seq AnyKeyPair
 - key : AnyKey
 - value : Any
 
 variant Any : u8
-- 0 => void
-- 1 => bool
-- 2 => u8
-- 3 => i64
-- 4 => f64
-- 5 => AnyString
-- 6 => AnyArray
-- 7 => AnyMap
-- 8 => AnyBytes
-- 9 => Vec3
-- 10 => Vec4
-- 11 => UnitQuaternion
-- 12 => UUID
-- 13 => ComponentTypeID
-- 14 => AssetTypeID
-- 15 => AnAsset
-- 16 => EntityID
+- Void = 0 => void
+- Bool = 1 => bool
+- U8 = 2 => u8
+- I64 = 3 => i64
+- F64 = 4 => f64
+- String = 5 => AnyString
+- Array = 6 => AnyArray
+- Map = 7 => AnyMap
+- Bytes = 8 => AnyBytes
+- Vec3 = 9 => Vec3
+- Vec4 = 10 => Vec4
+- UnitQuaternion = 11 => UnitQuaternion
+- UUID = 12 => UUID
+- ComponentTypeID = 13 => ComponentTypeID
+- AssetTypeID = 14 => AssetTypeID
+- AnAsset = 15 => AnAsset
+- EntityID = 16 => EntityID
 
 # RPC argument-hint type. Values exactly match the Any discriminants above.
 enum AnyTypeID : u8

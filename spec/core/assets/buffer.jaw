@@ -20,9 +20,9 @@ enum BufferDownloadHint : u8
 - DEFER     = 1
 
 variant BufferSource : u8
-- 0 => InlineContent
-- 1 => BufferFromURL
-- 2 => OOBAssetID
+- Inline = 0 => InlineContent
+- URL = 1 => BufferFromURL
+- OOB = 2 => OOBAssetID
 
 # Inline content is limited to 4 GB to avoid stalling the main communication channel. It is HIGHLY discouraged
 # to send an asset this size over the main channel! Downstream are free to disconnect rather than consume the asset!
@@ -49,7 +49,9 @@ dyn_array BufferURL : u16 * u8
 # An ID must not be reassigned to different bytes during the session. A changed
 # OOB-backed buffer revision therefore uses a fresh OOBAssetID. Multiple buffer
 # assets may share an ID when they intentionally refer to the same bytes.
-# OOB assets are provided after a request; sizes are included for allocation.
+# OOB assets are provided after a successful reply as a separate raw payload.
+# Byte-oriented channels provide its canonical length as a u64 before the bytes;
+# message-oriented channels use the following logical message boundary.
 
 # A reference to a slices of a BufferAsset. Multiple BufferViews may point to the same or overlapping slices.
 # As long as a view is referring to a BufferAsset, that BufferAsset must be kept alive.

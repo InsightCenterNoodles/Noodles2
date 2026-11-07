@@ -48,8 +48,8 @@ pack CanTranslateComponent
 # constrained to one parent-local axis. More complex constraint variants may be
 # added later.
 variant RotationConstraint : u8
-- 0 => void # unrestricted rotation
-- 1 => AxisRotationConstraint
+- Unrestricted = 0 => void
+- Axis = 1 => AxisRotationConstraint
 
 bits AxisRotationLimitFlags : u8
 - 0 min_enable : u8
@@ -90,8 +90,8 @@ seq EventInteractionAction
 - args : InteractionArgumentList
 
 variant InteractionAction : u8
-- 0 => RPCInteractionAction
-- 1 => EventInteractionAction
+- RPC = 0 => RPCInteractionAction
+- Event = 1 => EventInteractionAction
 
 # An RPC target must be a live entity carrying RPCEndpointComponent. An event
 # target must name a live registry entity and registered definition. Arguments

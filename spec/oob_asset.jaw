@@ -1,11 +1,23 @@
 # Why have OOB assets? To avoid cluttering the main channel
 # Why not use the RPC call stuff in alternate channels? This is an optional element
 
-# Clients may only send the OOBRequest message, and servers may only send the OOBReply message
-# Each asset is one logical OOBReply. The transport may fragment that message,
-# and implementations may consume its content incrementally without buffering
-# the whole payload. Application-level chunk numbering and resume are not defined.
-# Servers must not truncate or pad content. Clients MUST reject OOB content that does not comply.
+# Clients may only send OOBRequest control messages. Servers send OOBReply
+# control messages and, after each successful reply, one raw asset payload. A
+# success and its payload form an indivisible logical reply: no other
+# server-to-client OOB control or payload may occur between them. Client-to-server
+# traffic may continue independently.
+#
+# The raw payload is transport framing, not JAW. On a byte-oriented OOB channel
+# it is encoded as a little-endian u64 length followed by exactly that many raw
+# bytes. On a message-oriented OOB channel it occupies the complete logical
+# transport message immediately following the success control message, with no
+# additional NOODLES2 prefix. A zero-length asset payload is valid.
+#
+# The transport may fragment the raw payload, and implementations may consume it
+# incrementally without buffering the whole asset. Application-level chunk
+# numbering and resume are not defined. Truncation is fatal to the OOB
+# connection. After the payload ends, the receiver resumes decoding OOBReply
+# control messages.
 
 pack OOBAssetID
 - id : u64
@@ -15,7 +27,7 @@ pack OOBAssetID
 fixed_array OOBSessionToken : 32 * u8
 
 variant OOBRequest : u8
-- 0 => OOBRequestContent
+- Request = 0 => OOBRequestContent
 
 seq OOBRequestContent
 - token : OOBSessionToken
@@ -24,20 +36,16 @@ seq OOBRequestContent
 pack OOBReplyHeader
 - asset_id : OOBAssetID
 
-# This provides the canonical length of the data as well. 
-dyn_array OOBContent : u64 * u8
-
 # UTF-8 string for error reporting
 dyn_array OOBString : u16 * u8
 
 seq OOBReplySuccess
 - header : OOBReplyHeader
-- content : OOBContent
 
 seq OOBReplyFailure
 - asset_id : OOBAssetID
 - reason : OOBString
 
 variant OOBReply : u8
-- 0 => OOBReplySuccess
-- 1 => OOBReplyFailure
+- Success = 0 => OOBReplySuccess
+- Failure = 1 => OOBReplyFailure

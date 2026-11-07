@@ -40,8 +40,8 @@ dyn_array ParamLabelString : u8 * u8
 dyn_array ParamTextString : u16 * u8
 
 variant ParamValue : u8 
-- 0 => i64
-- 1 => f64
+- I64 = 0 => i64
+- F64 = 1 => f64
 
 # All f64 parameter values must be finite.
 
@@ -103,9 +103,9 @@ enum SelectKind : u8
 - SegmentedButtons = 2
 
 variant MaybeParamValue : u8
-- 0 => void
-- 1 => i64
-- 2 => f64
+- Absent = 0 => void
+- I64 = 1 => i64
+- F64 = 2 => f64
 
 # ==============================================================
 # Definitions / Structure
@@ -177,17 +177,17 @@ seq ProgressDefinition
 # Defines the widget type and structural metadata. Its tag must equal the tag of
 # ParamStateComponent on the same entity.
 variant ParamDefinitionComponent : u8
-- 0  => LabelDefinition
-- 1  => ModesDefinition
-- 2  => ToggleDefinition
-- 3  => ButtonDefinition
-- 4  => RangeDefinition
-- 5  => NumberDefinition
-- 6  => DateTimeDefinition
-- 7  => SelectDefinition
-- 8  => ListDefinition
-- 9  => ContainerDefinition
-- 10 => ProgressDefinition
+- Label = 0  => LabelDefinition
+- Modes = 1  => ModesDefinition
+- Toggle = 2  => ToggleDefinition
+- Button = 3  => ButtonDefinition
+- Range = 4  => RangeDefinition
+- Number = 5  => NumberDefinition
+- DateTime = 6  => DateTimeDefinition
+- Select = 7  => SelectDefinition
+- List = 8  => ListDefinition
+- Container = 9  => ContainerDefinition
+- Progress = 10 => ProgressDefinition
 
 # ==============================================================
 # Current State
@@ -232,17 +232,17 @@ seq ProgressState
 # normalized must be finite and in [0,1].
 
 variant ParamStateComponent : u8
-- 0  => LabelState
-- 1  => ModesState
-- 2  => ToggleState
-- 3  => ButtonState
-- 4  => RangeState
-- 5  => NumberState
-- 6  => DateTimeState
-- 7  => SelectState
-- 8  => ListState
-- 9  => ContainerState
-- 10 => ProgressState
+- Label = 0  => LabelState
+- Modes = 1  => ModesState
+- Toggle = 2  => ToggleState
+- Button = 3  => ButtonState
+- Range = 4  => RangeState
+- Number = 5  => NumberState
+- DateTime = 6  => DateTimeState
+- Select = 7  => SelectState
+- List = 8  => ListState
+- Container = 9  => ContainerState
+- Progress = 10 => ProgressState
 
 # Definition/state tag correspondence:
 # 0 Label, 1 Modes, 2 Toggle, 3 Button, 4 Range, 5 Number,

@@ -1,13 +1,13 @@
 from "common.jaw" use {AnAsset, ComponentTypeID, EntityID}
 
 variant ContentMessage : u8 
-- 0 => ContentCreateEntities
-- 1 => ContentDeleteEntities
-- 2 => ContentModifyComponents
-- 3 => ContentDeleteComponents
-- 4 => ContentModifyAsset
-- 5 => ContentDiscardAsset
-- 6 => ContentDeleteAsset
+- CreateEntities = 0 => ContentCreateEntities
+- DeleteEntities = 1 => ContentDeleteEntities
+- ModifyComponents = 2 => ContentModifyComponents
+- DeleteComponents = 3 => ContentDeleteComponents
+- ModifyAsset = 4 => ContentModifyAsset
+- DiscardAsset = 5 => ContentDiscardAsset
+- DeleteAsset = 6 => ContentDeleteAsset
 
 # Unsupported/unnegotiated extension content may be skipped: receivers skip an
 # entire ContentModifyComponents.content or ContentModifyAsset.content buffer,

@@ -3,6 +3,12 @@
 This file tracks deliberately unresolved or revisitable protocol work. Items
 here are not part of the current normative specification.
 
+## Misc
+
+Some tasks need additional input. Tasks should have a halt. Use case; confirmation before loading a file
+
+we need a source for events. how else will we know who is speaking. it should be optional. and could be tied to an entity with a participant component?
+
 ## Proposal application adjacency
 
 An accepted `ProposedTransactionReply` is currently required to be immediately
@@ -13,12 +19,6 @@ interleaving without making optimistic reconciliation ambiguous.
 ## RPC lifecycle
 
 - Consider standardized Core `RPCError` codes; codes are currently application-defined.
-
-## JAW named variant alternatives
-
-Migrate variants to explicit case names if/when the JAW compiler supports them.
-The compiler revision pinned by `JAW_REVISION` currently derives generated case
-names from the payload type and numeric tag.
 
 ## Richer rotation constraints
 

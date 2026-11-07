@@ -4,14 +4,14 @@ from "content.jaw" use {ContentMessage}
 from "events.jaw" use {EventMessage}
 
 variant MainSequenceMessage : u8
-- 1 => Transaction
-- 2 => ProposedChangeTransaction
-- 3 => ProposedTransactionReply
-- 4 => RPCInvoke
-- 5 => RPCReply
-- 6 => InitialStateComplete
-- 7 => EventMessage
-- 8 => RPCCancel
+- Transaction = 1 => Transaction
+- ProposedChangeTransaction = 2 => ProposedChangeTransaction
+- ProposedTransactionReply = 3 => ProposedTransactionReply
+- RPCInvoke = 4 => RPCInvoke
+- RPCReply = 5 => RPCReply
+- InitialStateComplete = 6 => InitialStateComplete
+- EventMessage = 7 => EventMessage
+- RPCCancel = 8 => RPCCancel
 
 # Direction is strict:
 # - Upstream -> Downstream: Transaction, InitialStateComplete,
@@ -186,9 +186,9 @@ seq RPCReply
 - content : RPCReplyContent
 
 variant RPCReplyContent : u8
-- 0 => RPCComplete
-- 1 => RPCError
-- 2 => RPCStreamResult
+- Complete = 0 => RPCComplete
+- Error = 1 => RPCError
+- StreamResult = 2 => RPCStreamResult
 
 # The call has completed, with the given value result
 seq RPCComplete
