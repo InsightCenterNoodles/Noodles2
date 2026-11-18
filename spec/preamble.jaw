@@ -84,9 +84,16 @@ variant OOBEndpoint : u8
 - UnixStream = 2 => OOBUnixStreamEndpoint
 
 # Endpoints are listed in Upstream preference order. Upstreams SHOULD list
-# WebSocket endpoints before other supported transports. Downstreams skip
-# unsupported or inapplicable endpoints and SHOULD attempt usable endpoints in
-# order, with fallback allowed after connection failure.
+# WebSocket endpoints before other supported transports. If Channels is
+# advertised, the Downstream MUST support at least one advertised endpoint; the
+# Upstream is not required to tailor this list to each Downstream. A Downstream
+# skips unsupported or inapplicable endpoints and SHOULD attempt usable
+# endpoints in order, with fallback allowed after connection failure. It MAY
+# connect lazily, but SHOULD connect as soon as practical so that failures are
+# discovered early. If it cannot connect to any advertised endpoint, it SHOULD
+# close the associated main-channel connection. A specialized Downstream MAY
+# instead keep the main channel open if it can operate while treating OOB-backed
+# assets as unavailable.
 dyn_array OOBEndpoints : u8 * OOBEndpoint
 
 # endpoints MUST be nonempty. token is a bearer credential for this main-channel
