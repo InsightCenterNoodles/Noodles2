@@ -18,10 +18,10 @@ JAW_BIN=<path-to-pinned-jaw> JAW_REPO=<jaw-checkout> ./scripts/check-spec.sh
 ```
 
 The script generates the combined Basic + Core + Audio specification for Rust,
-C++, and Python; generates each root separately; compiles the combined Rust and
-C++ output; and executes the combined Python output. `JAW_REPO` is optional
-locally, but CI should set it so the script verifies the checkout against
-`JAW_REVISION`.
+C++, Python, and Swift; generates each root separately; compiles the combined
+Rust and C++ output; executes the combined Python output; and type-checks the
+combined Swift output. `JAW_REPO` is optional locally, but CI should set it so
+the script verifies the checkout against `JAW_REVISION`.
 
 ## Cross-language fixtures
 

@@ -25,8 +25,9 @@ fi
 cargo_bin="${CARGO:-cargo}"
 cxx_bin="${CXX:-c++}"
 python_bin="${PYTHON:-python3}"
+swift_bin="${SWIFTC:-swiftc}"
 
-for tool in "$cargo_bin" "$cxx_bin" "$python_bin"; do
+for tool in "$cargo_bin" "$cxx_bin" "$python_bin" "$swift_bin"; do
     if ! command -v "$tool" >/dev/null 2>&1; then
         echo "error: required tool not found: $tool" >&2
         exit 1
@@ -64,6 +65,7 @@ echo "Generating complete Basic + Core + Audio specification"
 generate rust "$check_dir/full.rs" spec/basic.jaw spec/core/core.jaw spec/audio/audio.jaw
 generate cpp "$check_dir/full.hpp" spec/basic.jaw spec/core/core.jaw spec/audio/audio.jaw
 generate python "$check_dir/full.py" spec/basic.jaw spec/core/core.jaw spec/audio/audio.jaw
+generate swift "$check_dir/full.swift" spec/basic.jaw spec/core/core.jaw spec/audio/audio.jaw
 
 echo "Checking separate schema roots"
 root_names=(basic core audio)
@@ -75,6 +77,7 @@ for index in "${!root_names[@]}"; do
     generate rust "$check_dir/$root.rs" "$input"
     generate cpp "$check_dir/$root.hpp" "$input"
     generate python "$check_dir/$root.py" "$input"
+    generate swift "$check_dir/$root.swift" "$input"
 done
 
 echo "Compiling generated Rust"
@@ -100,5 +103,11 @@ printf '%s\n' '#include "full.hpp"' > "$check_dir/full.cpp"
 
 echo "Executing generated Python"
 PYTHONDONTWRITEBYTECODE=1 "$python_bin" "$check_dir/full.py"
+
+echo "Type-checking generated Swift"
+"$swift_bin" \
+    -swift-version 6 \
+    -module-cache-path "$check_dir/swift-module-cache" \
+    -typecheck "$check_dir/full.swift"
 
 echo "Specification generation checks passed"
