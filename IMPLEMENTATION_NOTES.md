@@ -26,6 +26,10 @@ generic error path.
 Validate and stage a complete authoritative transaction before exposing any of
 it to rendering, queries, systems, or callbacks. Reverse-reference indices make
 entity deletion, asset lifecycle checks, and replacement validation practical.
+Apply operations in wire order: new entities must be explicitly created before
+later operations target or reference them, and forward references are invalid.
+A create followed by a delete is valid and tombstones the ID, but the transient
+entity remains hidden by atomic application.
 
 For a new Downstream, choose one consistent world generation, serialize that
 snapshot, send `InitialStateComplete` with the same generation, then release
@@ -36,6 +40,20 @@ Complete component replacement is last-accepted-proposal-wins. Prefer separate
 entities for independently authored observations, annotations, relationships,
 and task results so collaborators do not perform conflicting read-modify-write
 updates on one component.
+
+Treat the high 32 bits of every entity and asset ID as its allocation namespace
+and the low 32 bits as allocator-local. Namespace 0 belongs to Upstream, while
+each Downstream receives one nonzero namespace for the session. Track assigned
+namespaces separately from world ownership and authorization: the namespace
+only determines who may create a previously unused ID. Never reuse a namespace
+or entity ID during an Upstream session; for type-scoped assets, never reuse a
+complete `(AssetTypeID, AssetID)` identity.
+
+Proposal IDs are final and need no reconciliation map. On acceptance, retain the
+proposal ID until `ProposedTransactionReply.Accepted` supplies the authoritative
+scene generation, then replace any optimistic state when that generation's
+Transaction arrives. Other Transactions may arrive between the reply and its
+correlated Transaction.
 
 ## Asset ownership
 

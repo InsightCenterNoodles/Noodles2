@@ -53,8 +53,8 @@ seq RelationshipDefinitionComponent
 # canonical reference may be absent or tombstoned, does not have to precede the
 # relationship, and does not prevent deletion. Consumers resolve it only while
 # that EntityID is alive. Proposal references must still name an existing
-# canonical entity or a patch-local entity created earlier in that proposal so
-# they can be remapped. Relationships do not inherit through ChildOfComponent.
+# entity or an entity explicitly created earlier in that proposal. Relationships
+# do not inherit through ChildOfComponent.
 
 # =========================== PROVENANCE AND PARTICIPATION
 

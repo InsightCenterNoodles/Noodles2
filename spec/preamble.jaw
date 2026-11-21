@@ -107,6 +107,13 @@ variant OOBAssetInfo : u8
 - Unavailable = 0 => void
 - Channels = 1 => OOBAssetChannels
 
+# Allocation namespace 0 belongs to the Upstream. Every IntroductionReply
+# assigns this Downstream one nonzero namespace that forms the high 32 bits of
+# entity and asset IDs it creates; the low 32 bits are selected by Downstream.
+# The namespace provides 2^32 entity IDs and, because AssetID is type-scoped,
+# 2^32 IDs independently for each asset type. A namespace MUST NOT be assigned
+# to another Downstream during the same Upstream session, even after disconnect.
 seq IntroductionReply
 - header : IntroductionHeader
 - large_assets : OOBAssetInfo
+- allocation_namespace : u32

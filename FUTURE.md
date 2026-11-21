@@ -9,13 +9,6 @@ Some tasks need additional input. Tasks should have a halt. Use case; confirmati
 
 we need a source for events. how else will we know who is speaking. it should be optional. and could be tied to an entity with a participant component?
 
-## Proposal application adjacency
-
-An accepted `ProposedTransactionReply` is currently required to be immediately
-followed, on the proposer connection, by its canonical `Transaction`. Revisit
-whether explicit correlation on the canonical transaction would permit safe
-interleaving without making optimistic reconciliation ambiguous.
-
 ## RPC lifecycle
 
 - Consider standardized Core `RPCError` codes; codes are currently application-defined.

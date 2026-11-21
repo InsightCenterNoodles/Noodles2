@@ -9,6 +9,16 @@ variant ContentMessage : u8
 - DiscardAsset = 5 => ContentDiscardAsset
 - DeleteAsset = 6 => ContentDeleteAsset
 
+# Downstreams can propose only this restricted subset of content operations.
+# Asset discard and deletion remain authority-only and cannot be encoded in a
+# proposal. Payload types and discriminants match ContentMessage where present.
+variant ProposedContentMessage : u8
+- CreateEntities = 0 => ContentCreateEntities
+- DeleteEntities = 1 => ContentDeleteEntities
+- ModifyComponents = 2 => ContentModifyComponents
+- DeleteComponents = 3 => ContentDeleteComponents
+- ModifyAsset = 4 => ContentModifyAsset
+
 # Unsupported/unnegotiated extension content may be skipped: receivers skip an
 # entire ContentModifyComponents.content or ContentModifyAsset.content buffer,
 # ignore associated component/asset deletion or discard operations, and create
@@ -22,18 +32,22 @@ dyn_array EntityList : u32 * EntityID
 # ===================================================
 # Add or remove entities
 
-# In authoritative Transactions, every created ID is canonical (bit 63 clear),
-# unique in this list, not alive, and never previously deleted in this session.
-# In proposals, new entities instead use patch-local IDs (bit 63 set). Duplicate
-# creation, reuse of a tombstoned ID, or authoritative creation with bit 63 set
-# is malformed. An entity remains alive even when it has no components.
+# Every created ID is unique in this list, not alive, and never previously used
+# during this Upstream session. Upstream-originated creation uses namespace 0;
+# proposed creation MUST use the proposing Downstream's assigned namespace.
+# Accepted proposed IDs remain unchanged in the authoritative Transaction.
+# Namespace constrains creation only, not later modification policy. An entity
+# remains alive even when it has no components.
 seq ContentCreateEntities
 - list : EntityList
 
 # Deletion removes the entity and all its components and permanently tombstones
 # its ID for this session. Active references must have been removed or redirected
-# by earlier Transaction operations. A never-seen ID may be ignored. Deleting a
-# known tombstone is suspicious; a receiver MAY disconnect.
+# by earlier Transaction operations. Creating and then deleting an entity in one
+# Transaction is valid and still consumes/tombstones the ID, although the atomic
+# intermediate state is not observable. A never-seen or already tombstoned ID is
+# invalid; later operations on an ID deleted earlier in the Transaction are also
+# invalid.
 seq ContentDeleteEntities
 - list : EntityList
 
@@ -47,10 +61,10 @@ dyn_array Content : u32 * u8
 # for a ComponentTypeID, and modification completely replaces its prior value.
 # Repeated pairs are applied in order, so the later value wins.
 #
-# In an authoritative Transaction, a never-seen canonical entity is implicitly
-# created before its component is applied. A tombstoned ID cannot be recreated.
-# In a proposal, an unknown canonical ID is invalid; a patch-local pair may
-# implicitly create its placeholder entity before applying the component.
+# The target entity MUST already be alive or have been explicitly created by an
+# earlier operation in the same Transaction or proposal. Component modification
+# never implicitly creates an entity. A deleted or tombstoned ID cannot be
+# modified or recreated.
 # The content is structured as a byte stream of (EntityID, Component) pairs.
 # The count is a non-authoritative hint for preallocation. Readers MUST parse
 # until the content buffer is fully consumed and need not verify the count.
@@ -59,8 +73,9 @@ seq ContentModifyComponents
 - count : u32
 - content : Content
 
-# Deleting an absent component or deleting from an unknown entity is a no-op and
-# never creates an entity.
+# The target entity MUST already be alive or have been explicitly created by an
+# earlier operation in the same Transaction or proposal. Deleting an absent
+# component from a live entity is a no-op. Deletion never creates an entity.
 seq ContentDeleteComponents
 - component : ComponentTypeID
 - list : EntityList
@@ -69,8 +84,11 @@ seq ContentDeleteComponents
 # Asset lifecycle
 
 # Adds an asset or atomically replaces the value of an existing logical asset.
-# New authoritative asset IDs are canonical (bit 63 clear), while proposal-local
-# asset creation uses bit 63 set. A tombstoned identity cannot be resurrected.
+# An unknown asset ID creates an asset. Upstream-originated creation uses
+# namespace 0; proposed creation MUST use the proposing Downstream's assigned
+# namespace. Replacing an existing asset is not restricted by its allocation
+# namespace, but remains subject to Upstream policy. A tombstoned identity
+# cannot be resurrected.
 # (AssetTypeID, AssetID) is the stable identity, so existing references observe
 # the replacement without being rewritten. Intermediate replacement state is
 # not observable. Clients must invalidate decoded, cached, or GPU resources for

@@ -1,6 +1,6 @@
 from "any.jaw" use {Any}
-from "common.jaw" use {AnAsset, EntityID}
-from "content.jaw" use {ContentMessage}
+from "common.jaw" use {EntityID}
+from "content.jaw" use {ContentMessage, ProposedContentMessage}
 from "events.jaw" use {EventMessage}
 
 variant MainSequenceMessage : u8
@@ -36,6 +36,7 @@ variant MainSequenceMessage : u8
 # violation and must not be partially applied.
 
 dyn_array ContentArray : u32 * ContentMessage
+dyn_array ProposedContentArray : u32 * ProposedContentMessage
 
 seq Transaction
 - scene_generation : u64
@@ -65,84 +66,69 @@ seq InitialStateComplete
 # Independently authored contributions SHOULD use separate entities to avoid
 # conflicting read-modify-write updates to one component.
 #
-# On the proposing connection, acceptance is signalled by a code-0
-# ProposedTransactionReply immediately followed by the canonical Transaction
-# applying that proposal, including any cascade effects. No unrelated Transaction
-# may appear between them. Other Downstreams receive only the canonical
-# Transaction, broadcast in Upstream's serialization order.
-# 
-# To create content (entities or assets), Downstream uses patch local addresses for new content, while still being able to reference existing. 
-# Patch-local means that these are IDs that are scoped to this specific proposal only.
-# id & (1 << 63) == 0 → real entity or asset.
-# id & (1 << 63) != 0 → patch-only placeholder entity or asset.
-# The authority will realize these placeholders into real content. It is an error to try and use 'real' ids that have not been created by the authority.
-# A patch-local entity or asset must be created by an earlier operation in the
-# proposal before any later operation may refer to it.
-# Entity placeholders are unique within the proposal. Asset placeholders are
-# scoped by AssetTypeID, so the same numeric AssetID may be used by different
-# asset types.
+# On acceptance, Upstream first sends ProposedTransactionReply.Accepted with the
+# scene generation assigned to the resulting authoritative Transaction. It MAY
+# interleave unrelated Transactions before that Transaction, so the generation,
+# rather than adjacency, correlates the result. The authoritative Transaction
+# contains the actual accepted changes and any cascade effects and is broadcast
+# in Upstream's serialization order.
+#
+# Proposed IDs are already final. New entities and assets MUST use the allocation
+# namespace assigned to this Downstream in IntroductionReply. An existing entity
+# or asset from any namespace may be targeted subject to Upstream policy;
+# namespace is allocation scope, not ownership or authorization. A new entity
+# must be explicitly created by an earlier operation before any later operation
+# may target or refer to it. An asset is created by an earlier ModifyAsset before
+# a later operation may refer to it. References are validated at their operation
+# position; forward references are invalid.
 #
 # For assets: payloads MUST be provided inline (buffer-backed) from downstream
-# to upstream; no OOB channels or URLs are permitted. Asset discard and deletion
-# cannot be proposed and MUST be rejected.
+# to upstream; no OOB channels or URLs are permitted. ProposedContentMessage
+# does not include asset discard or deletion.
 #
-# There are no partial applications. Either the proposal is accepted in full, or rejected in full.
-# Downstream MAY display proposal-local optimistic/placeholder state while the
-# proposal is pending. It must remove/revert that state on rejection. On
-# acceptance, remaps and the immediately following canonical Transaction replace
-# the placeholder; only canonical content is authoritative.
+# There are no partial applications. Either the proposal is accepted in full, or
+# rejected in full. Downstream MAY display optimistic state using the final IDs
+# while the proposal is pending. It must remove/revert that state on rejection.
+# On acceptance, the correlated canonical Transaction replaces the optimistic
+# state; only authoritative Transaction content is authoritative.
 seq ProposedChangeTransaction
 - transaction_id : u32 # unique among this Downstream's in-flight proposals; reusable after reply
-- content : ContentArray
+- content : ProposedContentArray
 
-# Reply from Upstream to a proposed change. If accepted, and the change includes creation of assets or entities,
-# Downstream may need a way to understand which of the created items relates to the proposed items, thus
-# there are two lists to remap entities and assets. Otherwise, the lists are empty. The lists are also empty upon a rejection.
-# Mappings are one-to-one and must include every placeholder created by
-# Downstream. Upstream replaces patch-local IDs everywhere they occur in known
-# component and asset payloads. Because proposals are limited to the shared
-# extension set, Upstream must parse payloads deeply enough to find embedded
-# references; failure to understand or remap one rejects the proposal. A
-# referenced placeholder that is not created by the proposal also causes the
-# entire proposal to be rejected.
-#
-# Every source ID has bit 63 set and every destination has it clear. Destinations
-# are newly allocated and unique. Asset source/destination pairs retain the same
-# AssetTypeID. Explicit and implicit creations each appear exactly once.
-#
-# Upstream may normalize accepted values (for example, a quaternion or bounded
-# UI value). The canonical Transaction carries the actual result. A materially
-# different operation is rejected rather than silently substituted. Authority
-# cascades may add changes beyond the proposal without additional remap entries.
+# Reply from Upstream to a proposed change. Accepted replies are sent before the
+# corresponding authoritative Transaction and identify it by scene_generation;
+# unrelated Transactions may occur between them. Upstream may normalize accepted
+# values (for example, a quaternion or bounded UI value), and authority cascades
+# may add changes beyond the proposal. The correlated authoritative Transaction
+# carries the actual result. A materially different operation is rejected rather
+# than silently substituted.
 seq ProposedTransactionReply
-- transaction_id    : u32
-- code              : u16 # 0 = accepted, non-zero = see table
-- remapped_entities : RemappedEntities
-- remapped_assets   : RemappedAssets
+- transaction_id : u32
+- result : ProposedTransactionResult
+
+variant ProposedTransactionResult : u8
+- Accepted = 0 => ProposedTransactionAccepted
+- Rejected = 1 => ProposedTransactionRejected
+
+pack ProposedTransactionAccepted
+- scene_generation : u64
+
+dyn_array ProposalRejectionReason : u16 * u8
+
+seq ProposedTransactionRejected
+- code : u16 # see table below
+- failed_content_index : u32 # u32::MAX if rejection is not attributable to one outer content operation
+- reason : ProposalRejectionReason # UTF-8 diagnostic; may be empty
 
 # Error Codes (u16)
 # 1 => Denied: change not permitted for any reason (auth/policy/capability).
 # 2 => Resource exhaustion: insufficient resources to complete.
-# 3 => Malformed payload: failed to parse or contained disallowed content (e.g., asset discard/deletion).
+# 3 => Malformed payload: failed semantic validation or contained disallowed content.
 # >= 256 => application-specific.
-# A rejected proposal has empty remap tables and no corresponding canonical
-# Transaction. Invalid proposals normally receive code 3 without closing the
-# connection; repeated malicious or resource-exhausting input may be disconnected.
-
-pack EntityPairMap
-- from : EntityID
-- to   : EntityID
-
-pack AssetPairMap
-- from : AnAsset
-- to   : AnAsset
-
-dyn_array RemappedEntities : u16 * EntityPairMap
-dyn_array RemappedAssets : u16 * AssetPairMap
-
-# The u16 counts limit each remap table to 65,535 creations. A larger proposal
-# cannot be acknowledged completely and is rejected with code 2. Producers
-# SHOULD split such work into smaller proposals.
+# A rejected proposal has no corresponding authoritative Transaction. Invalid
+# proposals normally receive code 3 without closing the connection; repeated
+# malicious or resource-exhausting input may be disconnected. The diagnostic
+# reason is intended for the proposer and does not alter the meaning of code.
 
 # ==========================
 # RPC Invoke

@@ -27,11 +27,14 @@ the script verifies the checkout against `JAW_REVISION`.
 
 Check in canonical binary fixtures for at least:
 
-- Introduction and IntroductionReply, including OOB session information.
+- Introduction and IntroductionReply, including OOB session information and the
+  assigned allocation namespace.
 - An empty initial snapshot and `InitialStateComplete`, plus a multi-transaction
   consistent snapshot followed by incrementing live scene generations.
-- Entity creation and component modification.
-- An accepted proposal, complete remaps, and its canonical transaction.
+- Ordered entity creation and component modification, create-then-delete
+  tombstoning, invalid forward references, and wrong-namespace proposed creation.
+- Accepted and rejected proposals, including generation correlation, failure
+  indices and diagnostics, and their authoritative transaction behavior.
 - RPC streaming followed by completion, error, and best-effort cancellation.
 - Event registry creation and a downstream-originated event broadcast back to all downstreams, including its sender; include `noodles.view.pose.v1`.
 - Button and entity activation actions covering both RPC invocation and Event emission.
