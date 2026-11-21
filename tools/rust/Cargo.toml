@@ -1,0 +1,10 @@
+[package]
+name = "noodles2-conformance-tools"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+bytemuck = "=1.24.0"
+tungstenite = "0.28"
+
