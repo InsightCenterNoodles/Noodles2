@@ -211,6 +211,7 @@ fn make_reply() -> wire::PreMessage {
             }]),
         },
         large_assets: wire::OOBAssetInfo::Unavailable,
+        allocation_namespace: 1,
     })
 }
 
@@ -359,7 +360,7 @@ mod tests {
     }
 
     #[test]
-    fn reply_is_core_only_and_has_no_oob_channels() {
+    fn reply_is_core_only_and_assigns_a_namespace() {
         let wire::PreMessage::IntroductionReply(reply) = make_reply() else {
             panic!("wrong reply variant");
         };
@@ -373,6 +374,7 @@ mod tests {
             reply.large_assets,
             wire::OOBAssetInfo::Unavailable
         ));
+        assert_ne!(reply.allocation_namespace, 0);
     }
 
     #[test]
