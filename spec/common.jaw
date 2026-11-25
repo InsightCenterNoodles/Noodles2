@@ -77,11 +77,14 @@ pack LinearRGBA
 pack NodeID
 - id : u32
 
-# Entity IDs divide the u64 into their owner's NodeID in the high bits
-# (`id >> 32`) and an owner-local u32 in the low bits (`id & 0xffff_ffff`).
-# Only that owner may create, modify, or delete the entity. An owner MUST NOT
-# reuse an ID during the session. Zero is the Bookkeeper's valid local ID 0.
-# Absence/nullability must be represented structurally rather than by a sentinel.
+# Entity IDs divide the u64 into their allocator NodeID in the high bits
+# (`id >> 32`) and an allocator-local u32 in the low bits (`id & 0xffff_ffff`).
+# While that node is connected it is the entity's owner. After it disconnects,
+# ownership of its live identities transfers to the Bookkeeper (NodeID 0), while
+# the encoded allocator and ID remain unchanged. Only the allocator may create
+# identities in its range; neither it nor a later owner may reuse an ID during
+# the session. Zero is the Bookkeeper's valid local ID 0. Absence/nullability
+# must be represented structurally rather than by a sentinel.
 pack EntityID
 - id : u64
 
@@ -97,10 +100,11 @@ pack AssetTypeID
 - identifier : u16
 
 # Asset IDs are context sensitive; they have no meaning without an associated
-# AssetTypeID. They use the same high-u32 owner NodeID and low-u32 owner-local ID
-# division as EntityID, providing each node 2^32 IDs independently for every
-# asset type. Only that node may publish, replace, or delete the asset.
-# An owner MUST NOT reuse an (AssetTypeID, AssetID) pair during the session.
+# AssetTypeID. They use the same high-u32 allocator NodeID and low-u32
+# allocator-local ID division as EntityID, providing each node 2^32 IDs
+# independently for every asset type. Creation, transfer after disconnection,
+# and non-reuse follow the EntityID rules. An (AssetTypeID, AssetID) pair MUST
+# NOT be reused during the session.
 pack AssetID
 - id : u64
 

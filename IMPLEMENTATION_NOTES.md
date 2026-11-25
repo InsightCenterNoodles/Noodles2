@@ -19,11 +19,14 @@ cryptographic authentication.
 
 ## Ownership and engine mapping
 
-Derive owner as the high 32 bits of every entity/asset ID. Maintain the usual
-protocol-ID to engine-handle map; engine generation/index handles need not equal
-wire IDs. Only emit changes for IDs owned by the local NodeID. Never recycle a
-wire ID or typed asset identity during one session even when the engine recycles
-its private handle.
+Derive allocator as the high 32 bits of every entity/asset ID. Current owner is
+that allocator while connected and the Bookkeeper after `PeersDisconnected`.
+Maintain the usual protocol-ID to engine-handle map; engine generation/index
+handles need not equal wire IDs. Only emit modifications/deletions for IDs
+currently owned by the local NodeID. Creation additionally requires the local
+NodeID to be the encoded allocator: the Bookkeeper never allocates fresh IDs in
+an inherited retired range. Never recycle a wire ID or typed asset identity
+during one session even when the engine recycles its private handle.
 
 Apply local changes normally, then use engine change detection to batch complete
 component replacements, additions/removals, creations/deletions, and asset
@@ -42,23 +45,33 @@ without loop IDs. Preserve transport order while forwarding messages from one
 origin.
 
 For routed RPC/OOB traffic, consume self destinations, choose a child route when
-the destination belongs to that subtree, otherwise send parentward. Install
+the destination belongs to that subtree, and send parentward only for a known
+destination elsewhere. Never reflect traffic over its ingress edge. Install
 routes while a successful `PeerJoined` returns along its pending JoinRequest UUID
-path. Remove all routes behind a disconnected child edge.
+path. Remove routes behind a disconnected child edge and resolve those retired
+allocator NodeIDs to the Bookkeeper. Boundedly hold an unknown destination only
+when a membership update may be racing; otherwise fail it.
 
 ## Snapshot capture
 
-At an engine boundary, pause application just long enough to serialize a stable
-snapshot into bounded storage. Continue reading transports into a bounded queue.
-After capture, resume the engine and normal relay while snapshot bytes transmit;
-buffer only post-cut messages for the joining child. Send those after
-`SnapshotComplete`. Closing an over-limit join is safer than allowing unbounded
-memory or blocking the session indefinitely.
+Take snapshots at a stable replication boundary. Stop local ECS mutation and
+stop consuming other main links, send `SnapshotBegin`, all `SnapshotBatch`
+records, and `SnapshotComplete` serially, then resume. Network transports provide
+the temporary buffering; no protocol catch-up queue exists. OOB service may
+continue independently. Closing an over-limit join is safer than blocking the
+session indefinitely.
 
-Snapshots contain only live ECS and current membership. Wire IDs encode owner;
-no owner component is needed. Deleted IDs need not be transferred because
-owners never reuse them. Omit inactive proposal entities from disconnected
-owners.
+Many engines need no explicit pause machinery. With a `First` / `Update` / `Last`
+schedule, process incoming protocol work in `First`, local systems in `Update`,
+and emit change detection in `Last`. A snapshot handled serially in `First` sees
+a stable ECS whose preceding local changes were already emitted in the previous
+`Last`. Other adapters may flush or pause as required, but the wire semantics are
+the same. `SnapshotComplete` is the sole publish-ready boundary.
+
+Snapshots contain only live ECS plus connected and historical membership needed
+to resolve allocator ownership. No owner component is needed. Deleted IDs need
+not be transferred because IDs are never reused. Omit inactive inherited
+proposal entities.
 
 ## Proposal systems
 
@@ -69,16 +82,19 @@ target entities replicate as real scene changes. Do not generate protocol
 accept/reject state.
 
 ProposalTarget is immutable. A proposer that wants another target deletes the
-old proposal entity and creates a new one. On `PeersDisconnected`, proposal
-entities in affected NodeID ranges may be removed from local ECS while ordinary
-owned scene entities remain frozen.
+old proposal entity and creates a new one. On `PeersDisconnected`, the
+Bookkeeper inherits affected live identities. Inherited proposal entities are
+inactive and should be deleted; ordinary scene state should normally remain and
+may be modified or deleted under Bookkeeper policy.
 
 ## OOB streaming and cache
 
-Attempt the parent OOB link early so inability to connect is detected before the
-scene depends on it. A specialized leaf may continue without it only while
-treating OOB-backed assets as missing; it cannot accept children because it
-cannot forward their fetches.
+Establish and authenticate the parent OOB link before forwarding `JoinRequest`.
+If it drops while the main link remains open, reconnect with the same token; the
+new authenticated connection replaces the old one. Boundedly queue or fail
+fetches during the interruption. Continued failure may close the main edge under
+local policy, but a brief OOB interruption does not stop main ECS traffic. Avoid
+publishing new OOB-backed buffers until the required route is restored.
 
 Validate `byte_size` before allocation and stream through fixed-size buffers.
 Hash while forwarding or consuming, and publish/cache bytes only after the final
@@ -97,12 +113,13 @@ backward. Treat it as approximate presentation time, never as causal ordering.
 
 ## Resource and failure policy
 
-Bound message sizes, queued joins, snapshot bytes, buffered post-cut messages,
-RPCs, events, decoded assets, OOB streams, and proposal entities. A peer may
+Bound message sizes, queued joins, snapshot bytes, RPCs, events, decoded assets,
+OOB streams, pending routes, and proposal entities. A peer may
 ignore unsafe content or close a link. Closing a parent link ends the local
 subtree's session; closing a child removes that entire subtree from the surviving
 session after Bookkeeper membership propagation.
 
 Generated code compiling is only the first check. Test malformed framing,
-truncation, wrong owners, invalid component encodings, routing loss, snapshot
-cut ordering, OOB digest mismatches, and disconnected-subtree cleanup.
+truncation, wrong allocators/current owners, invalid component encodings,
+routing loss, stable snapshot boundaries, OOB reconnection/digest mismatches,
+Bookkeeper inheritance, and disconnected-subtree cleanup.

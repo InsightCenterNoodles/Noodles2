@@ -1,9 +1,16 @@
 # Parent component: establishes a parent-child relationship between entities.
 # The parent may be missing or dead; in that case the edge is inactive and the
-# child evaluates as unparented until the target becomes live. Self-parenting and
-# cycles are invalid and owners MUST NOT publish them. A receiver may ignore an
-# offending edge or disconnect for self-protection. Deleting a parent leaves the
+# child evaluates as unparented until the target becomes live. Self-parenting is
+# illegal. The complete live ChildOf graph MUST be acyclic, including across
+# allocators. Proactive whole-graph cycle detection is OPTIONAL, but every graph
+# traversal MUST be cycle-safe or resource-bounded. A peer that detects a cycle
+# MAY terminate its participation in the session. Deleting a parent leaves the
 # stored dead reference inactive; it does not mutate children owned by peers.
+#
+# Changing this component has keep-local semantics: TransformComponent and
+# TransformSampleComponent numeric values are not converted, and are interpreted
+# in the new effective parent frame. Reparenting clears transform sample history;
+# the retained current sample becomes the first sample in that new frame.
 
 from "../../common.jaw" use {EntityID}
 

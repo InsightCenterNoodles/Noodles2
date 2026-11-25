@@ -57,8 +57,9 @@ variant OOBEndpoint : u8
 - TCP = 1 => OOBTCPEndpoint
 - UnixStream = 2 => OOBUnixStreamEndpoint
 
-# Parent preference order. A joining peer SHOULD implement at least one endpoint
-# advertised by its parent. WebSocket SHOULD precede other transports.
+# Parent preference order. A joining peer MUST implement and connect to at least
+# one endpoint advertised by its parent. WebSocket SHOULD precede other
+# transports.
 dyn_array OOBEndpoints : u8 * OOBEndpoint
 
 # endpoints MUST be nonempty. token authenticates the child-initiated OOB link
@@ -71,10 +72,12 @@ seq OOBAssetChannel
 # tree. session_capabilities is fixed by the Bookkeeper for the session; the
 # child MUST support every listed extension or close without sending JoinRequest.
 # The parent advertises one bidirectional OOB link that both sides use for routed
-# asset fetches and payload forwarding. The child SHOULD connect it as soon as
-# practical and SHOULD close the main link if no advertised endpoint can be
-# connected. A specialized peer MAY remain without an OOB link only if it treats
-# all unavailable OOB-backed assets as missing and does not accept child peers.
+# asset fetches and payload forwarding. The parent MUST authenticate that link
+# before forwarding the child's JoinRequest. A temporary OOB interruption does
+# not close the main link: while it remains open, the child reconnects with the
+# same token and the newest authenticated OOB connection replaces the broken
+# one. Either peer MAY close the main edge if OOB cannot be restored within local
+# policy.
 seq IntroductionReply
 - header : IntroductionHeader
 - parent_node : NodeID

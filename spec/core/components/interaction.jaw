@@ -97,8 +97,9 @@ variant InteractionAction : u8
 # target must name a live registry entity and registered definition. Missing
 # targets make the action unavailable. Arguments pass unchanged to routed
 # RPCInvoke or broadcast EventMessage. An invoker derives the RPC destination
-# from the endpoint EntityID owner. An invoker that does not consume a reply uses
-# invocation_id 0; otherwise it allocates a normal nonzero invocation ID.
+# from the endpoint's current owner: its allocator while connected, otherwise
+# the Bookkeeper. An invoker that does not consume a reply uses invocation_id 0;
+# otherwise it allocates a normal nonzero invocation ID.
 #
 # The first entry is the primary/default action. Remaining entries are alternate
 # actions a peer may expose and are not automatically executed with it.

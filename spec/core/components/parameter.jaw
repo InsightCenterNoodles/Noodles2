@@ -23,10 +23,15 @@ from "interaction.jaw" use {InteractionAction}
 seq ParameterRootComponent
 
 # Parameter child relationships form a directed acyclic graph. Every referenced
-# child must already be alive. A child may appear under multiple parents, but it
-# must not occur more than once in the same list. Disabled state is inherited
-# through these relationships: descendants of a disabled parameter remain
-# visible but peers SHOULD NOT propose state or structural changes to them.
+# child must already be alive and have the same encoded allocator as the entity
+# containing the list. This makes structure publication single-writer even after
+# Bookkeeper inheritance. A child may appear under multiple parents, but it must
+# not occur more than once in the same list. Proactive whole-graph cycle detection
+# is OPTIONAL, but traversal MUST be cycle-safe or resource-bounded and a peer
+# detecting a cycle MAY terminate its participation in the session. Disabled
+# state is inherited through these relationships: descendants of a disabled
+# parameter remain visible but peers SHOULD NOT propose state or structural
+# changes to them.
 dyn_array ParameterChildList : u16 * EntityID
 
 # ==============================================================

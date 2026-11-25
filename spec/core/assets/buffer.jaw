@@ -42,14 +42,17 @@ seq BufferFromURL
 
 dyn_array BufferURL : u16 * u8
 
-# OOBContent is immutable and content-addressed. The BufferAsset owner's NodeID
-# is the initial fetch destination; on-path verified caches may answer. A changed
-# buffer revision carries a new size/digest pair, while identical payloads may
-# share cache entries across asset identities and owners.
+# OOBContent is immutable and content-addressed. The BufferAsset's current owner
+# is the fetch destination; this becomes the Bookkeeper after allocator
+# disconnection. On-path verified caches may answer. A changed buffer revision
+# carries a new size/digest pair, while identical payloads may share cache entries
+# across asset identities and owners.
 
-# A reference to a slices of a BufferAsset. Multiple BufferViews may point to the same or overlapping slices.
-# As long as a view is referring to a BufferAsset, that BufferAsset must be kept alive.
-# A buffer view MUST only refer to a slice inside of a buffer. Any slice that escapes the bounds of the buffer is illegal.
+# A reference to a slice of a BufferAsset. Multiple BufferViews may point to the
+# same or overlapping slices. References are weak and do not prevent the asset's
+# current owner from deleting it. A view is usable only while the BufferAsset is
+# live, its bytes are available, and the slice lies inside it. Any slice escaping
+# the bounds of a live buffer is illegal.
 pack BufferView
 - offset : u64
 - length : u64

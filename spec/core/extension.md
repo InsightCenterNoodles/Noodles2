@@ -79,21 +79,25 @@ Notes:
 | InteractionBounds | 48 | Optional local-space conservative interaction bound. |
 | ProposalTarget | 49 | Immutable target of a proposer-owned intent entity. |
 | TransformProposal | 50 | Desired complete transform for the target owner to consider. |
-| ParentProposal | 51 | Desired parent, or unparenting, for the target owner to consider. |
-| ParameterValueProposal | 52 | Desired parameter state for the target owner to consider. |
-| SelectionProposal | 53 | Desired shared selection state for the target owner to consider. |
+| ParameterValueProposal | 51 | Desired parameter state for the target owner to consider. |
+| SelectionProposal | 52 | Desired shared selection state for the target owner to consider. |
 
 Notes:
 - Component payloads are complete replacements; partial updates are not defined.
 - `Global` marks entities whose effects may be scene-wide. See component documentation for more details.
-- An absent transform is identity. Producers must not create parent cycles;
-  receivers may ignore offending edges or disconnect for self-protection.
-  Missing/dead parents leave children temporarily unparented. Ancestor
+- An absent transform is identity. Self-parenting is illegal and the live
+  ChildOf graph must be acyclic, including across allocators. Proactive cycle
+  scans are optional, but traversal must be cycle-safe or bounded; a peer that
+  detects a cycle may leave the session. Missing/dead parents leave children
+  temporarily unparented. Reparenting has keep-local semantics. Ancestor
   invisibility suppresses descendants.
 - A `Global` environment applies to the whole scene. Producers should provide at most one; peers encountering several may select one. Non-global environments may be spatially blended at peer discretion.
 - Instance records are interleaved and entity-local. Skins require unique, live joints and exact inverse-bind matrix storage; finite morph weights may extend outside `[0,1]`.
 - `Interactive` gates transform and activation affordances. Their limits are local to the parent; rotation is unrestricted or constrained to one parent-local axis relative to a reference orientation. Buttons and activation share an action union that invokes routed RPC endpoints or emits broadcast Events. Selection components represent owner-written shared selection; private peer selection remains local.
-- Parameter UI is an acyclic entity graph. Widget definition/state tags match, disabled state inherits to descendants, and numeric/option values obey their definitions.
+- Parameter UI is an acyclic entity graph whose structural child references
+  remain within one allocator range. Widget definition/state tags match,
+  disabled state inherits to descendants, and numeric/option values obey their
+  definitions. Traversal must be cycle-safe or bounded.
 - Event registries provide entity-scoped type IDs plus descriptions, semantic
   tags, and informational argument hints for transient broadcasts. Event names
   and identifiers are unique within a registry.
@@ -110,9 +114,11 @@ Notes:
   may refer to absent or deleted entities and never keep targets alive.
   Semantic metadata does not inherit through the transform hierarchy.
 - Proposal entities are owned by their proposers, carry immutable ProposalTarget,
-  and expose typed active intent. Only the target owner changes real target state;
-  no acceptance/rejection reply exists. Disconnected proposers' proposal entities
-  are inactive and may be removed.
+  and expose typed active intent. Only the target's current owner changes real
+  target state; no acceptance/rejection reply exists. Transform proposals use
+  the target's effective parent frame when considered and should be ignored while
+  reparenting. Proposal entities inherited after disconnection are inactive and
+  should be deleted by the Bookkeeper.
 - Participant entities describe known actors without identifying connections or
   asserting current presence. A node may own zero or many; connection
   establishment never implicitly creates one. Pose updates should remain low

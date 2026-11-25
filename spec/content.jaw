@@ -16,17 +16,20 @@ dyn_array EntityList : u32 * EntityID
 # ===================================================
 # Add or remove entities
 
-# Every created ID is owned by the originating node of its live ContentBatch,
-# unique in this list, not alive, and never previously used by that owner during
-# the session. SnapshotBatch is exempt from origin checks. An entity remains
-# alive even when it has no components.
+# Every created ID has the live ContentBatch origin as its encoded allocator,
+# is unique in this list, is not alive, and was never previously used during the
+# session. Ownership transfer never grants allocation in a retired range.
+# SnapshotBatch is exempt from origin checks. An entity remains alive even when
+# it has no components.
 seq ContentCreateEntities
 - list : EntityList
 
-# Deletion removes the entity and all its components and tombstones its local
-# engine identity. References may retain the dead ID and MUST check liveness
-# before use. Creating and then deleting an entity in one batch is valid and
-# still consumes the ID. Deleting an unknown or already deleted ID is a no-op.
+# Deleting a live entity requires the ContentBatch origin to be its current
+# owner. Deletion removes the entity and all its components and tombstones its
+# local engine identity. References may retain the dead ID and MUST check
+# liveness before use. Creating and then deleting an entity in one batch is
+# valid and still consumes the ID. Deleting an unknown or already deleted ID is
+# a no-op.
 seq ContentDeleteEntities
 - list : EntityList
 
@@ -40,8 +43,10 @@ dyn_array Content : u32 * u8
 # for a ComponentTypeID, and modification completely replaces its prior value.
 # Repeated pairs are applied in order, so the later value wins.
 #
-# The target entity is owned by the ContentBatch origin and MUST already be live
-# or have been explicitly created by an earlier operation in that batch.
+# The target entity's current owner is the ContentBatch origin and it MUST
+# already be live or have been explicitly created by an earlier operation in
+# that batch. Current owner is the encoded allocator while connected, otherwise
+# the Bookkeeper after PeersDisconnected transfers its live identities.
 # Component modification never creates an entity. Snapshot content is exempt
 # from origin checks. References inside the component may name missing or dead
 # entities; component-specific semantics determine how they are interpreted.
@@ -68,8 +73,10 @@ seq ContentDeleteComponents
 # Asset lifecycle
 
 # Adds an asset or replaces the value of an existing logical asset. The typed
-# asset ID MUST be owned by the ContentBatch origin; SnapshotBatch is exempt.
-# An unknown ID creates the asset. A deleted identity cannot be resurrected.
+# asset ID's current owner MUST be the ContentBatch origin; SnapshotBatch is
+# exempt. An unknown ID creates the asset only when its encoded allocator is the
+# origin. The Bookkeeper cannot allocate new identities in an inherited range.
+# A deleted identity cannot be resurrected.
 # (AssetTypeID, AssetID) is the stable identity, so existing references observe
 # the replacement without being rewritten. Intermediate replacement state is
 # not observable within this operation. Peers invalidate decoded, cached, or GPU resources for
@@ -83,8 +90,9 @@ seq ContentModifyAsset
 - an_asset : AnAsset
 - content : Content
 
-# Deletion removes the typed asset identity from replicated state and consumes
-# the ID permanently. Existing references become unresolved and MUST check asset
+# Deletion requires the ContentBatch origin to be the asset's current owner. It
+# removes the typed asset identity from replicated state and consumes the ID
+# permanently. Existing references become unresolved and MUST check asset
 # liveness before use. A receiver may retain private decoded/GPU/OOB cache data,
 # but it is no longer protocol-addressable through this asset identity. Deleting
 # an unknown or already deleted asset is a no-op.

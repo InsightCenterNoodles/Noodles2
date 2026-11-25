@@ -27,18 +27,21 @@ dyn_array ContentArray : u32 * ContentMessage
 # Membership and rooted-tree routing
 
 # UUIDs are UUIDv7 values generated freshly for each attempted session join.
-# Reconnection is not defined: a disconnected implementation joins later with a
-# new UUID and receives a new NodeID.
+# Main-tree reconnection is not defined: a disconnected implementation joins
+# later with a new UUID and receives a new NodeID. Replacing an interrupted OOB
+# transport while its associated main link remains open is not a session
+# reconnection.
 seq JoinRequest
 - uuid : UUID
 - parent_node : NodeID
 - name : PeerName
 - capabilities : SessionExtensionList
 
-# JoinRequest travels only toward the Bookkeeper (NodeID 0). Each relay records
-# the child link from which uuid arrived. The Bookkeeper accepts only peers that
-# support the complete fixed session extension set and assigns a never-reused
-# nonzero NodeID.
+# JoinRequest is the child's ready message. The direct parent MUST authenticate
+# an associated OOB link before forwarding it toward the Bookkeeper (NodeID 0).
+# Each relay records the child link from which uuid arrived. The Bookkeeper
+# accepts only peers that support the complete fixed session extension set and
+# assigns a never-reused nonzero NodeID.
 
 seq PeerRecord
 - uuid : UUID
@@ -65,56 +68,80 @@ seq JoinRejected
 - uuid : UUID
 - reason : JoinRejectionReason
 
-# When a child edge closes, the surviving parent sends the affected child and
-# all of its known descendants toward the Bookkeeper. The separated subtree can
-# no longer reach the Bookkeeper and its session ends immediately.
+# When a main child edge closes, the surviving parent sends the affected child
+# and all of its known descendants toward the Bookkeeper. The separated subtree
+# can no longer reach the Bookkeeper and its session ends immediately. A
+# complete old-origin record is either applied and forwarded before this notice
+# or discarded; it MUST NOT be applied locally without the same forward decision.
 seq PeerDisconnectNotice
 - reporter : NodeID
 - disconnected : NodeIDList
 
-# Bookkeeper broadcasts the resulting membership change. Listed NodeIDs and
-# their entity/asset ranges are never reused. Ordinary owned ECS state freezes;
-# proposal entities owned by disconnected nodes become inactive and may be
-# removed. Routed requests to them fail as unreachable.
+# Bookkeeper broadcasts the resulting membership and ownership change. This is
+# the transfer boundary: live entities and typed assets allocated by the listed
+# NodeIDs become owned by NodeID 0 without changing IDs. Their ranges remain
+# retired, so the Bookkeeper may modify or delete live inherited identities but
+# MUST NOT create new ones in those ranges. Later source-authored main traffic
+# from a listed NodeID is stale and ignored. Inherited proposal entities are
+# inactive and SHOULD be deleted. PeerRecord history is retained for allocator
+# and routing resolution.
 seq PeersDisconnected
 - disconnected : NodeIDList
 
+# Receivers mark the corresponding historical PeerRecords connected=false before
+# accepting later Bookkeeper-authored changes to inherited identities.
+
 # A destination route is selected without flooding: consume locally when the
-# destination is self, otherwise send into the child subtree containing it, or
-# send to the parent. Join traffic establishes descendant-to-child mappings;
-# PeersDisconnected removes them. Sessions are implicitly trusted in version 0,
-# so origin NodeIDs provide correctness and routing identity, not authentication.
+# destination is self, otherwise send into the known child subtree containing
+# it, or send parentward when the destination is known elsewhere. Traffic MUST
+# NOT be reflected onto its ingress edge. Unknown destinations are held within
+# bounded policy for a racing membership update or failed. A disconnected
+# allocated NodeID resolves to the Bookkeeper as current owner. Join traffic
+# establishes descendant-to-child mappings; PeersDisconnected removes them.
+# Sessions are implicitly trusted in version 0, so origin NodeIDs provide
+# correctness and routing identity, not authentication.
 
 # ==============================================================
 # Join snapshot
 
 # Snapshot messages are exchanged only from a joining peer's direct parent to
-# that child and MUST NOT be relayed. The parent briefly pauses scene application
-# at an engine boundary, captures serialized ECS state, then resumes while
-# buffering later broadcasts for the child. SnapshotBatch messages reproduce
-# current live entities, components, typed assets, active proposal entities, and
-# the Bookkeeper session entity. Unknown/deleted IDs need not be included.
+# that child and MUST NOT be relayed. The parent takes the snapshot at a stable
+# replication boundary, stops consuming other main-link messages and stops local
+# ECS mutation, and serially sends the snapshot. Transport buffering provides
+# the queue; no protocol catch-up section is needed. SnapshotBatch messages
+# reproduce current live entities, components, typed assets, active proposal
+# entities, and the Bookkeeper session entity. Unknown/deleted IDs need not be
+# included. SnapshotBatch content uses only CreateEntities, ModifyComponents,
+# and ModifyAsset; deletion operations are invalid. Across the stream, every live
+# entity is created once before any component publication so strict live-reference
+# rules such as parameter child lists remain satisfiable. OOB service MAY
+# continue independently during the snapshot.
 seq SnapshotBegin
 - peers : PeerRecordList
+
+# peers contains connected records plus historical disconnected records needed
+# to distinguish retired allocator NodeIDs from NodeIDs never assigned.
 
 seq SnapshotBatch
 - content : ContentArray
 
-# After this marker the parent flushes buffered broadcasts in their preserved
-# per-origin order. Broadcast events and routed traffic destined for the child
-# are buffered as well. The child may publish only after consuming that queue.
+# This is the single publish-ready boundary. After sending it, the parent resumes
+# local mutation and main-link processing; transport-buffered membership,
+# content, events, and RPC then flow to the child as ordinary live traffic. The
+# child MUST NOT publish main-sequence traffic before receiving this marker.
 seq SnapshotComplete
 
 # ==============================================================
 # Replicated ECS changes
 
 # A node first changes its own engine representation, then emits one or more
-# non-atomic batches from change detection. Every target entity and typed asset
-# MUST be owned by origin (high 32 ID bits equal origin). Operations apply in
-# content order and may be observed incrementally. A receiver applies a batch
-# once and forwards it over every tree edge except the arrival edge. The strict
-# tree and reliable ordered links preserve each origin's order without clocks,
-# counters, acknowledgements, or loop deduplication.
+# non-atomic batches from change detection. Creation requires origin to equal the
+# encoded allocator. Other operations require origin to be the target's current
+# owner; after allocator disconnection this may be the Bookkeeper. Operations
+# apply in content order and may be observed incrementally. A receiver applies a
+# batch once and forwards it over every tree edge except the arrival edge. The
+# strict tree and reliable ordered links preserve each origin's order without
+# clocks, counters, acknowledgements, or loop deduplication.
 seq ContentBatch
 - origin : NodeID
 - content : ContentArray
@@ -126,8 +153,9 @@ dyn_array RPCArgumentList : u8 * Any
 
 # Invocation identity is (source, invocation_id). A nonzero ID is unique among
 # source's in-flight invocations; zero requests no replies. destination MUST be
-# the owner NodeID encoded by endpoint. Intermediate peers route but never
-# execute or reply. Only destination may consume the invocation.
+# endpoint's current owner, which is the Bookkeeper after allocator disconnect.
+# Intermediate peers route but never execute or reply. Only destination may
+# consume the invocation.
 seq RPCInvoke
 - source : NodeID
 - destination : NodeID
@@ -162,11 +190,21 @@ seq RPCStreamResult
 
 dyn_array ErrorString : u32 * u8
 
+# Base protocol errors. Codes 256 and above are application-defined.
+const RPC_ERROR_TARGET_UNAVAILABLE : u16 = 1
+const RPC_ERROR_OUTCOME_UNKNOWN : u16 = 2
+
 seq RPCError
 - code : u16
 - message : ErrorString
 
 # Replies route to destination (the original caller). Only the invocation target
-# may originate replies. Zero-ID invocations cannot stream or reply. Deleting an
+# or the Bookkeeper as its successor owner may originate replies. A late request
+# delivered only after transfer receives TARGET_UNAVAILABLE and may be retried
+# after resolving current ownership. An invocation already in flight when its
+# target disconnects terminates locally; if the former target may have executed
+# it, its outcome is unknown and non-idempotent work MUST NOT be retried
+# automatically. OUTCOME_UNKNOWN is available when an implementation can report
+# that state explicitly. Zero-ID invocations cannot stream or reply. Deleting an
 # endpoint after invocation acceptance does not cancel it. RPC side effects are
-# ordinary owner-authored ContentBatch messages.
+# ordinary current-owner-authored ContentBatch messages.

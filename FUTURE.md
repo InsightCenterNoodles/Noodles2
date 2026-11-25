@@ -3,10 +3,6 @@
 This file tracks deliberately unresolved or revisitable protocol work. Items
 here are not part of the current normative specification.
 
-## RPC lifecycle
-
-- Consider standardized Core `RPCError` codes; codes are currently application-defined.
-
 ## Richer rotation constraints
 
 Core currently supports unrestricted rotation or one axis-angle constraint.

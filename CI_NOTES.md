@@ -29,22 +29,24 @@ Check in canonical binary fixtures for at least:
 
 - Introduction and IntroductionReply, including the parent NodeID, fixed session
   extensions, and OOB link token/endpoints.
-- JoinRequest, PeerJoined, JoinRejected, descendant routing, and disconnected
-  subtree membership changes.
-- An empty snapshot and a multi-batch ECS snapshot followed by SnapshotComplete
-  and buffered live ContentBatch messages.
-- Owner-range entity/asset creation, direct component replacement, deletion,
-  dead references, and rejection of wrong-owner publication.
-- Transform, parent, parameter-value, and selection proposal entities from two
-  proposers targeting one owner.
-- Routed RPC streaming followed by completion, error, cancellation, and an
-  unreachable destination.
+- OOB authentication before JoinRequest, PeerJoined, JoinRejected, descendant
+  routing, OOB reconnection, and disconnected subtree membership changes.
+- An empty snapshot and a multi-batch stable-boundary ECS snapshot ending in the
+  publish-ready SnapshotComplete marker, followed by ordinary live traffic.
+- Allocator-range entity/asset creation, direct component replacement, deletion,
+  dead references, Bookkeeper inheritance, and rejection of wrong-current-owner
+  publication or Bookkeeper creation in a retired range.
+- Transform, parameter-value, and selection proposal entities from two proposers
+  targeting one owner.
+- Routed RPC streaming followed by completion, error, cancellation,
+  TARGET_UNAVAILABLE, OUTCOME_UNKNOWN, and an unreachable destination.
 - Event registry creation and a peer-originated tree broadcast; include
   `noodles.view.pose.v1`.
 - Button and entity activation actions covering both RPC invocation and Event emission.
-- Inline, URL, and SHA-256 OOB buffer descriptions. Include routed owner fetch,
-  on-path cache response, failure, digest mismatch, plus zero-length and nonempty
-  payloads under both message- and byte-oriented framing.
+- Inline, URL, and SHA-256 OOB buffer descriptions. Include routed current-owner
+  fetch, on-path cache response, temporary link replacement, failure, digest
+  mismatch, plus zero-length and nonempty payloads under both message- and
+  byte-oriented framing.
 - Asset publication, replacement, deletion while referenced, unresolved use,
   and private cache retention.
 - PCM16 WAVE audio and a synchronized spatial audio source.
@@ -61,7 +63,9 @@ record.
 Include negative fixtures for malformed discriminants, invalid booleans,
 truncated arrays, excessive guarded lengths, invalid semantic combinations, an
   OOB success without its immediately following raw payload, a truncated raw
-  payload, digest/length mismatch, and an intervening directional OOB control.
+  payload, digest/length mismatch, an intervening directional OOB control,
+  self-parenting, cyclic structural traversal, and cross-allocator parameter
+  children.
 
 ## Not currently planned
 

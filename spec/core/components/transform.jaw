@@ -62,9 +62,13 @@ pack TransformSampleComponent
 # rule makes snapshots reproduce the active source without hidden update-order
 # metadata.
 #
-# Reparenting, changing smoothing mode or settings, or adding/removing a field
-# marker clears history. If sampling remains active, the current sample becomes
-# the sole first sample and is presented immediately until more history arrives.
+# Reparenting has keep-local semantics and does not convert the current sample.
+# It, changing smoothing mode or settings, or adding/removing a field marker
+# clears history. If sampling remains active, the current numeric sample is
+# interpreted in the new effective parent frame, becomes the sole first sample,
+# and is presented immediately until more history arrives. Producers needing
+# keep-world behavior calculate and publish a representable local TRS themselves;
+# exact preservation is not always possible with zero scale or shear.
 #
 # Interpolate evaluates at:
 #
