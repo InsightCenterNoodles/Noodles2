@@ -20,11 +20,11 @@ does not implement audio does not advertise this extension.
 channels is the baseline; other codecs and layouts are optional. Spatialization
 uses a mono signal, with baseline stereo content downmixed before playback.
 
-`AudioSourceComponent` anchors its playhead to authority time and uses linear
+`AudioSourceComponent` anchors its playhead to Bookkeeper session time and uses linear
 distance attenuation between its full-gain and silent distances. The listener
-belongs to each downstream's local view state. Visibility, source rotation, and
+belongs to each peer's local view state. Visibility, source rotation, and
 source scale do not affect sound. Directional cones, Doppler, filters, reverb,
-and authoritative listener state are outside this extension.
+and replicated listener state are outside this extension.
 
-Clients retain final control over audio output and may mute, defer, limit, or
+Peers retain final control over audio output and may mute, defer, limit, or
 reject playback according to local policy.

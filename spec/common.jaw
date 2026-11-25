@@ -72,13 +72,15 @@ pack LinearRGBA
 - b : f32
 - a : f32
 
-# Entity IDs divide the u64 into a u32 allocation namespace in the high bits
-# (`id >> 32`) and a namespace-local u32 in the low bits
-# (`id & 0xffff_ffff`). Namespace 0 belongs to the Upstream;
-# each Downstream receives one nonzero namespace in IntroductionReply. An
-# allocator chooses the low bits and MUST NOT reuse an ID during the Upstream
-# session. IDs are otherwise opaque: namespace does not imply ownership,
-# authorization, lifetime, or provenance. Zero is a valid Upstream ID.
+# Session-local node identifier. Node 0 is the Bookkeeper. The Bookkeeper never
+# reassigns a NodeID during a session.
+pack NodeID
+- id : u32
+
+# Entity IDs divide the u64 into their owner's NodeID in the high bits
+# (`id >> 32`) and an owner-local u32 in the low bits (`id & 0xffff_ffff`).
+# Only that owner may create, modify, or delete the entity. An owner MUST NOT
+# reuse an ID during the session. Zero is the Bookkeeper's valid local ID 0.
 # Absence/nullability must be represented structurally rather than by a sentinel.
 pack EntityID
 - id : u64
@@ -95,11 +97,10 @@ pack AssetTypeID
 - identifier : u16
 
 # Asset IDs are context sensitive; they have no meaning without an associated
-# AssetTypeID. They use the same high-u32 allocation namespace and low-u32 local
-# ID division as EntityID. A namespace therefore provides 2^32 IDs independently
-# for every asset type. Namespace does not imply ownership, authorization,
-# lifetime, or provenance. An allocator MUST NOT reuse an (AssetTypeID, AssetID)
-# pair during the Upstream session. Zero is a valid Upstream asset ID.
+# AssetTypeID. They use the same high-u32 owner NodeID and low-u32 owner-local ID
+# division as EntityID, providing each node 2^32 IDs independently for every
+# asset type. Only that node may publish, replace, or delete the asset.
+# An owner MUST NOT reuse an (AssetTypeID, AssetID) pair during the session.
 pack AssetID
 - id : u64
 

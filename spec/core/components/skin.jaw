@@ -32,4 +32,4 @@ seq SkinComponent
 # must already be alive and be an ancestor of every joint.
 #
 # If the mesh entity's world transform is non-invertible (for example, because
-# of zero scale), clients may skip skin evaluation or cull the mesh.
+# of zero scale), peers may skip skin evaluation or cull the mesh.

@@ -35,5 +35,10 @@ fn find_jaw(repo_root: &Path) -> PathBuf {
         return adjacent;
     }
 
+    let development = repo_root.join("../../jaw/target/release/jaw");
+    if development.is_file() {
+        return development;
+    }
+
     PathBuf::from("jaw")
 }

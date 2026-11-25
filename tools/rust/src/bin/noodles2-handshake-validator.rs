@@ -176,12 +176,6 @@ fn validate_introduction(introduction: &wire::Introduction) -> Result<(), ToolEr
             wire::PROTOCOL_VERSION
         )));
     }
-    if header.flags.authority_request() != 0 {
-        return Err(ToolError::new(
-            "authority_request is set; this validator only acts as Upstream",
-        ));
-    }
-
     let capabilities: Vec<u16> = header.capabilities.0.iter().map(extension_id).collect();
     if !capabilities.contains(&CORE_EXTENSION_ID) {
         if capabilities.contains(&AUDIO_EXTENSION_ID) {
@@ -200,18 +194,31 @@ fn extension_id(extension: &wire::ExtensionID) -> u16 {
     unsafe { (&raw const extension.id).read_unaligned() }
 }
 
+fn node_id(node: &wire::NodeID) -> u32 {
+    unsafe { (&raw const node.id).read_unaligned() }
+}
+
 fn make_reply() -> wire::PreMessage {
     wire::PreMessage::IntroductionReply(wire::IntroductionReply {
         header: wire::IntroductionHeader {
             protocol_version: wire::PROTOCOL_VERSION,
-            flags: wire::IntroductionFlags::default(),
             name: wire::PreambleName(SERVER_NAME.to_vec()),
             capabilities: wire::PreambleCaps(vec![wire::ExtensionID {
                 id: CORE_EXTENSION_ID,
             }]),
         },
-        large_assets: wire::OOBAssetInfo::Unavailable,
-        allocation_namespace: 1,
+        parent_node: wire::NodeID { id: 0 },
+        session_capabilities: wire::PreambleCaps(vec![wire::ExtensionID {
+            id: CORE_EXTENSION_ID,
+        }]),
+        oob_assets: wire::OOBAssetChannel {
+            endpoints: wire::OOBEndpoints(vec![wire::OOBEndpoint::TCP(wire::OOBTCPEndpoint {
+                port: 1,
+            })]),
+            token: wire::OOBLinkToken {
+                bytes: wire::SHA256Digest([0x42; 32]),
+            },
+        },
     })
 }
 
@@ -312,7 +319,6 @@ mod tests {
         wire::Introduction {
             header: wire::IntroductionHeader {
                 protocol_version: version,
-                flags: wire::IntroductionFlags::default(),
                 name: wire::PreambleName(b"test client".to_vec()),
                 capabilities: wire::PreambleCaps(
                     capabilities
@@ -360,7 +366,7 @@ mod tests {
     }
 
     #[test]
-    fn reply_is_core_only_and_assigns_a_namespace() {
+    fn reply_is_core_only_and_identifies_parent() {
         let wire::PreMessage::IntroductionReply(reply) = make_reply() else {
             panic!("wrong reply variant");
         };
@@ -370,11 +376,9 @@ mod tests {
             extension_id(&reply.header.capabilities.0[0]),
             CORE_EXTENSION_ID
         );
-        assert!(matches!(
-            reply.large_assets,
-            wire::OOBAssetInfo::Unavailable
-        ));
-        assert_ne!(reply.allocation_namespace, 0);
+        assert_eq!(reply.session_capabilities.0.len(), 1);
+        assert_eq!(node_id(&reply.parent_node), 0);
+        assert_eq!(reply.oob_assets.endpoints.0.len(), 1);
     }
 
     #[test]

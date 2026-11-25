@@ -106,7 +106,7 @@ pack UncompressedIndex
 # arithmetic, every index must be less than vertex_count, and index_count must
 # be divisible by three. With IndexFormat=None, index metadata is ignored,
 # vertex_count vertices are drawn directly, and vertex_count must be divisible
-# by three. Clients without native u8 index support may expand indices.
+# by three. Peers without native u8 index support may expand indices.
 
 bits MorphTargetFlags : u8
 - 0 has_position : u8

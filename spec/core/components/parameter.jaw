@@ -1,7 +1,7 @@
 # Parameter components describe a small, renderer-independent UI backed by ECS
 # entities. Complex application interfaces should use another mechanism, such as
-# a web UI. Downstreams propose state or structural changes through ordinary
-# transactions; Upstream remains authoritative and validates or rejects them.
+# a web UI. Only the parameter entity owner changes replicated definition/state.
+# Other peers use ParameterValueProposalComponent for desired state changes.
 #
 # A normal parameter entity has exactly one each of:
 # - ParameterComponent: common label and disabled state.
@@ -26,7 +26,7 @@ seq ParameterRootComponent
 # child must already be alive. A child may appear under multiple parents, but it
 # must not occur more than once in the same list. Disabled state is inherited
 # through these relationships: descendants of a disabled parameter remain
-# visible but Downstream must not propose state or structural changes to them.
+# visible but peers SHOULD NOT propose state or structural changes to them.
 dyn_array ParameterChildList : u16 * EntityID
 
 # ==============================================================
@@ -86,7 +86,7 @@ seq ParameterComponent
 - disabled : bool
 - label : ParamLabelString
 
-# disabled parameters remain visible but are not editable by Downstream.
+# disabled parameters remain visible but are not editable by other peers.
 
 enum DateTimeKind : u8
 - Date = 0
@@ -124,7 +124,7 @@ seq ModesDefinition
 seq ToggleDefinition
 
 # Activating an enabled button executes its RPC or Event interaction action
-# directly; it does not submit a parameter-state proposal. ButtonState remains
+# directly; it does not create a parameter-value proposal. ButtonState remains
 # empty because activation is transient and does not mutate parameter state.
 seq ButtonDefinition
 - action : InteractionAction
@@ -165,8 +165,8 @@ seq ListDefinition
 - allow_remove : bool
 
 # ListState supplies the current ordered children. reorderable/allow_add/
-# allow_remove describe which downstream structural proposals are permitted;
-# Upstream may still reject any proposal.
+# allow_remove are presentation hints; this initial proposal set does not define
+# structural list proposals.
 
 seq ContainerDefinition
 - kind : ContainerKind
@@ -212,8 +212,7 @@ seq NumberState
 # Date -> YYYY-MM-DD
 # Time -> HH:MM:SS or HH:MM
 # DateTime -> ISO 8601 string
-# Producers SHOULD emit a valid value for DateTimeDefinition.kind. Upstream MAY
-# reject a malformed proposal. A receiving client MAY display the raw value,
+# Owners SHOULD emit a valid value for DateTimeDefinition.kind. A receiving peer MAY display the raw value,
 # ignore/drop this parameter state, or otherwise continue at its discretion.
 seq DateTimeState
 - value : ParamLabelString

@@ -2,7 +2,7 @@ from "assets/audio.jaw" use *
 from "components/audio_source.jaw" use *
 
 # Audio is an optional extension that depends on Core for BufferView, transforms,
-# hierarchy, and the authority timebase.
+# hierarchy, and Bookkeeper session time.
 const EXTENSION_AUDIO : u16 = 1
 
 const AUDIO_ASSET_AUDIO : u16 = 0

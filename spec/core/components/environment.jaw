@@ -3,9 +3,9 @@
 # rotation must be a finite unit quaternion within implementation tolerance.
 #
 # When paired with GlobalComponent, this is a whole-scene environment. Producers
-# SHOULD NOT commit more than one global environment; if encountered, clients
+# SHOULD NOT commit more than one global environment; if encountered, peers
 # MAY select any one. Without GlobalComponent, multiple spatial environments
-# may coexist, and clients may choose whether and how to blend between them.
+# may coexist, and peers may choose whether and how to blend between them.
 
 from "../../common.jaw" use {UnitQuaternion}
 from "../assets/environment.jaw" use {EnvironmentAssetID}

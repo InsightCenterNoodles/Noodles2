@@ -1,113 +1,108 @@
 # Implementation Notes
 
-This document is non-normative guidance for implementers. The `.jaw` schemas and
-normative specification prose take precedence.
+This document is non-normative. JAW schemas and normative specification prose
+take precedence.
 
 ## Suggested layers
 
-Keep five concerns separate:
+1. **Transport adapters** provide bounded main/OOB records and raw OOB streams.
+2. **Wire codec** decodes generated JAW values under local resource limits.
+3. **Membership/router** maintains parent, child-subtree NodeID routes, pending
+   join UUID routes, and connected/disconnected membership.
+4. **Replication adapter** observes local owner-written ECS changes, emits
+   `ContentBatch`, and applies received/snapshot content directly to the engine.
+5. **Presentation/application systems** resolve references, proposals, events,
+   RPC, animation, audio, and rendering policy.
 
-1. **Transport adapter** — obtains one bounded logical message, including
-   consuming byte-oriented record prefixes when required.
-2. **Wire codec** — generated JAW encoding and decoding, guarded by local limits.
-3. **Semantic validator** — IDs, references, numeric constraints, component
-   relationships, lifecycle transitions, and direction rules.
-4. **World applicator** — stages and atomically commits valid transactions,
-   maintains scene generation, reverse references, tombstones, and snapshots.
-5. **Authority policy** — accepts or rejects proposals, RPCs, events, assets,
-   and resource use according to the application and trust boundary.
+Sessions are implicitly trusted in version 0. Do not mistake origin NodeIDs for
+cryptographic authentication.
 
-A parse failure, invalid authoritative transaction, malformed proposal, and
-policy denial have different protocol outcomes; avoid collapsing them into one
-generic error path.
+## Ownership and engine mapping
 
-## Atomic application and snapshots
+Derive owner as the high 32 bits of every entity/asset ID. Maintain the usual
+protocol-ID to engine-handle map; engine generation/index handles need not equal
+wire IDs. Only emit changes for IDs owned by the local NodeID. Never recycle a
+wire ID or typed asset identity during one session even when the engine recycles
+its private handle.
 
-Validate and stage a complete authoritative transaction before exposing any of
-it to rendering, queries, systems, or callbacks. Reverse-reference indices make
-entity deletion, asset lifecycle checks, and replacement validation practical.
-Apply operations in wire order: new entities must be explicitly created before
-later operations target or reference them, and forward references are invalid.
-A create followed by a delete is valid and tombstones the ID, but the transient
-entity remains hidden by atomic application.
+Apply local changes normally, then use engine change detection to batch complete
+component replacements, additions/removals, creations/deletions, and asset
+changes. A batch is serialization grouping, not an atomic overlay. Received
+batches can be applied directly; no optimistic/pending scene is required.
 
-For a new Downstream, choose one consistent world generation, serialize that
-snapshot, send `InitialStateComplete` with the same generation, then release
-queued live transactions and events in order. Do not expose or emit live events
-to that Downstream while its registries and referenced state are incomplete.
+References may outlive or precede their targets. Store protocol IDs where useful
+and resolve through the live handle map at use time. Missing references should
+degrade the affected feature rather than creating placeholder entities.
 
-Complete component replacement is last-accepted-proposal-wins. Prefer separate
-entities for independently authored observations, annotations, relationships,
-and task results so collaborators do not perform conflicting read-modify-write
-updates on one component.
+## Broadcast and routing
 
-Treat the high 32 bits of every entity and asset ID as its allocation namespace
-and the low 32 bits as allocator-local. Namespace 0 belongs to Upstream, while
-each Downstream receives one nonzero namespace for the session. Track assigned
-namespaces separately from world ownership and authorization: the namespace
-only determines who may create a previously unused ID. Never reuse a namespace
-or entity ID during an Upstream session; for type-scoped assets, never reuse a
-complete `(AssetTypeID, AssetID)` identity.
+Broadcast scene batches and events over every edge except their arrival edge.
+Because the topology is a strict tree, this reaches every connected peer once
+without loop IDs. Preserve transport order while forwarding messages from one
+origin.
 
-Proposal IDs are final and need no reconciliation map. On acceptance, retain the
-proposal ID until `ProposedTransactionReply.Accepted` supplies the authoritative
-scene generation, then replace any optimistic state when that generation's
-Transaction arrives. Other Transactions may arrive between the reply and its
-correlated Transaction.
+For routed RPC/OOB traffic, consume self destinations, choose a child route when
+the destination belongs to that subtree, otherwise send parentward. Install
+routes while a successful `PeerJoined` returns along its pending JoinRequest UUID
+path. Remove all routes behind a disconnected child edge.
 
-## Asset ownership
+## Snapshot capture
 
-Model an asset identity as a stable shared handle whose payload may be replaced:
+At an engine boundary, pause application just long enough to serialize a stable
+snapshot into bounded storage. Continue reading transports into a bounded queue.
+After capture, resume the engine and normal relay while snapshot bytes transmit;
+buffer only post-cut messages for the joining child. Send those after
+`SnapshotComplete`. Closing an over-limit join is safer than allowing unbounded
+memory or blocking the session indefinitely.
 
-- The active asset table holds one strong root after `ContentModifyAsset`.
-- Understood component and asset references hold strong references.
-- `ContentDiscardAsset` drops the table root but leaves weak lookup.
-- `ContentDeleteAsset` is legal after discard and after the final
-  protocol-visible strong reference has been removed; it removes weak lookup
-  and tombstones the ID.
+Snapshots contain only live ECS and current membership. Wire IDs encode owner;
+no owner component is needed. Deleted IDs need not be transferred because
+owners never reuse them. Omit inactive proposal entities from disconnected
+owners.
 
-Internal GPU work, decoders, or application caches may retain private references
-after protocol deletion. They must not make the deleted identity addressable
-again. If a discarded asset is no longer weakly resolvable, Upstream republishes
-it with `ContentModifyAsset` before introducing another reference.
+## Proposal systems
 
-## Data and coordinates
+Treat entities carrying `ProposalTargetComponent` as declarative inputs. Query
+typed proposal components whose target owner is local. Application systems may
+combine them however appropriate, but only resulting writes to locally owned
+target entities replicate as real scene changes. Do not generate protocol
+accept/reject state.
 
-The synchronized scene is a renderable `f32` representation, not necessarily
-the source scientific dataset. Applications should transform physical or
-geospatial coordinates into stable local scene frames. Large source datasets
-normally remain in domain stores or query engines and are linked through
-semantic metadata and application RPCs; buffers are appropriate when the bytes
-are genuinely needed for rendering or shared interaction.
+ProposalTarget is immutable. A proposer that wants another target deletes the
+old proposal entity and creates a new one. On `PeersDisconnected`, proposal
+entities in affected NodeID ranges may be removed from local ECS while ordinary
+owned scene entities remain frozen.
 
-## Defensive limits
+## OOB streaming and cache
 
-Set explicit limits for message bytes, nested `Any` depth, collection lengths,
-entity/component counts, decoded asset sizes, concurrent RPCs, pending
-proposals, event rates, and snapshot queues. Use checked arithmetic for every
-byte-size and offset calculation. Limits are local policy and may differ between
-an embedded viewer and a server, but they should fail deterministically rather
-than relying on allocation failure.
+Attempt the parent OOB link early so inability to connect is detected before the
+scene depends on it. A specialized leaf may continue without it only while
+treating OOB-backed assets as missing; it cannot accept children because it
+cannot forward their fetches.
 
-For a byte-oriented transport, validate each main-channel or OOB-control `u32`
-record length before allocating or converting it to a platform-sized integer.
-Expose exactly that many bytes to the JAW decoder through a bounded input and
-require exact consumption so truncation and trailing bytes cannot cross a
-control-record boundary.
+Validate `byte_size` before allocation and stream through fixed-size buffers.
+Hash while forwarding or consuming, and publish/cache bytes only after the final
+SHA-256 matches. A cache hit may answer on the request path without contacting
+the owner. A relay can forward without caching.
 
-After decoding an OOB success, switch the receive state from JAW controls to one
-raw asset payload. Validate its byte-oriented `u64` length before converting it
-to a platform-sized integer. Stream the following bytes directly to their final
-storage or consumer where practical; the payload is not passed to the generated
-JAW decoder and does not require a second full allocation. On a message-oriented
-transport, use the following logical message's boundary as the raw payload
-length instead. After exact payload consumption, switch back to OOB controls.
-The outer bounds complement rather than replace limits on nested collection
-counts, recursion, decoded assets, and transaction staging.
+Keep OOB control and its following raw payload adjacent in one direction. Apply
+backpressure per link; do not let a slow child create unbounded buffers. Cache
+eviction is private and never changes replicated asset state.
 
-## Conformance
+## Session time
 
-Generated code compiling is only the first check. Decode and re-encode canonical
-cross-language fixtures byte-for-byte, then exercise semantic and negative
-fixtures through the validator and atomic world layer. See `CI_NOTES.md` for the
-planned fixture set.
+On every SessionTime replacement, record `(session_time, local_monotonic_now)`.
+Extrapolate at rate 1 and smooth offset corrections without moving exposed time
+backward. Treat it as approximate presentation time, never as causal ordering.
+
+## Resource and failure policy
+
+Bound message sizes, queued joins, snapshot bytes, buffered post-cut messages,
+RPCs, events, decoded assets, OOB streams, and proposal entities. A peer may
+ignore unsafe content or close a link. Closing a parent link ends the local
+subtree's session; closing a child removes that entire subtree from the surviving
+session after Bookkeeper membership propagation.
+
+Generated code compiling is only the first check. Test malformed framing,
+truncation, wrong owners, invalid component encodings, routing loss, snapshot
+cut ordering, OOB digest mismatches, and disconnected-subtree cleanup.

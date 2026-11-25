@@ -1,27 +1,20 @@
-# Core preamble messages exchanged before the main sequence starts.
+# Per-edge handshake performed before a child joins an existing peer session.
 
-from "common.jaw" use {ExtensionID}
-from "oob_asset.jaw" use {OOBSessionToken}
+from "common.jaw" use {ExtensionID, NodeID}
+from "oob_asset.jaw" use {OOBLinkToken}
 
-# This is the core message that is sent during the preamble phase
 variant PreMessage : u8
 - Probe = 0 => Probe
 - ProbeReply = 1 => ProbeReply
 - Introduction = 2 => Introduction
 - IntroductionReply = 3 => IntroductionReply
 
-# Covers the base protocol, common types, and the mandatory Core extension.
-# This remains version 0 while the protocol is under development.
-# IMPORTANT: 0 means NO PRODUCTION IMPL ALLOWED YET. Testing only.
-# IMPORTANT: When we are done with initial implementation, this MUST be incremented to 1
+# Covers the base protocol, common types, and mandatory Core extension. Version
+# 0 is development-only and MUST NOT be used by production implementations.
 const PROTOCOL_VERSION : u16 = 0
 
 dyn_array PreambleName : u8 * u8
-# Encoded image bytes. Receivers identify the format from the content and may
-# ignore an unsupported or unrecognized image. An empty array means no icon.
 dyn_array PreambleIcon : u32 * u8
-# Set of supported extension IDs. Order and duplicates have no meaning. Core
-# (0x0000) and every dependency of each advertised extension must be included.
 dyn_array PreambleCaps : u16 * ExtensionID
 
 seq Probe
@@ -30,30 +23,19 @@ seq ProbeReply
 - name : PreambleName
 - icon : PreambleIcon
 
-bits IntroductionFlags : u16
-- 0 authority_request : u8 # requester asks to be treated as upstream authority
-
 seq Introduction
 - header : IntroductionHeader
 
-# Sent upon opening a channel to a server. By default, the server will be Upstream, and the client Downstream.
-# This can be requested to be reversed with the authority_request flag. If the server agrees, the roles will be reversed, and a 
-# normal IntroductionHeader will be sent by the server to the client, following normal connection rules (with a cleared authority_request flag).
-# If the server does not agree, the server will close the connection.
+# capabilities is the complete set supported by the connecting child. It MUST
+# include Core and every dependency of every advertised extension.
 seq IntroductionHeader
 - protocol_version : u16
-- flags : IntroductionFlags
 - name : PreambleName
-- capabilities : PreambleCaps # extensions supported by the sender
+- capabilities : PreambleCaps
 
-# Network endpoints inherit the host name or address that the Downstream used
-# to reach the main channel. The advertised port replaces only the port and
-# MUST be nonzero; the Upstream does not need to know its externally reachable
-# host name or address. A Downstream without an applicable network host ignores
-# network endpoints. WebSocket transport security and TCP transport wrapping
-# are selected by the applicable transport binding or application
-# configuration.
-# This path MUST be valid UTF-8, nonempty, and begin with '/'.
+# Network endpoints inherit the host name or address used for the main link.
+# Ports replace only the main-link port and MUST be nonzero. WebSocket paths are
+# nonempty UTF-8 absolute paths beginning with '/'.
 dyn_array OOBWebSocketPath : u16 * u8
 
 seq OOBWebSocketEndpoint
@@ -63,57 +45,38 @@ seq OOBWebSocketEndpoint
 pack OOBTCPEndpoint
 - port : u16
 
-# This MUST be a nonempty absolute filesystem path encoded as platform path
-# bytes. Zero bytes, relative paths, and Linux abstract-namespace addresses are
-# not permitted. Downstreams for which the path is not meaningful ignore this
-# endpoint.
+# A nonempty absolute filesystem path encoded as platform path bytes. Zero
+# bytes, relative paths, Linux abstract addresses, and datagrams are forbidden.
 dyn_array OOBUnixPath : u16 * u8
 
 seq OOBUnixStreamEndpoint
 - path : OOBUnixPath
 
-# WebSocket is message-oriented. TCP and Unix stream sockets are byte-oriented:
-# JAW request/reply control records use a u32 prefix, while the raw asset payload
-# immediately following a successful reply uses a u64 prefix. TCP means reliable
-# ordered TCP, and Unix means SOCK_STREAM; datagram transports are not supported.
-# Main and OOB channels are distinct connections and may use different transport
-# types.
 variant OOBEndpoint : u8
 - WebSocket = 0 => OOBWebSocketEndpoint
 - TCP = 1 => OOBTCPEndpoint
 - UnixStream = 2 => OOBUnixStreamEndpoint
 
-# Endpoints are listed in Upstream preference order. Upstreams SHOULD list
-# WebSocket endpoints before other supported transports. If Channels is
-# advertised, the Downstream MUST support at least one advertised endpoint; the
-# Upstream is not required to tailor this list to each Downstream. A Downstream
-# skips unsupported or inapplicable endpoints and SHOULD attempt usable
-# endpoints in order, with fallback allowed after connection failure. It MAY
-# connect lazily, but SHOULD connect as soon as practical so that failures are
-# discovered early. If it cannot connect to any advertised endpoint, it SHOULD
-# close the associated main-channel connection. A specialized Downstream MAY
-# instead keep the main channel open if it can operate while treating OOB-backed
-# assets as unavailable.
+# Parent preference order. A joining peer SHOULD implement at least one endpoint
+# advertised by its parent. WebSocket SHOULD precede other transports.
 dyn_array OOBEndpoints : u8 * OOBEndpoint
 
-# endpoints MUST be nonempty. token is a bearer credential for this main-channel
-# session and must be included in every OOBRequest. It expires when the main
-# channel closes.
-seq OOBAssetChannels
+# endpoints MUST be nonempty. token authenticates the child-initiated OOB link
+# associated with this main link and expires when the main link closes.
+seq OOBAssetChannel
 - endpoints : OOBEndpoints
-- token : OOBSessionToken
+- token : OOBLinkToken
 
-variant OOBAssetInfo : u8
-- Unavailable = 0 => void
-- Channels = 1 => OOBAssetChannels
-
-# Allocation namespace 0 belongs to the Upstream. Every IntroductionReply
-# assigns this Downstream one nonzero namespace that forms the high 32 bits of
-# entity and asset IDs it creates; the low 32 bits are selected by Downstream.
-# The namespace provides 2^32 entity IDs and, because AssetID is type-scoped,
-# 2^32 IDs independently for each asset type. A namespace MUST NOT be assigned
-# to another Downstream during the same Upstream session, even after disconnect.
+# The accepting server is the connecting node's parent in the strict rooted
+# tree. session_capabilities is fixed by the Bookkeeper for the session; the
+# child MUST support every listed extension or close without sending JoinRequest.
+# The parent advertises one bidirectional OOB link that both sides use for routed
+# asset fetches and payload forwarding. The child SHOULD connect it as soon as
+# practical and SHOULD close the main link if no advertised endpoint can be
+# connected. A specialized peer MAY remain without an OOB link only if it treats
+# all unavailable OOB-backed assets as missing and does not accept child peers.
 seq IntroductionReply
 - header : IntroductionHeader
-- large_assets : OOBAssetInfo
-- allocation_namespace : u32
+- parent_node : NodeID
+- session_capabilities : PreambleCaps
+- oob_assets : OOBAssetChannel

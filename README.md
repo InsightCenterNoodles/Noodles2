@@ -2,215 +2,258 @@
 
 **NLR Object Oriented Data Layout and Exploration System 2**
 
-NOODLES2 defines a protocol for collaborative, distributed visualization of structured simulation data. It is based on the Entity-Component-System (ECS) architectural model and uses a compact, custom little-endian binary message format, typically over WebSockets. The protocol is intended for real-time synchronization of 2D and 3D visual representations across networked clients.
+NOODLES2 is a compact binary protocol for synchronizing an ECS-based visual
+scene among trusted peers. Connections form a strict rooted tree. Each entity
+and typed asset has one permanent writer, while explicit proposal entities let
+other peers publish typed intent for that owner to consider.
 
 The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHOULD**, **SHOULD NOT**,
-**MAY**, and **OPTIONAL** are to be interpreted as described by RFC 2119 and
-RFC 8174 when, and only when, they appear in all capitals.
+**MAY**, and **OPTIONAL** are interpreted as described by RFC 2119 and RFC 8174
+when they appear in all capitals.
 
----
+## Protocol model
 
-## Protocol Shape
+- Every connected node is a peer. The first node is the Bookkeeper and has
+  `NodeID` 0.
+- The Bookkeeper controls membership, allocates never-reused NodeIDs, fixes the
+  session extension set, and publishes coarse session time. It does not order or
+  approve ordinary scene changes.
+- Main links form a strict rooted tree. A node has one parent and zero or more
+  children. Losing the path to the Bookkeeper ends that subtree's session.
+- Sessions are implicitly trusted in protocol version 0. Node identity and
+  ownership rules provide correctness boundaries, not cryptographic security.
+- ECS changes, events, and membership announcements broadcast through the tree.
+  RPC and OOB requests use NodeID routes.
 
-- ECS-centered: entities/assets use 64-bit IDs divided into a 32-bit allocator namespace and a 32-bit allocator-local ID, with components as typed data blobs and assets as payloads referenced by components.
-- Binary-first: layouts defined in `.jaw` schemas; little-endian, size-prefixed arrays; no optional fields aside from explicit variants.
-- Directed links: every connection has an Upstream (authority) and one or more Downstreams (proposer/consumer). Authority can be negotiated at handshake via `authority_request`.
-- Extensions: each extension owns component/asset ID space under a 16-bit namespace. The negotiated shared set governs downstream proposals; upstreams should prefer it for authoritative state, while receivers may skip unknown extension payloads.
-    - An extension ID identifies one immutable wire-and-semantics contract. Incompatible optional-extension revisions receive new extension IDs; Core revisions use `protocol_version`.
-    - Component and asset identifiers are permanent within an extension; retired identifiers remain reserved.
-    - Old and new extension IDs can be supported together.
+## Wire format and framing
 
-## Wire Format & Framing
-- Messages are in binary, little-endian, IEEE-754. 
-- Messages are described by the Jaw format. 
-- JAW `bool` occupies one byte; only `0` and `1` are valid encodings.
-- For message-oriented transports, one complete encoded top-level JAW message
-  occupies one logical transport message. A logical transport message may
-  itself be fragmented by the transport; for example, one WebSocket binary
-  message may occupy multiple WebSocket frames. No additional NOODLES2 length
-  prefix is used when the transport supplies the logical message boundary.
-- Byte-oriented transports use a fixed-width little-endian length prefix before
-  each encoded top-level JAW message. The length covers only the JAW payload,
-  not the prefix. Main-channel messages and OOB request/reply control messages
-  use a `u32` payload length.
-- A successful OOB reply is followed immediately by a raw asset payload that is
-  not JAW. On a byte-oriented OOB channel, this raw payload uses a little-endian
-  `u64` length followed by exactly that many asset bytes. On a message-oriented
-  OOB channel, one separate logical transport message contains exactly the raw
-  asset bytes and its transport-supplied boundary provides the length.
-- JAW message-record framing is not part of JAW. A transport implementation
-  removes the prefix, if present, and supplies exactly one bounded top-level
-  message to the JAW decoder.
-- A zero JAW message-record length, a truncated record length or payload, a
-  top-level parse failure, unconsumed trailing bytes, or a record length
-  exceeding local limits is fatal to that connection. Byte-oriented transports
-  do not attempt to resynchronize after malformed input. A raw OOB asset payload
-  may have zero length.
-- Main-channel and OOB control messages are therefore limited to `u32::MAX`
-  encoded bytes. Large asset payloads use the OOB mechanism's separate raw
-  transfer, whose byte-oriented length is 64 bits.
-- Byte arrays documented as UTF-8 SHOULD contain valid UTF-8. Receivers MAY reject malformed text or replace malformed subsequences when decoding it.
-- Nodes MAY impose implementation-defined limits on message sizes, collection lengths, asset sizes, nesting, memory use, and other resource consumption. A node MAY reject content or disconnect when input is malformed, exceeds those limits, or otherwise threatens safe operation.
+- JAW schemas define little-endian binary layouts. JAW `bool` occupies one byte
+  and only `0` and `1` are valid.
+- One top-level JAW value occupies one logical message on message-oriented
+  transports. Byte-oriented transports prefix every JAW record with its `u32`
+  little-endian payload length.
+- A zero record length, truncated record, parse failure, trailing bytes, or
+  length over local limits is fatal to that link. Byte streams do not attempt
+  resynchronization.
+- OOB success controls are followed by one non-JAW raw payload. Byte-oriented
+  links prefix it with a `u64` length; message-oriented links use the following
+  logical message boundary.
+- Nodes MAY impose implementation resource limits and disconnect when content
+  is malformed, unsafe, or exceeds them.
 
-## Connection Flow
+## Membership and connection flow
 
-- All connections start in the Preamble state, until Upstream and Downstream assignments are determined.
-    - Upon connection open the initiator of the connection is the Client and the receiver is the Server. 
-    - Only PreMessage may be sent during this time.
-    - The Client sends an `Introduction` message, which exchanges protocol version, capabilities (extension IDs).
-    - The Server validates and compares protocol version and capabilities, and responds with an `IntroductionReply`.
-    - The Server is termed the Upstream (the authority) and the client is the Downstream.
-        - If the introduction includes the authority swap flag, the Client states that it wishes to be the Upstream in this relationship. If the Server agrees, it will send the Introduction, as if the connection sequence was reversed. If it does not agree, the connection is closed.
-    - Upstream and Downstream determined, preamble over.
-        - Namespace `0` belongs to the Upstream. `IntroductionReply` assigns this Downstream one nonzero 32-bit allocation namespace, providing `2^32` entity IDs and `2^32` IDs independently for each asset type.
-        - If the Client sends a `Probe` message, it indicates they wish to obtain details, but not join
-          the current session. A `ProbeReply` is sent by the Server and the connection is closed.
-- Once Upstream and Downstream are assigned, the connection moves to the Main Sequence state.
-    - Messages are encoded as a series of `MainSequenceMessage` variants.
-    - Upstream sends the initial ECS world in zero or more atomic `Transaction` messages, followed by exactly one `InitialStateComplete`. Downstream must not send proposals, RPC invocations, or events before receiving that marker.
-    - Subsequent `Transaction` messages carry ordered changes at a rate of the Upstream's choosing. Component payloads are complete replacements; field-level deltas are not defined.
-        - It is recommended that these are on the order of 1 Hz.
-    - Either node may close the transport at any time. In-flight proposals and RPCs then terminate without replies.
-- Additional:
-    - The `protocol_version` covers the base protocol, common types, and the mandatory Core extension. Version 0 is development-only and MUST NOT be used by production implementations. Optional extensions are versioned independently through their registered extension IDs.
-        - If the protocol versions do not match during introduction, the connection MUST be closed.
-    - Capability gating:
-        - Both peers MUST advertise the Core extension (`0x0000`).
-        - A capability list represents a set: order and duplicate entries have no meaning.
-        - A peer MUST advertise every required dependency of each extension it advertises.
-        - For Downstream -> Upstream proposals, component/asset types MUST be contained in the shared extension set.
-        - For Upstream -> Downstream authoritative state streaming, component/asset types SHOULD be contained in the shared extension set. Receivers MAY ignore unknown extension payloads and continue parsing by skipping their length-prefixed content.
-    - Nodes may disconnect at any time should this occur.
-    - During Preamble, Nodes may choose how long to wait for an introduction or reply, closing the connection if a message is not received in this time. It is recommended that this timeout be on the order of 10 seconds.
-    - During Main Sequence, there should be no inactivity timeout, as state may not change significantly during use.
+1. A child opens a main link to an existing peer and sends `Introduction` with
+   its protocol version and supported extensions.
+2. The parent returns its NodeID, the Bookkeeper-fixed session extension set,
+   and endpoints/token for the bidirectional OOB link.
+3. The child attempts the OOB link and sends `OOBLinkIntroduction` first when it
+   connects.
+4. The child generates a fresh UUIDv7 and sends `JoinRequest` toward NodeID 0.
+5. Bookkeeper verifies complete session-extension support, assigns a nonzero
+   NodeID, and broadcasts `PeerJoined`.
+6. Arrival of that record at the joining UUID is its successful response. Its
+   parent supplies a complete ECS snapshot.
+7. The child may publish only after `SnapshotComplete` and the buffered live
+   messages following it have been consumed.
 
-## ECS and World
-- Coordinates are right-handed and mesh front faces use counterclockwise winding, following glTF conventions. Mesh tangent `w` carries the bitangent handedness sign. Scene transforms are intentionally `f32` presentation coordinates for a renderable representation, not a transport for an application's full scientific dataset. Applications map physical/geospatial coordinates into a suitable local scene frame and expose units, source data, or external query facilities through semantic metadata, buffers, or application services.
-- Entity IDs are never reused within an Upstream session. Deletion removes all components and tombstones the ID; empty entities remain alive until explicitly deleted. Deleting a never-seen or already tombstoned entity is invalid.
-- Each entity has at most one component of each type. Component modification is complete replacement; later repeated updates win, and deleting an absent component is a no-op. New entities must be explicitly created before they are modified or referenced; component modification never implicitly creates an entity.
-- An entity without a transform has the identity transform. Parent graphs must be acyclic; parents must exist before they are referenced. Ancestor invisibility suppresses descendants, including descendants explicitly marked visible.
-- Core transform sampling can smooth low-rate motion updates. Timestamped complete samples retain local history for interpolation or bounded sample-derived extrapolation, with independent position, rotation, and scale markers. A hard `TransformComponent` update resets sampling until a later sample update. Clients may opt out of smoothing work and snap to every newest sample.
-- A `GlobalComponent` paired with an environment marks the whole-scene environment. Producers should provide at most one; clients encountering several may choose one. Non-global environments may be spatially blended at client discretion.
-- Instance transforms are interleaved and local to their entity, whose world transform is applied afterward. Reduced instances use GPU-friendly UNORM16/SNORM16 groups. Skins require unique live joints; morph weights are finite but need not lie in `[0,1]`.
+NodeIDs and UUIDs are never reused in one session. Reconnection is not defined:
+a returning implementation generates a new UUIDv7 and receives a new NodeID.
 
-## Transactions and Authority
+A peer SHOULD establish its parent OOB link as soon as practical and SHOULD
+close the main link if none of the advertised endpoints can be connected. A
+specialized peer that can operate with OOB-backed assets missing MAY remain, but
+it cannot accept children because it could not route their OOB traffic. Parents
+advertise their normal endpoint set rather than customizing scene streams per
+child.
 
-- Transactions are atomic. Their content is evaluated in array order, but intermediate states are not observable. Every active reference must resolve when its operation is applied: its target must already be alive or have been created by an earlier operation in the transaction. Forward references are invalid. Reference fields disabled by surrounding flags are ignored.
-- Every authoritative transaction carries a non-wrapping `u64` scene generation. Live transactions increase it by exactly one. Initial-snapshot transactions all carry the generation of one consistent snapshot point, repeated by `InitialStateComplete`; Upstream queues later transactions and events until that marker has been sent.
-- Downstream may ask to change the ECS world. Downstream proposes, Upstream decides. Proposals use `ProposedChangeTransaction` with a restricted content variant that excludes authority-only asset discard and deletion. Proposed IDs are final: newly created entities and assets MUST use the proposing Downstream's assigned allocation namespace, while operations on existing content remain subject to Upstream policy regardless of namespace.
-- Proposal payloads MUST remain within the shared extension set (extension capability intersection negotiated during preamble). Upstream SHOULD reject proposals that include unknown extension content.
-- Proposals are serialized by Upstream. On acceptance, Upstream sends `ProposedTransactionReply.Accepted` with the scene generation assigned to the resulting authoritative `Transaction`, then broadcasts that transaction with the applied changes and any cascade effects. Unrelated transactions may be interleaved; the generation correlates the acceptance with its authoritative result. Other Downstreams receive only the authoritative transaction.
-- Proposal arrival order is preserved per Downstream connection. Upstream chooses a total serialized order across connections and may interleave their proposal streams.
-- Concurrent proposals use last-accepted-proposal-wins semantics for complete component replacement. Downstreams are encouraged to use separate entities for independently authored observations, annotations, results, and other contributions rather than sharing mutable component lists or maps.
-- A rejected proposal has no corresponding transaction. Its reply contains a code (1 denied, 2 resource exhausted, 3 malformed/disallowed, or >=256 application-specific), the outer content-operation index responsible or `u32::MAX`, and a possibly empty UTF-8 diagnostic. Semantically invalid but decodable proposals normally receive code 3 without closing the connection; repeated malicious or resource-exhausting input may cause disconnection.
-- Proposal transaction IDs must be unique among that Downstream's in-flight proposals and may be reused after a reply. A new entity must be explicitly created before any later operation targets or references it. A new asset must be published by `ContentModifyAsset` before a later operation references it. Forward references are invalid.
-- IDs consist of a high 32-bit allocation namespace and low 32-bit allocator-local value. Namespace `0` belongs to the Upstream; assigned nonzero namespaces are never reused during the Upstream session. Allocators never reuse an entity ID or typed `(AssetTypeID, AssetID)` identity during that session. Namespace identifies allocation scope only, not ownership, authorization, lifetime, or provenance.
-- Creation followed by deletion in one transaction is valid and permanently consumes/tombstones the ID. Because transactions are atomic, the intermediate entity is not exposed to rendering, queries, systems, callbacks, or other observers. Operations after deletion are invalid.
-- Upstream deeply parses shared-extension proposal payloads to validate references and policy, but does not rewrite IDs. It may normalize accepted representations, but materially different operations are rejected. Authority-generated cascade changes appear in the correlated authoritative transaction.
-- Downstream may display pending proposal state optimistically using its final IDs. Rejection removes or reverts it; the correlated authoritative transaction replaces it on acceptance. Only authoritative content is authoritative.
-- Asset payloads in proposals must be inline buffers (no URLs or OOB) from Downstream to Upstream. The proposal content variant does not include asset discard or deletion.
+The Bookkeeper fixes one immutable session extension set. Every joining peer
+MUST implement all of it; peers may support additional extensions locally but
+MUST NOT publish their types into the session. This ensures every peer can
+serialize a complete snapshot for a future child.
 
-## RPC and Interaction
+### Subtree loss
 
-- Entities can advertise callable endpoints with the `RPCEndpointComponent`. Argument, terminal-result, and optional stream-result hints include descriptions, semantic tags, and informational `Any` types; applications may validate them, but the protocol layer does not enforce them. Arguments and results are carried as `Any` values. `Any` maps use unique string-or-integer keys; receivers may reject, ignore, or overwrite duplicate keys and may represent maps as ordered key/value pairs.
-- `RPCInvoke` travels Downstream to Upstream and references the target entity. `RPCReply` travels Upstream to Downstream and returns zero or more `RPCStreamResult` values followed by exactly one terminal `RPCComplete` or `RPCError`. Replies for unknown or completed invocation IDs are protocol violations.
-- Deleting an endpoint entity does not cancel an invocation already accepted by Upstream. The invocation may complete normally or return an error; new invocations against the deleted endpoint are errors.
-- `RPCCancel` is a best-effort request for a nonzero in-flight invocation. Cancellation races are harmless: unknown or completed IDs are ignored, the ID remains in flight, and Upstream still sends exactly one terminal reply unless the transport closes.
-- RPC side effects on authoritative ECS state are communicated through ordinary `Transaction` messages rather than RPC replies.
-- `InteractiveComponent` gates `CanTranslate`, `CanRotate`, `CanScale`, `Activate`, and optional conservative entity-local interaction bounds. Bounds may be an AABB or sphere. Without `InteractionBoundsComponent`, clients must not spatially pick the entity merely because it is interactive, though non-spatial UI may still expose its actions. Transform limits apply in parent-local space; rotation is unrestricted or constrained to one axis relative to a reference orientation. Buttons and entity activation use a shared action type that either invokes an RPC or emits a registered Event with arguments. The first activation action is the default; remaining entries are alternatives.
-- `IsSelectedComponent` is shared authoritative selection state; private selection may remain client-local, and multiple entities may be selected.
-- Parameter UI uses an acyclic entity graph with separate matching definition and state components. Disabled state inherits to descendants. Buttons execute RPC or Event actions without changing their empty state. Upstream validates downstream value and structural proposals; malformed date/time proposals may be rejected, while clients may ignore or display malformed authoritative values.
+When a child edge closes, the surviving parent reports that child and its known
+descendants to the Bookkeeper. Bookkeeper broadcasts `PeersDisconnected` to the
+surviving tree. The separated subtree ends its session immediately. Assigned
+NodeIDs remain reserved, ordinary scene entities freeze at their last values,
+proposal entities from those nodes become inactive, and routed RPC/OOB requests
+to them fail.
 
-## Semantics, Observations, and Tasks
+If Bookkeeper disconnects, the entire session ends.
 
-- Entities may carry human-readable descriptions, compact whitespace-delimited semantic identifiers, and semantic `Any` properties. Leading, trailing, and repeated ASCII whitespace in tag lists is ignored; an empty list has no tags, and tag identity is exact token bytes without URI or Unicode normalization. Semantic property keys are stable string identifiers; integer map keys are not valid for this component.
-- Relationship meanings are entities marked with `RelationshipDefinitionComponent` and described through ordinary name, description, tag, property, and relationship components. Each relationship points weakly to both its definition and target. Weak references may be absent or deleted, are resolved only while alive, and never retain an entity or block deletion. Semantic metadata and relationships do not inherit through `ChildOfComponent`.
-- `ParticipantComponent` marks a known actor without identifying a transport connection or asserting that it is currently connected. A Downstream may propose zero or many participant entities—for example, one immersive client may represent several tracked people—and disclose selected names, descriptions, semantics, transforms, or other components. Connection establishment does not implicitly create a participant. Participant transform updates should remain low rate, with approximately 4 Hz or less recommended and local interpolation used for smoother presentation. Shared participant metadata and relationships such as `CreatedBy` are semantic assertions, not authenticated identity or provenance.
-- Observations are marker entities. They may identify a weak subject and a conservative entity-local AABB or bounding sphere, while semantic tags and properties carry measurement, inference, unit, time, uncertainty, confidence, and provenance information. A zero-volume box or zero-radius sphere denotes a point observation.
-- Tasks retain a state component from pending through a terminal succeeded, failed, or cancelled state; terminal states cannot transition again. Results are separate entities carrying `ResultComponent` and a relationship whose definition has the well-known `noodles.relationship.result_of` tag and whose target is the task. This permits zero, one, or many results. `Any::Void` explicitly records a result with no returned value, while absence of `ResultComponent` records no result on that entity.
-- Well-known semantic contracts are maintained in [the semantic registry](spec/well_known_semantics.md). Adding a new identifier is compatible; changing an existing identifier's meaning is not.
+## IDs and ownership
+
+`EntityID` and `AssetID` divide their `u64` value as:
+
+```text
+63                    32 31                     0
++-----------------------+-----------------------+
+| owner NodeID (u32)    | owner-local ID (u32)  |
++-----------------------+-----------------------+
+```
+
+Asset IDs remain scoped by `AssetTypeID`, so each node has `2^32` IDs per asset
+type. Only the encoded owner may create, modify, add/remove components from, or
+delete its entities and assets. IDs are never reused during the session.
+
+Ownership is derived from the ID; no Owner component exists. A snapshot retains
+complete IDs, so joining peers recover ownership automatically. If ownership
+transfer is introduced later it will require separate protocol metadata.
+
+## ECS replication
+
+A node changes its own engine ECS first and emits `ContentBatch` from ordinary
+change detection. Batches save framing/serialization overhead but are not
+transactions:
+
+- Operations apply in array order and may be observed incrementally.
+- A batch targets only entities and typed assets owned by its `origin`.
+- Every receiver applies it once and forwards it over every tree edge except the
+  arrival edge.
+- Reliable ordered links and the strict tree preserve each origin's order.
+- Changes from different owners affect disjoint owned state and require no
+  Lamport clock, global counter, acknowledgement, rollback, or pending ECS.
+
+Component modification is complete replacement. Entity creation is explicit;
+component modification never implicitly creates an entity. Create then delete
+in one batch is legal and permanently consumes the ID. Deleting unknown/already
+deleted state is a no-op.
+
+References are stored as IDs and may name missing or dead entities/assets.
+Consumers MUST check liveness before use. Deletion does not cascade into content
+owned by other peers. Engine tombstones may be retained locally, but deleted IDs
+need not be serialized in snapshots because owners never reuse them.
+
+Producers MUST NOT create self-parenting or cyclic `ChildOf` graphs. A receiver
+MAY ignore an offending edge or disconnect for self-protection. A missing/dead
+parent makes the stored edge inactive and the child evaluates as unparented.
+
+## Snapshots
+
+The joining peer's direct parent supplies a snapshot. At an engine boundary the
+parent briefly pauses scene application while continuing to read into a bounded
+queue, serializes current ECS state, then resumes. It sends:
+
+1. `SnapshotBegin` with the session membership roster.
+2. Zero or more `SnapshotBatch` values containing current live entities,
+   components, typed assets, active proposal entities, and the Bookkeeper session
+   entity.
+3. `SnapshotComplete`.
+4. Scene broadcasts, events, and routed traffic buffered for that child after
+   the snapshot cut, in preserved per-origin order.
+
+Snapshot messages are link-local and are not relayed. If capture or buffering
+exceeds safe resource limits, the joining connection may be closed and must join
+again with a new identity.
+
+## Proposal entities
+
+Only owners write real target state. Other peers express typed intent through
+ordinary proposer-owned ECS entities carrying immutable `ProposalTarget` plus
+one or more proposal components:
+
+- `TransformProposal`
+- `ParentProposal`
+- `ParameterValueProposal`
+- `SelectionProposal`
+
+Each proposer uses a separate entity, so concurrent proposals do not overwrite
+one another. Proposals are active declarative input, not pending transactions:
+the proposer may update or withdraw them, while the target owner may ignore,
+choose, merge, average, clamp, or reinterpret them. No acceptance/rejection
+reply exists. If the owner acts, it changes the real component in its own ECS and
+that ordinary owner-authored change replicates normally.
+
+`ParentProposal` can request either a particular parent or removal of the current
+parent. The target owner remains responsible for rejecting cycles.
+
+Proposal entities whose owner disconnects are inactive and may be removed rather
+than included in later snapshots. Proposal components grant no authority.
 
 ## Events
 
-- Events are transient broadcasts with `Any` arguments. They are not stored in snapshots or replayed to late joiners; durable facts belong in ECS components or assets.
-- `EventRegistryComponent` declares event identifiers, unique names, descriptions, semantic tags, and informational argument hints in a namespace scoped by its entity. The wire address is `(registry entity, definition_identifier)`, where `definition_identifier` selects an explicitly identified definition rather than indexing the registry sequence, so entries may be reordered or removed without changing the identity of the remaining events.
-- Any Upstream or Downstream may emit a registered event, subject to Upstream policy. A Downstream sends it to Upstream without dispatching locally; Upstream validates and orders it with transactions and other events, handles it locally once, and broadcasts it unchanged to every Downstream including the sender. The sender dispatches the returned broadcast normally.
-- Per-Downstream arrival order is preserved and Upstream chooses interleaving across connections. Unknown registry/type IDs are invalid. Upstream may drop, rate-limit, or disconnect under application/resource policy.
-- Events are scoped to one Upstream session. Automatic relay across separate Upstream sessions is not defined.
-- Protocol-wide semantic event contracts are registered in the [well-known events document](spec/well_known_events.md). Their versioned names are stable, while numeric definition identifiers remain local to each registry. The initial `noodles.view.pose.v1` contract provides optional world-space view-pose telemetry and is limited to 4 Hz per registry entity.
+Events are transient broadcasts and are not snapshotted or replayed. The source
+dispatches locally once and sends to all tree neighbors. Each receiver dispatches
+once and forwards over every edge except the arrival edge. Per-source order is
+preserved; there is no global event order. Registry definitions and argument
+hints remain ordinary owner-written ECS state.
 
-## Assets and OOB Transfer
+## Routed RPC
 
-- Assets are addressed by `AssetTypeID` + `AssetID`. Large, immutable payloads can flow over out-of-band (OOB) asset channels (`OOBAssetInfo` in the preamble) to avoid blocking the main communication socket. An Upstream MAY choose not to advertise OOB channels, but a Downstream receiving an advertisement MUST support at least one of its endpoints.
-- `(AssetTypeID, AssetID)` is a stable logical identity. `ContentModifyAsset` creates or atomically replaces its value and places a strong reference in the active asset table. Existing references observe replacement without being rewritten. Clients invalidate decoded, cached, and GPU representations of the previous value, but may retain them internally until outstanding work finishes.
-- A buffer replacement must leave all active `BufferView` references in bounds when its transaction commits. Inline replacements are ordered by the transaction. Each changed OOB-backed revision uses a fresh `OOBAssetID`; each changed URL-backed revision uses a distinct immutable URL.
-- `ContentDiscardAsset` drops the active asset table's strong reference but retains weak lookup. Component and asset references remain strong. A later reference may use the discarded asset only while another live protocol reference keeps weak lookup resolvable; otherwise Upstream republishes it with `ContentModifyAsset` first.
-- `ContentDeleteAsset` follows discard and removal of the final protocol-visible reference. It removes weak lookup and tombstones the identity. Private renderer/decoder references may finish asynchronously but are no longer protocol-addressable. A late joiner's snapshot publishes assets still held by world references and then reproduces their discarded state before `InitialStateComplete`.
-- `BufferView` references a `BufferAssetID`; higher-level assets (mesh, image, environment, material) reference buffer-backed views.
-- Image formats are detected from encoded-byte signatures. Core clients must support PNG and JPEG; WebP, KTX2, Radiance HDR, and OpenEXR are optional. Unsupported optional codecs and environment-rendering features may be ignored without treating the connection as malformed.
-- Environment image indices must be in bounds when enabled. Material image tables contain at most 16 entries, and every enabled texture index must address an existing entry; disabled reference fields are ignored.
-- PBR color and emission maps are sRGB. Roughness/metallic, occlusion, normal, and other non-color maps are linear. Clients may ignore or approximate unsupported extended material features without rejecting the scene.
-- Immutable `PBRMaterialFeatureSet` assets declare shader/pipeline topology for early compilation and caching. `PBRMaterial` assets are parameter instances sharing a feature set. Base-only instances omit the extended parameter block; its presence must agree with the referenced feature set.
-- OOB support is provided through one or more separate channels, where asynchronous asset requests can be made. An Upstream advertises an ordered list of typed endpoints: WebSocket, TCP, or Unix stream socket. WebSocket is preferred for interoperability, and Upstreams SHOULD list WebSocket endpoints before other supported transports, but it is not required. Control messages use the JAW binary format with the restricted `OOBRequest` and `OOBReply` message sets; successful asset payloads are raw bytes outside JAW.
-    - Network endpoints inherit the host name or address that the Downstream used to reach the main channel; an endpoint supplies a nonzero replacement port. A WebSocket endpoint also supplies a nonempty UTF-8 absolute path beginning with `/`. The Upstream therefore does not need to advertise or discover its own externally reachable host name or address. A Downstream without an applicable network host ignores network endpoints.
-    - A Unix endpoint supplies a nonempty absolute filesystem path as platform path bytes. It denotes a Unix `SOCK_STREAM` socket; zero bytes, relative paths, Linux abstract-namespace addresses, and datagram sockets are not supported. A Downstream ignores a Unix endpoint when its path is not meaningful in that environment.
-    - Endpoints are listed in Upstream preference order. When OOB channels are advertised, a Downstream MUST support at least one advertised endpoint; the Upstream is not required to customize the list for each Downstream. A Downstream skips unsupported or inapplicable endpoints and SHOULD attempt usable endpoints in order; it may fall back after a connection failure. It MAY connect lazily, but SHOULD connect as soon as practical so failures are discovered early. If it cannot connect to any advertised endpoint, it SHOULD close the associated main-channel connection. A specialized Downstream MAY instead remain connected if it can operate while treating OOB-backed assets as unavailable. TCP means reliable ordered TCP, not UDP. Main and OOB channels are distinct connections and may use different transport types.
-    - WebSocket OOB channels are message-oriented and add no NOODLES2 record prefix. TCP and Unix stream OOB channels are byte-oriented: JAW request/reply control records use a `u32` prefix, while raw asset payloads use a `u64` prefix.
-    - Transport security and wrapping are selected by the applicable transport binding or application configuration. The bearer token associates an OOB connection with a main session; it does not authenticate the server or make an unprotected transport confidential. Implementations should use appropriate TLS, trusted-network policy, and Unix filesystem permissions for their environment.
-    - `IntroductionReply` supplies an unpredictable 256-bit bearer token for the main-channel session. Every OOB request must contain that token, and it expires when the main channel closes.
-    - OOB asset IDs are scoped to the main-channel session and remain valid while referenced by a live buffer asset. They are never reassigned to different bytes during that session, although multiple buffer assets may intentionally share the same OOB payload.
-    - OOB connections may be kept open only while their associated main channel remains open.
-    - A request is made by an `OOBRequest` control message and is answered by one `OOBReply` control message. A failure reply is complete. A success contains the requested `asset_id` but no asset bytes and is followed immediately by one raw asset payload.
-    - A success and its following payload form one indivisible logical reply. No other Upstream-to-Downstream OOB control message or asset payload may occur between them. Traffic in the opposite direction does not violate this adjacency. After the payload ends, the receiver resumes decoding OOB control messages.
-    - On WebSocket, the raw payload is the complete binary message immediately following the success control message. On TCP and Unix stream sockets, it is a `u64` little-endian length followed by exactly that many bytes. A zero-length asset payload is valid.
-    - Transport fragmentation and incremental payload consumption are allowed, but application-level chunk numbering and resumable transfer are not defined. Truncation is fatal to the OOB connection. A receiver that cannot accept an advertised payload length may drain and reject that payload or close the OOB connection according to local policy.
-    - A buffer asset may contain an OOBAssetID, or blob of bytes, that can be requested from Upstream.
-    - OOB errors include the requested `asset_id` plus a UTF-8 reason string.
-    - Receivers may reject URL schemes, origins, redirects, credentials, or other fetch behavior according to local security policy.
+RPC messages carry source and destination NodeIDs. A route is selected as:
 
-## Spatial Audio
+1. Consume locally if destination is self.
+2. Send to the child link whose known subtree contains destination.
+3. Otherwise send to the parent.
 
-- Optional Audio extension `0x0001` depends on Core and provides buffer-backed `AudioAsset` clips plus `AudioSourceComponent` spatial point sources. Peers without audio support do not advertise it.
-- Baseline audio is mono or stereo signed PCM16 RIFF/WAVE. Spatial evaluation uses a mono signal; stereo baseline content is downmixed before playback. Other codecs and channel layouts are optional.
-- Playback is anchored to the authority time estimate with a start time, clip offset, positive playback rate, playing state, and looping state. This permits synchronized playback and lets late joiners evaluate the current playhead.
-- A source is located at its entity's world-space origin. It is omnidirectional, unaffected by its own rotation, scale, or visibility, and attenuates linearly from full gain at `min_distance` to silence at `max_distance`. The listener is local downstream view state rather than authoritative ECS state.
-- Directional cones, Doppler, filters, reverb, and protocol listener components are not defined. Clients may mute, defer, limit, or reject audio for resource, safety, accessibility, autoplay, or platform policy.
+Join traffic establishes descendant-to-child routes; disconnection removes
+them. Only the destination executes or replies. Invocation identity is
+`(source, invocation_id)`. Replies, stream results, errors, and cancellation use
+the reverse destination. Intermediate peers route but never answer. RPC side
+effects are ordinary owner-authored ECS changes.
 
-## Animation and Deformation
+## Assets and routed OOB transfer
 
-- Core includes an `AnimationAsset` (samplers/channels) plus `AnimatorComponent` for layered playback.
-- Keyframe times are finite and strictly increasing; sampler indices and buffer sizes are exact. Compact `SRGBA8` colors are interpolated in linear space and do not support cubic interpolation.
-- Asset animation affects every entity referencing that shared asset. Per-entity material animation requires a distinct material asset identity. Producers should avoid multiple animators targeting the same path; clients encountering that conflict may choose one.
-- Transform animation and transform sampling on the same entity are strongly discouraged. Clients may choose how to resolve the conflict; ignoring sampling and evaluating the animation is recommended.
-- Mesh assets now describe joint/weight attributes for skinning and optional morph targets; `SkinComponent` supplies joint palettes and inverse bind matrices.
-- `MorphWeightsComponent` carries per-entity weights; animation channels may target specific weights by index.
-- Animation time estimates remain monotonic within a session. Entity names are display-only and need not be unique. Text uses local-unit height and sRGBA color; clients may ignore authored alpha and render it as opaque.
+Buffer contents may be inline, fetched from immutable URLs, or represented by
+`OOBContent { byte_size, sha256 }`. The containing `BufferAssetID` identifies
+the owner NodeID used as the initial fetch destination.
 
-## Extensions
+OOB requests follow the same subtree routes as RPC. Every peer MUST forward OOB
+controls and stream payloads without requiring the complete payload in memory.
+Caching is OPTIONAL:
 
-The specification is designed for expandability and modularity through Extensions. Extensions define a collection of components, assets, and semantics with optional dependencies on other Extensions.
+- A relay with verified matching bytes may answer and stop forwarding.
+- Success contains the responder and original requester destination, followed by
+  one raw payload.
+- Requesters verify exact length and SHA-256 before accepting bytes.
+- Cache entries are naturally shared across owners for identical content.
+- If the owner is disconnected and no on-path cache answers, retrieval fails.
 
-- During handshake, each side advertises supported extensions. Their intersection is the shared extension set for the link.
-- Capability-list order and duplicate entries have no meaning. Every peer must advertise Core (`0x0000`) and all dependencies of every extension it advertises.
-- Normative directionality:
-    - Downstream -> Upstream proposals MUST only contain types in the shared extension set.
-    - Upstream -> Downstream state updates SHOULD prefer the shared extension set for interoperability; unknown extension payloads MAY be skipped/ignored by receivers.
-- Receivers skip unsupported component batches and asset payloads as complete length-delimited units; associated deletions and discards are ignored and no placeholder local state is created. Reference validation applies only to understood state.
-- An unknown type identifier within a negotiated extension is a protocol violation. Old and new extension IDs may coexist, but should not encode the same logical component on one entity unless their specifications define that behavior.
-- Extensions are registered as 16-bit namespace IDs for components and assets. The registry is tracked in `spec/registry.md`.
-- The Core extension (0x0000) defines the base component and asset types in `spec/core`. All implementations must support this core extension.
+OOB control/payload adjacency, framing, transport fragmentation, and truncation
+rules are specified in `spec/oob_asset.jaw`.
 
-## Message Direction and Failure
+## Session time
 
-- `Transaction`, `InitialStateComplete`, `ProposedTransactionReply`, and `RPCReply` travel Upstream to Downstream. Replies are sent only to the relevant proposer or invoker.
-- `ProposedChangeTransaction`, `RPCInvoke`, and `RPCCancel` travel Downstream to Upstream. `EventMessage` travels in both directions according to its broadcast flow. Any other message received in the wrong direction is a protocol violation and closes the connection.
-- Malformed top-level or authoritative content closes the connection. Invalid proposals may instead be rejected with code 3. Policy denials use code 1 and are not protocol violations.
-- No protocol goodbye is required; transport closure may occur at any time.
+The Bookkeeper owns well-known EntityID 0 and replaces its `SessionTimeComponent`
+approximately once per second with finite monotonic seconds since session start.
+A receiver anchors that value to its local monotonic receipt time and extrapolates
+between updates. Corrections are smoothed and exposed session time never moves
+backward.
 
+Session time is approximate because it includes relay latency. It supports
+ordinary animation, transform sampling, audio, and timestamped events, but is
+not used for conflict resolution or message ordering. Precision synchronization
+may be added later as a routed time-probe extension.
 
-## Status and Roadmap
+## Core scene semantics
 
-- Development-only: protocol version 0 explicitly forbids production use, and its Base/Core wire layouts may change without incrementing `protocol_version`. The first supported release increments it to 1. Afterward, every incompatible Base/Core change increments `protocol_version`, while incompatible optional-extension changes receive new extension IDs.
-- The compatible JAW compiler commit is recorded in `JAW_REVISION`. Run `./scripts/check-spec.sh` to generate and validate the complete specification; set `JAW_BIN` when the compiler is not installed or built in the adjacent `jaw` repository. GitHub Actions runs the same check against the pinned compiler. Further cross-language fixture plans are recorded in `CI_NOTES.md`, and [implementation guidance](IMPLEMENTATION_NOTES.md) describes a suggested runtime architecture.
-- Systems (runtime behavior), richer capability negotiation, and transport options (e.g., libp2p) remain on the roadmap.
-- Feedback and implementation notes are welcome; keep the `.jaw` schemas and markdown docs in sync as behavior evolves.
+- Coordinates are right-handed and mesh front faces are counterclockwise.
+- An absent transform is identity. Ancestor invisibility suppresses descendants.
+- `BufferView` and other asset references are usable only while targets resolve.
+- Core images require PNG and JPEG decoding; other documented codecs are
+  optional.
+- `PBRMaterialFeatureSet` assets are immutable; a topology change uses a new ID.
+- Parameter definition/state tags match and owner policy decides how typed
+  parameter proposals affect state.
+- Animation targets are evaluated locally against Bookkeeper session time.
+- Unsupported presentation features may be ignored or approximated when the
+  underlying extension is nevertheless implemented.
+
+## Extension registry and validation
+
+Core is extension `0x0000`; Audio is optional extension `0x0001` and depends on
+Core. Extension and component/asset identifiers are permanent once published;
+incompatible optional revisions receive new extension IDs, while base/Core
+changes use `protocol_version`.
+
+Run the complete schema check with the compiler revision recorded in
+`JAW_REVISION`:
+
+```text
+JAW_BIN=<path-to-jaw> JAW_REPO=<jaw-checkout> ./scripts/check-spec.sh
+```
+
+The check generates Rust, C++, Python, and Swift bindings and validates each
+schema root. Additional runtime guidance is in `IMPLEMENTATION_NOTES.md`.

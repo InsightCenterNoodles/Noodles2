@@ -11,6 +11,8 @@ elif command -v jaw >/dev/null 2>&1; then
     jaw_bin="$(command -v jaw)"
 elif [[ -x "$repo_root/../jaw/target/debug/jaw" ]]; then
     jaw_bin="$repo_root/../jaw/target/debug/jaw"
+elif [[ -x "$repo_root/../../jaw/target/release/jaw" ]]; then
+    jaw_bin="$repo_root/../../jaw/target/release/jaw"
 else
     echo "error: JAW compiler not found" >&2
     echo "set JAW_BIN to the compiler built from the commit in JAW_REVISION" >&2

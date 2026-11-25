@@ -1,10 +1,9 @@
 Extensions define namespaces for components and assets. Each 16-bit extension ID
 identifies one immutable wire-and-semantics contract. An incompatible revision of
 an optional extension receives a new extension ID; Core revisions are covered by
-the base protocol version. The intersection advertised by both peers during the
-preamble is the shared extension set. Downstream proposals MUST remain within
-that set; upstream authoritative state SHOULD remain within it, and receivers
-MAY skip unsupported extension payloads.
+the base protocol version. The Bookkeeper fixes one session extension set. Every
+joining peer MUST support that entire set, and peers MUST publish only types in
+it. This lets every peer produce complete snapshots without opaque state.
 
 | Extension | Identifier | Description |
 |-----------|------------|-------------|
@@ -28,4 +27,4 @@ registry entity rather than assigned globally.
 
 Stable semantic tag and property contracts are registered separately in
 `well_known_semantics.md`. Adding a new semantic identifier does not change the
-wire protocol; clients that do not recognize it ignore its meaning.
+wire protocol; peers that do not recognize it ignore its meaning.

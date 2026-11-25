@@ -1,0 +1,45 @@
+# Proposal entities are ordinary proposer-owned ECS entities carrying this
+# immutable target plus one or more typed proposal components. They are
+# declarative active intent, not requests awaiting acceptance. Only the proposal
+# entity owner may create, modify, or withdraw them. Only the target owner may
+# change the real target state, and may ignore, select, merge, or reinterpret any
+# proposals. No reply or acceptance state is defined.
+
+from "../../common.jaw" use {EntityID}
+from "parameter.jaw" use {ParamStateComponent}
+from "selection.jaw" use {IsSelectedComponent}
+from "transform.jaw" use {TransformComponent}
+
+# Immutable after first publication. Missing/deleted targets simply make the
+# proposal inactive. Proposal entities owned by disconnected nodes are inactive
+# and may be removed locally rather than retained in later snapshots.
+pack ProposalTargetComponent
+- target : EntityID
+
+# Desired complete local transform. Interpretation—direct adoption, clamping,
+# averaging, weighting, or rejection—is entirely target-owner policy.
+pack TransformProposalComponent
+- value : TransformComponent
+
+variant ParentProposalValue : u8
+- Clear = 0 => void
+- Parent = 1 => EntityID
+
+# Desired parent for the target, or Clear to request removal of its parent. The
+# target owner remains responsible for producing a valid ChildOfComponent and
+# MUST NOT create a parent cycle.
+seq ParentProposalComponent
+- value : ParentProposalValue
+
+# Desired complete parameter state. Definition/state compatibility and all
+# parameter constraints remain target-owner policy.
+seq ParameterValueProposalComponent
+- value : ParamStateComponent
+
+variant SelectionProposalValue : u8
+- Clear = 0 => void
+- Selected = 1 => IsSelectedComponent
+
+# Desired shared selection state. Private local selection requires no proposal.
+seq SelectionProposalComponent
+- value : SelectionProposalValue

@@ -1,20 +1,15 @@
-# Common timebase support
-# This is intended for use by animations, not for simulation times. It is strongly recommended
-# for implementations to update this value at ~1 Hz.
-# `last` must be finite and non-decreasing during one main-channel session.
-# Clients reset their offset estimate when a new session begins.
+# Best-effort common session clock. This component exists only on the well-known
+# Bookkeeper session entity (EntityID 0) and only NodeID 0 may modify it.
 
-# Implementations should maintain a local clock. When this component is updated, compute:
-#   tA = TimeSyncComponent.last
-#   tL = local_now_at_receive
-# Then compute an offset estimate:
-#   offset_est = tA - tL
-# Maintain a smoothed offset (EWMA):
-#   offset = lerp(offset, offset_est, alpha) where alpha ranges between 0.02–0.1 depending on update rate.
-# Then compute “estimated authority time now” locally as:
-#   auth_now_est = local_now + offset
-# The exposed estimate must not move backward. If an offset update would cause a
-# reversal, clients converge gradually while preserving monotonic output.
-
-pack TimeSyncComponent
-- last : f64 # authority monotonic seconds at send time
+# session_time is finite, monotonic seconds since session start. Bookkeeper
+# SHOULD replace this component approximately once per second. At receipt, a
+# peer records local_time_at_receipt from its own monotonic clock and estimates:
+#
+#   session_now = session_time + (local_now - local_time_at_receipt)
+#
+# Peers smooth later corrections and MUST NOT expose a session estimate that
+# moves backward. Relay latency makes this a coarse clock suitable for ordinary
+# animation, audio, and presentation sampling, not precision synchronization.
+# It is never used for ECS conflict resolution or message ordering.
+pack SessionTimeComponent
+- session_time : f64

@@ -6,54 +6,33 @@ variant ContentMessage : u8
 - ModifyComponents = 2 => ContentModifyComponents
 - DeleteComponents = 3 => ContentDeleteComponents
 - ModifyAsset = 4 => ContentModifyAsset
-- DiscardAsset = 5 => ContentDiscardAsset
-- DeleteAsset = 6 => ContentDeleteAsset
+- DeleteAsset = 5 => ContentDeleteAsset
 
-# Downstreams can propose only this restricted subset of content operations.
-# Asset discard and deletion remain authority-only and cannot be encoded in a
-# proposal. Payload types and discriminants match ContentMessage where present.
-variant ProposedContentMessage : u8
-- CreateEntities = 0 => ContentCreateEntities
-- DeleteEntities = 1 => ContentDeleteEntities
-- ModifyComponents = 2 => ContentModifyComponents
-- DeleteComponents = 3 => ContentDeleteComponents
-- ModifyAsset = 4 => ContentModifyAsset
-
-# Unsupported/unnegotiated extension content may be skipped: receivers skip an
-# entire ContentModifyComponents.content or ContentModifyAsset.content buffer,
-# ignore associated component/asset deletion or discard operations, and create
-# no placeholder local state. Active-reference validation applies only to
-# understood state.
-# An unknown type identifier inside a negotiated extension is a protocol
-# violation rather than skippable extension evolution.
+# Every content type MUST belong to the fixed session extension set. Joining
+# peers support that entire set, so an unknown type is a protocol violation.
 
 dyn_array EntityList : u32 * EntityID
 
 # ===================================================
 # Add or remove entities
 
-# Every created ID is unique in this list, not alive, and never previously used
-# during this Upstream session. Upstream-originated creation uses namespace 0;
-# proposed creation MUST use the proposing Downstream's assigned namespace.
-# Accepted proposed IDs remain unchanged in the authoritative Transaction.
-# Namespace constrains creation only, not later modification policy. An entity
-# remains alive even when it has no components.
+# Every created ID is owned by the originating node of its live ContentBatch,
+# unique in this list, not alive, and never previously used by that owner during
+# the session. SnapshotBatch is exempt from origin checks. An entity remains
+# alive even when it has no components.
 seq ContentCreateEntities
 - list : EntityList
 
-# Deletion removes the entity and all its components and permanently tombstones
-# its ID for this session. Active references must have been removed or redirected
-# by earlier Transaction operations. Creating and then deleting an entity in one
-# Transaction is valid and still consumes/tombstones the ID, although the atomic
-# intermediate state is not observable. A never-seen or already tombstoned ID is
-# invalid; later operations on an ID deleted earlier in the Transaction are also
-# invalid.
+# Deletion removes the entity and all its components and tombstones its local
+# engine identity. References may retain the dead ID and MUST check liveness
+# before use. Creating and then deleting an entity in one batch is valid and
+# still consumes the ID. Deleting an unknown or already deleted ID is a no-op.
 seq ContentDeleteEntities
 - list : EntityList
 
-# Packed component data. Technical limits are 4 GB, but it is NOT recommended that Upstream send anything close
-# to this. Upstream SHOULD make all efforts to break larger updates into smaller transactions. Downstreams are free
-# to disconnect rather than service large transactions.
+# Packed component data. The technical limit is 4 GB, but peers SHOULD divide
+# large update sets into smaller batches. Receivers may disconnect rather than
+# consume unsafe resource loads.
 dyn_array Content : u32 * u8
 
 # ===================================================
@@ -61,10 +40,11 @@ dyn_array Content : u32 * u8
 # for a ComponentTypeID, and modification completely replaces its prior value.
 # Repeated pairs are applied in order, so the later value wins.
 #
-# The target entity MUST already be alive or have been explicitly created by an
-# earlier operation in the same Transaction or proposal. Component modification
-# never implicitly creates an entity. A deleted or tombstoned ID cannot be
-# modified or recreated.
+# The target entity is owned by the ContentBatch origin and MUST already be live
+# or have been explicitly created by an earlier operation in that batch.
+# Component modification never creates an entity. Snapshot content is exempt
+# from origin checks. References inside the component may name missing or dead
+# entities; component-specific semantics determine how they are interpreted.
 # The content is structured as a byte stream of (EntityID, Component) pairs.
 # The count is a non-authoritative hint for preallocation. Readers MUST parse
 # until the content buffer is fully consumed and need not verify the count.
@@ -73,50 +53,40 @@ seq ContentModifyComponents
 - count : u32
 - content : Content
 
-# The target entity MUST already be alive or have been explicitly created by an
-# earlier operation in the same Transaction or proposal. Deleting an absent
-# component from a live entity is a no-op. Deletion never creates an entity.
+# The target entity follows the same ownership and liveness rules as component
+# modification. Deleting an absent component is a no-op.
 seq ContentDeleteComponents
 - component : ComponentTypeID
 - list : EntityList
 
+# An extension may document a component type as immutable. After its owner first
+# publishes that component on an entity, later replacement or deletion is
+# invalid; changing the value requires a new entity identity. Core's
+# ProposalTargetComponent uses this rule.
+
 # ===================================================
 # Asset lifecycle
 
-# Adds an asset or atomically replaces the value of an existing logical asset.
-# An unknown asset ID creates an asset. Upstream-originated creation uses
-# namespace 0; proposed creation MUST use the proposing Downstream's assigned
-# namespace. Replacing an existing asset is not restricted by its allocation
-# namespace, but remains subject to Upstream policy. A tombstoned identity
-# cannot be resurrected.
+# Adds an asset or replaces the value of an existing logical asset. The typed
+# asset ID MUST be owned by the ContentBatch origin; SnapshotBatch is exempt.
+# An unknown ID creates the asset. A deleted identity cannot be resurrected.
 # (AssetTypeID, AssetID) is the stable identity, so existing references observe
 # the replacement without being rewritten. Intermediate replacement state is
-# not observable. Clients must invalidate decoded, cached, or GPU resources for
+# not observable within this operation. Peers invalidate decoded, cached, or GPU resources for
 # the old value, but may retain them internally until outstanding work finishes.
 #
-# A replacement BufferAsset must leave every active BufferView in bounds when
-# the containing Transaction commits. The content is parsed as the corresponding
+# A replacement BufferAsset SHOULD leave active BufferViews in bounds. A peer
+# encountering an invalid view may ignore the view or disconnect for safety.
+# The content is parsed as the corresponding
 # *Asset type for the given extension and asset type.
 seq ContentModifyAsset
 - an_asset : AnAsset
 - content : Content
 
-# Drops the strong reference held by the receiver's active asset table while
-# retaining a weak lookup entry. Component and asset references are strong and
-# continue to keep the logical asset alive. A later reference can resolve the
-# discarded asset only while at least one such live reference keeps the weak
-# entry upgradeable. Otherwise Upstream must send ContentModifyAsset first,
-# which republishes the asset and restores the table's strong reference.
-# ContentDiscardAsset is invalid for an unknown, already discarded, or deleted
-# identity. Downstreams may not propose asset discard.
-seq ContentDiscardAsset
-- an_asset : AnAsset
-
-# Final deletion is sent only after discard and after earlier operations have
-# removed the final protocol-visible asset/component reference. It removes the
-# weak lookup entry and permanently tombstones the identity for this session.
-# Receivers may still retain private implementation references for in-flight
-# rendering or decoding, but those are no longer addressable by the protocol.
-# Downstreams may not propose asset deletion.
+# Deletion removes the typed asset identity from replicated state and consumes
+# the ID permanently. Existing references become unresolved and MUST check asset
+# liveness before use. A receiver may retain private decoded/GPU/OOB cache data,
+# but it is no longer protocol-addressable through this asset identity. Deleting
+# an unknown or already deleted asset is a no-op.
 seq ContentDeleteAsset
 - an_asset : AnAsset

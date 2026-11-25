@@ -12,7 +12,7 @@ argument hints:
 
 | Index | Name | `AnyTypeID` | Meaning |
 |------:|------|-------------|---------|
-| 0 | `sample_time` | `F64` | Estimated authority-monotonic sample time in seconds. |
+| 0 | `sample_time` | `F64` | Estimated Bookkeeper session time in seconds. |
 | 1 | `position` | `Vec3` | View origin in scene world coordinates. |
 | 2 | `rotation` | `UnitQuaternion` | Local-to-world view orientation. |
 
@@ -21,8 +21,8 @@ the `Any` variants corresponding to those types and in that order.
 
 ## Pose semantics
 
-- `sample_time` MUST be finite and uses the monotonic authority-time estimate
-  maintained from `TimeSyncComponent`. Samples from one registry entity MUST
+- `sample_time` MUST be finite and uses the monotonic session-time estimate
+  maintained from `SessionTimeComponent`. Samples from one registry entity MUST
   have strictly increasing sample times. A source without a usable time estimate
   SHOULD wait rather than substitute an unrelated local clock.
 - `position` MUST contain finite values and uses the protocol's right-handed
@@ -40,11 +40,9 @@ views uses a separate registry entity for each view. The entity may also carry a
 session-local and must not be treated as a durable participant identity.
 
 Event registration does not establish sender ownership. Any node is permitted
-by the base event protocol to emit any registered event, and Upstream broadcasts
-the event unchanged. Consequently, the registry entity is cooperative context,
-not authenticated provenance. Upstream knows the originating connection while
-receiving a downstream event, but recorder downstreams cannot recover that
-connection identity from the broadcast event.
+by the base event protocol to emit any registered event. The event's source
+NodeID identifies its session peer but, in implicitly trusted version-0 sessions,
+is not authenticated provenance. The registry entity remains cooperative context.
 
 ## Rate limit
 
@@ -54,19 +52,19 @@ the newest sample when the next interval permits. It may sample less frequently,
 emit only after meaningful movement, or stop emitting entirely. No heartbeat is
 required.
 
-Upstream may drop or rate-limit samples that violate this limit and may
-disconnect a persistently violating sender under the general event resource
+Peers may drop or rate-limit samples that violate this limit and may disconnect
+for self-protection under the general event resource
 policy. Applications requiring smooth remote motion need a different state or
 streaming facility rather than a higher rate for this event.
 
 ## Privacy and delivery
 
-Pose reporting is optional even when a client implements the Core event system.
-A client may decline to register or emit this event under user, application,
+Pose reporting is optional even when a peer implements the Core event system.
+A peer may decline to register or emit this event under user, application,
 privacy, accessibility, or platform policy. Support MUST NOT be interpreted as
 consent to tracking or recording.
 
 The event is transient: it is not included in initial snapshots or replayed to
-late joiners. Upstream policy, disconnection, or resource limits may cause gaps.
+late joiners. Disconnection or resource limits may cause gaps.
 Recorders must tolerate missing samples and should handle pose data as
 potentially sensitive information.

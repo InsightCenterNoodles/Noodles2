@@ -50,30 +50,25 @@ seq RelationshipComponent
 seq RelationshipDefinitionComponent
 
 # Relationship definition and target IDs are weak semantic references. A
-# canonical reference may be absent or tombstoned, does not have to precede the
+# reference may be absent or tombstoned, does not have to precede the
 # relationship, and does not prevent deletion. Consumers resolve it only while
-# that EntityID is alive. Proposal references must still name an existing
-# entity or an entity explicitly created earlier in that proposal. Relationships
-# do not inherit through ChildOfComponent.
+# that EntityID is alive. Relationships do not inherit through ChildOfComponent.
 
 # =========================== PROVENANCE AND PARTICIPATION
 
 # Marks an entity as a known participant or other actor. It does not imply that
 # the participant is currently connected and does not identify a transport
-# connection. A Downstream may propose zero or more participant entities, such
-# as multiple tracked people represented by one immersive client, and may pair
+# connection. A node may publish zero or more participant entities that it owns,
+# such as multiple tracked people represented by one immersive peer, and may pair
 # them with Name, Description, SemanticTag, SemanticProperty, Transform, or
-# other negotiated components. Ordinary Upstream proposal policy applies.
-# Upstream MUST NOT infer or implicitly create a participant merely because a
-# Downstream connected, though it may explicitly author participants known from
-# application state. Participant records may remain alive after their source
+# other session components. Peers MUST NOT infer or implicitly create a
+# participant merely because a node connected. Participant records may remain alive after their source
 # disconnects so semantic references remain meaningful.
 #
 # A participant TransformComponent may disclose its pose using ordinary
-# transform and hierarchy semantics. Downstreams SHOULD propose pose changes at
-# a low rate; approximately 4 Hz or less is recommended. Upstream may coalesce,
-# rate-limit, or reject excessive pose proposals under normal resource policy.
-# Clients needing smoother presentation should interpolate locally.
+# transform and hierarchy semantics. Owners SHOULD publish pose changes at a low
+# rate; approximately 4 Hz or less is recommended. Peers needing smoother
+# presentation should interpolate locally.
 seq ParticipantComponent
 
 # =========================== OBSERVATIONS
@@ -106,7 +101,7 @@ enum TaskState : u8
 # Persistent task identity and current lifecycle state. Completion changes the
 # state rather than removing this component. Semantic properties may describe
 # progress, cost, errors, or other application-specific task metadata. Succeeded,
-# Failed, and Cancelled are terminal: once any terminal state is authoritative,
+# Failed, and Cancelled are terminal: once an owner publishes a terminal state,
 # later modification to a different TaskState is invalid. Result entities and
 # other task metadata may still be added or modified afterward.
 pack TaskComponent

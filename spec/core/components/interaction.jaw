@@ -7,9 +7,9 @@ from "../../events.jaw" use {EventTypeID}
 seq InteractiveComponent
 
 # Optional conservative entity-local hit region for spatial interaction. It is
-# defined before the entity's transform and ancestor transforms. Clients may use
+# defined before the entity's transform and ancestor transforms. Peers may use
 # it directly or refine a hit by application-specific means. Without this
-# component, clients MUST NOT spatially pick the entity merely because it has
+# component, peers MUST NOT spatially pick the entity merely because it has
 # InteractiveComponent; non-spatial UI may still expose its actions. Keeping it
 # separate permits InteractiveComponent to toggle interaction without replacing
 # the bound. The bound is ignored while InteractiveComponent is absent.
@@ -39,8 +39,8 @@ pack AllowedAxis
 
 # Can users interactively translate this entity?
 # Optional hard limits apply to local translation relative to the parent and are
-# expressed in scene units. Clients propose complete TransformComponent values;
-# Upstream remains authoritative and may reject them.
+# expressed in scene units. Non-owners express desired values with
+# TransformProposalComponent; the entity owner decides how to respond.
 pack CanTranslateComponent
 - axes : AllowedAxis 
 
@@ -58,7 +58,7 @@ bits AxisRotationLimitFlags : u8
 # The constrained local orientation is:
 #   axis_angle(parent_local_axis, angle) * reference
 # reference and axis must be finite and unit length within implementation
-# tolerance; clients may normalize them. angle is the canonical relative angle
+# tolerance; peers may normalize them. angle is the canonical relative angle
 # in [-pi, pi]. Enabled limits must be finite and within that interval, and when
 # both are enabled min_angle must be <= max_angle. Disabled values are ignored.
 pack AxisRotationConstraint
@@ -94,18 +94,12 @@ variant InteractionAction : u8
 - Event = 1 => EventInteractionAction
 
 # An RPC target must be a live entity carrying RPCEndpointComponent. An event
-# target must name a live registry entity and registered definition. Arguments
-# are passed unchanged to RPCInvoke or EventMessage. Active action references
-# must be removed or redirected before their endpoint entity, registry entity,
-# or event definition is removed.
-# RPC actions do not define UI-level reply routing. A client that does not consume
-# a reply uses this_invoke_id 0; one that does consume replies allocates a normal
-# nonzero invocation ID and obeys the ordinary RPC lifecycle.
-#
-# A Downstream executing an EventInteractionAction follows normal event flow: it
-# sends to Upstream without local dispatch and handles the returned broadcast.
-# Upstream policy still governs both RPC invocation and event emission.
+# target must name a live registry entity and registered definition. Missing
+# targets make the action unavailable. Arguments pass unchanged to routed
+# RPCInvoke or broadcast EventMessage. An invoker derives the RPC destination
+# from the endpoint EntityID owner. An invoker that does not consume a reply uses
+# invocation_id 0; otherwise it allocates a normal nonzero invocation ID.
 #
 # The first entry is the primary/default action. Remaining entries are alternate
-# actions a client may expose and are not automatically executed with it.
+# actions a peer may expose and are not automatically executed with it.
 dyn_array ActivateComponent : u8 * InteractionAction

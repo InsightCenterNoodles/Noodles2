@@ -8,8 +8,8 @@ pack ImageAssetID
 - id : AssetID
 
 # Encoded image format is detected from the bytes; it is not duplicated in this
-# asset. Core clients MUST support PNG and JPEG. WebP, KTX2, Radiance HDR, and
-# OpenEXR are optional; clients SHOULD support as many as practical. Producers
+# asset. Core peers MUST support PNG and JPEG. WebP, KTX2, Radiance HDR, and
+# OpenEXR are optional; peers SHOULD support as many as practical. Producers
 # seeking baseline interoperability SHOULD use PNG or JPEG.
 
 seq ImageAsset

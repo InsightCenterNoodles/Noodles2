@@ -6,7 +6,7 @@ extension. Implementations compare identifiers as exact UTF-8 token bytes after
 the general malformed-text rule; they do not apply URI or Unicode
 normalization.
 
-Adding an identifier is backward compatible: clients that do not know it ignore
+Adding an identifier is backward compatible: peers that do not know it ignore
 its meaning while retaining the containing state when possible. An assigned
 identifier never changes meaning. An incompatible contract receives a new,
 normally version-suffixed identifier.
@@ -35,8 +35,7 @@ identifiers describing the same meaning.
 | `noodles.relationship.result_of` | Subject is a result entity belonging to target task. |
 
 These relationships are semantic assertions rather than authenticated identity,
-provenance, or causality. Upstream applies ordinary proposal policy but is not
-required to verify either endpoint.
+provenance, or causality. Missing or dead endpoints remain unresolved.
 
 ## Participant tags
 

@@ -32,7 +32,6 @@ seq EventRegistryComponent
 # removed identifiers remain reserved. Argument hints are informational and may
 # be validated or ignored by applications.
 #
-# Downstreams register or update a registry through ordinary proposals after
-# InitialStateComplete. Upstream remains authoritative and may reject changes.
-# Any Upstream or Downstream may emit any registered event, subject to Upstream
-# policy; registration describes the event namespace, not sender ownership.
+# Only the registry entity owner changes this component. Any connected peer may
+# emit a registered event; registration describes the namespace, not exclusive
+# sender authority.

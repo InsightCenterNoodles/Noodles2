@@ -3,12 +3,6 @@
 This file tracks deliberately unresolved or revisitable protocol work. Items
 here are not part of the current normative specification.
 
-## Misc
-
-Some tasks need additional input. Tasks should have a halt. Use case; confirmation before loading a file
-
-we need a source for events. how else will we know who is speaking. it should be optional. and could be tied to an entity with a participant component?
-
 ## RPC lifecycle
 
 - Consider standardized Core `RPCError` codes; codes are currently application-defined.
@@ -27,7 +21,7 @@ constraints.
 ### Local asset sources
 
 Consider an optional local-asset-source extension for deployments where large
-buffer contents are already accessible to the Downstream. This is distinct from
+buffer contents are already accessible to a peer. This is distinct from
 ordinary OOB transfer: OOB channels deliver requested bytes, while a local asset
 source imports bytes from storage or memory already available in the receiver's
 environment. Filesystem and shared-memory sources should therefore not be added
@@ -38,8 +32,8 @@ Two mechanisms warrant separate designs:
 - **Shared storage:** identify a configured logical storage namespace plus a
   relative path, byte offset, byte length, and immutable revision or content
   digest. Each participant maps the logical namespace to its own mount point;
-  the Upstream must not assume that its absolute filesystem path is meaningful
-  to a Downstream. The design must prevent in-place mutation from changing the
+  one peer must not assume that its absolute filesystem path is meaningful to
+  another. The design must prevent in-place mutation from changing the
   bytes of an already published asset revision.
 - **Transferred local handles:** allow a local IPC binding to transfer a
   read-only file or shared-memory handle, such as an open descriptor passed over

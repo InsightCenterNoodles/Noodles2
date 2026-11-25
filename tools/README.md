@@ -15,8 +15,8 @@ executables are copied to `tools/bin/`.
 
 `noodles2-handshake-validator` accepts one WebSocket client, validates its
 NOODLES2 `Introduction`, sends an `IntroductionReply`, reports the result, and
-exits. A successful run reaches the Main Sequence state immediately before the
-Upstream's initial transactions.
+exits. A successful run verifies that the accepting parent can advertise the
+fixed session extension set and its associated OOB link.
 
 ```console
 tools/bin/noodles2-handshake-validator --listen 127.0.0.1:50000

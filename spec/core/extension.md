@@ -18,7 +18,7 @@ The Core extension defines the baseline assets and components required for inter
 Notes:
 - `BufferView` references must target `Buffer` assets; higher-level assets reference buffers via views.
 - Image/material tables are intentionally small (up to 16 entries) to align with typical sampler limits.
-- Core clients must decode PNG and JPEG. Other listed image codecs and environment-rendering features are optional and may be ignored when unsupported.
+- Core peers must decode PNG and JPEG. Other listed image codecs and environment-rendering features are optional and may be ignored when unsupported.
 - Meshes use right-handed coordinates, counterclockwise front faces, and glTF tangent handedness. Their bounding boxes describe the undeformed base pose.
 - PBR color and emission textures are sRGB; roughness/metallic, occlusion, normal, and other non-color maps are linear. Unsupported extended material features may be ignored or approximated.
 - `PBRMaterialFeatureSet` assets are immutable topology declarations. `PBRMaterial` assets are compact parameter instances; their optional extended block must agree structurally with the referenced feature set.
@@ -53,7 +53,7 @@ Notes:
 | Animator         | 22         | Layered playback of animation clips with per-layer weights/looping. |
 | Skin             | 23         | Joint palette and inverse bind matrices for skinned meshes. |
 | MorphWeights     | 24         | Current morph target weights for an entity's mesh. |
-| TimeSync         | 25         | Common timebase support.                           |
+| SessionTime      | 25         | Best-effort Bookkeeper session clock.              |
 | ParameterRoot    | 26         | The start of a parameter UI tree.                    | 
 | Parameter        | 27         | Common parameter storage. |
 | ParamDefinition  | 28         | Parameter definition.                          | 
@@ -77,21 +77,29 @@ Notes:
 | Task | 46 | Persistent task lifecycle state. |
 | Result | 47 | Result content on an entity related to its owning task. |
 | InteractionBounds | 48 | Optional local-space conservative interaction bound. |
+| ProposalTarget | 49 | Immutable target of a proposer-owned intent entity. |
+| TransformProposal | 50 | Desired complete transform for the target owner to consider. |
+| ParentProposal | 51 | Desired parent, or unparenting, for the target owner to consider. |
+| ParameterValueProposal | 52 | Desired parameter state for the target owner to consider. |
+| SelectionProposal | 53 | Desired shared selection state for the target owner to consider. |
 
 Notes:
 - Component payloads are complete replacements; partial updates are not defined.
 - `Global` marks entities whose effects may be scene-wide. See component documentation for more details.
-- An absent transform is identity. Parent graphs are acyclic, and ancestor invisibility suppresses descendants.
-- A `Global` environment applies to the whole scene. Producers should provide at most one; clients encountering several may select one. Non-global environments may be spatially blended at client discretion.
+- An absent transform is identity. Producers must not create parent cycles;
+  receivers may ignore offending edges or disconnect for self-protection.
+  Missing/dead parents leave children temporarily unparented. Ancestor
+  invisibility suppresses descendants.
+- A `Global` environment applies to the whole scene. Producers should provide at most one; peers encountering several may select one. Non-global environments may be spatially blended at peer discretion.
 - Instance records are interleaved and entity-local. Skins require unique, live joints and exact inverse-bind matrix storage; finite morph weights may extend outside `[0,1]`.
-- `Interactive` gates transform and activation affordances. Their limits are local to the parent; rotation is unrestricted or constrained to one parent-local axis relative to a reference orientation. Buttons and activation share an action union that invokes RPC endpoints or emits registered Events with arguments. Selection components represent shared authoritative selection; private client selection remains local.
+- `Interactive` gates transform and activation affordances. Their limits are local to the parent; rotation is unrestricted or constrained to one parent-local axis relative to a reference orientation. Buttons and activation share an action union that invokes routed RPC endpoints or emits broadcast Events. Selection components represent owner-written shared selection; private peer selection remains local.
 - Parameter UI is an acyclic entity graph. Widget definition/state tags match, disabled state inherits to descendants, and numeric/option values obey their definitions.
 - Event registries provide entity-scoped type IDs plus descriptions, semantic
   tags, and informational argument hints for transient broadcasts. Event names
   and identifiers are unique within a registry.
-- Transform samples are low-rate presentation hints in parent space. Full-support clients retain history and interpolate or derive bounded extrapolation; lightweight clients may snap to each newest sample. A hard `TransformComponent` update clears history and takes effect until a later ordered sample update. Reparenting or changing smoothing configuration also clears history. Initial snapshots preserve whether the hard transform or sample was updated last so late joiners reconstruct the same active source.
-- Transform animation and transform sampling on one entity are strongly discouraged. Clients may resolve the conflict locally; ignoring sampling in favor of animation is recommended.
-- Time synchronization is finite and monotonic within a session. Names are non-identifying display labels. Text uses local-unit height and sRGBA color; clients may render authored alpha as opaque.
+- Transform samples are low-rate presentation hints in parent space. Full-support peers retain history and interpolate or derive bounded extrapolation; lightweight peers may snap. Sampling is active exactly while TransformSample is present, making snapshots self-contained.
+- Transform animation and transform sampling on one entity are strongly discouraged. Peers may resolve the conflict locally; ignoring sampling in favor of animation is recommended.
+- SessionTime is finite and monotonic within a session and is updated by the Bookkeeper on EntityID 0. Names are non-identifying display labels. Text uses local-unit height and sRGBA color; peers may render authored alpha as opaque.
 - `RPCEndpoint` exposes callable entry points; arguments/results use `Any`
   encoding, with descriptions and semantic tags for arguments, terminal
   results, and optional streaming results.
@@ -101,11 +109,15 @@ Notes:
   definitions, relationship targets, and observation subjects are weak: they
   may refer to absent or deleted entities and never keep targets alive.
   Semantic metadata does not inherit through the transform hierarchy.
+- Proposal entities are owned by their proposers, carry immutable ProposalTarget,
+  and expose typed active intent. Only the target owner changes real target state;
+  no acceptance/rejection reply exists. Disconnected proposers' proposal entities
+  are inactive and may be removed.
 - Participant entities describe known actors without identifying connections or
-  asserting current presence. A Downstream may propose zero or many of them;
-  connection establishment never implicitly creates one. Participant transform
-  updates should remain low rate, with approximately 4 Hz or less recommended;
-  clients may interpolate locally. Observations are marker entities with
+  asserting current presence. A node may own zero or many; connection
+  establishment never implicitly creates one. Pose updates should remain low
+  rate, with approximately 4 Hz or less recommended; peers may interpolate.
+  Observations are marker entities with
   optional weak subjects and local conservative box-or-sphere bounds.
 - Relationship meanings are entities carrying `RelationshipDefinition`; their
   ordinary semantic components may provide stable identifiers, descriptions,
@@ -119,7 +131,7 @@ Notes:
 - Observation and interaction bounds are conservative local-space AABB or
   bounding-sphere variants. Zero-volume/radius bounds denote points. Without
   InteractionBounds an interactive entity cannot be spatially picked, though
-  clients may still expose non-spatial actions.
+  peers may still expose non-spatial actions.
 
 ## Animation Notes
 

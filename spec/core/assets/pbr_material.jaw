@@ -12,7 +12,7 @@ pack PBRMaterialFeatureSetAssetID
 
 # Feature sets MUST be created before materials refer to them and are immutable
 # during a main-channel session. A topology change uses a new asset identity.
-# Clients may compile/cache a rendering variant as soon as this asset arrives.
+# Peers may compile/cache a rendering variant as soon as this asset arrives.
 seq PBRMaterialFeatureSetAsset
 - base : PBRMaterialBaseFeatures
 - extension : MaybePBRMaterialExtendedFeatures
@@ -26,7 +26,7 @@ seq PBRMaterialAsset
 # The material's extension variant MUST agree with its feature set: both use
 # BaseOnly for a base-only material, or both use Extended. Values and references
 # for features not enabled by the feature set are ignored. Unsupported requested
-# features may be ignored or approximated by the client.
+# features may be ignored or approximated by the peer.
 
 # Although the count prefix can represent more, a valid table has at most 16
 # entries because texture references carry four-bit indices.
@@ -99,7 +99,7 @@ pack PBRMaterialBase
 # lighting features are ignored. Base color, color texture, alpha mode/cutoff,
 # culling, UV transforms, and emission remain meaningful.
 
-# Extended material information. Clients unable to implement a feature MAY
+# Extended material information. Peers unable to implement a feature MAY
 # ignore or approximate it (for example, simple alpha for transmission) without
 # rejecting the material or connection.
 
@@ -161,7 +161,7 @@ bits ClearcoatImagePack : u32
 pack Parallax
 - depth_bias : f32
 - depth_scale : f32
-- layer_quality : u8 # a map to the client maximum layer limit: 0 lowest, 255 maximum
+- layer_quality : u8 # a map to the peer maximum layer limit: 0 lowest, 255 maximum
 - depth_map : TextureReference
 
 pack Emission

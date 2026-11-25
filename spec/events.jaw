@@ -1,5 +1,5 @@
 from "any.jaw" use {Any}
-from "common.jaw" use {EntityID}
+from "common.jaw" use {EntityID, NodeID}
 
 # Transient broadcast event type, scoped by an entity carrying Core's
 # EventRegistryComponent. The registry and definition identifier must already be
@@ -11,21 +11,16 @@ pack EventTypeID
 dyn_array EventArgumentList : u8 * Any
 
 seq EventMessage
+- source : NodeID
 - event_type : EventTypeID
 - args : EventArgumentList
 
 # Events are stateless and are not included in initial snapshots or replayed to
 # late joiners. Durable facts belong in ECS state.
 #
-# Downstream sends an event to Upstream but does not dispatch it locally yet.
-# Upstream validates it, places it in its total order with authoritative
-# Transactions and other events, handles it locally once, then broadcasts it
-# unchanged to every Downstream including the sender. The sender dispatches the
-# returned broadcast through the same receive path as every other Downstream.
-# Upstream-originated events are handled locally once and broadcast to all.
-#
-# Per-Downstream arrival order is preserved; Upstream chooses interleaving across
-# connections. An unknown registry or definition identifier is invalid. Argument
-# hints are informational. Upstream may drop/rate-limit events or disconnect
-# senders under application and resource policy. Automatic relaying across
-# separate Upstream sessions is not defined.
+# The source dispatches locally once and broadcasts over all of its tree edges.
+# Each receiver dispatches once and forwards over every edge except the arrival
+# edge. The strict tree prevents loops. Events from one source retain source
+# order, but events from different sources have no global ordering. Unknown
+# registries or definitions may be ignored. Argument hints are informational.
+# Nodes may drop/rate-limit events or disconnect for resource protection.

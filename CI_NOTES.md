@@ -27,22 +27,26 @@ the script verifies the checkout against `JAW_REVISION`.
 
 Check in canonical binary fixtures for at least:
 
-- Introduction and IntroductionReply, including OOB session information and the
-  assigned allocation namespace.
-- An empty initial snapshot and `InitialStateComplete`, plus a multi-transaction
-  consistent snapshot followed by incrementing live scene generations.
-- Ordered entity creation and component modification, create-then-delete
-  tombstoning, invalid forward references, and wrong-namespace proposed creation.
-- Accepted and rejected proposals, including generation correlation, failure
-  indices and diagnostics, and their authoritative transaction behavior.
-- RPC streaming followed by completion, error, and best-effort cancellation.
-- Event registry creation and a downstream-originated event broadcast back to all downstreams, including its sender; include `noodles.view.pose.v1`.
+- Introduction and IntroductionReply, including the parent NodeID, fixed session
+  extensions, and OOB link token/endpoints.
+- JoinRequest, PeerJoined, JoinRejected, descendant routing, and disconnected
+  subtree membership changes.
+- An empty snapshot and a multi-batch ECS snapshot followed by SnapshotComplete
+  and buffered live ContentBatch messages.
+- Owner-range entity/asset creation, direct component replacement, deletion,
+  dead references, and rejection of wrong-owner publication.
+- Transform, parent, parameter-value, and selection proposal entities from two
+  proposers targeting one owner.
+- Routed RPC streaming followed by completion, error, cancellation, and an
+  unreachable destination.
+- Event registry creation and a peer-originated tree broadcast; include
+  `noodles.view.pose.v1`.
 - Button and entity activation actions covering both RPC invocation and Event emission.
-- Inline, URL, and OOB buffer descriptions. Include OOB failure and success
-  controls, plus zero-length and nonempty raw payloads under both message- and
-  byte-oriented transport framing.
-- Asset publication, replacement, discard while referenced, republication, and
-  final deletion after the last protocol reference is removed.
+- Inline, URL, and SHA-256 OOB buffer descriptions. Include routed owner fetch,
+  on-path cache response, failure, digest mismatch, plus zero-length and nonempty
+  payloads under both message- and byte-oriented framing.
+- Asset publication, replacement, deletion while referenced, unresolved use,
+  and private cache retention.
 - PCM16 WAVE audio and a synchronized spatial audio source.
 - Transform sampling with interpolation, bounded extrapolation, and a hard-transform history reset.
 - Representative Core assets and components, including animation and material
@@ -56,8 +60,8 @@ record.
 
 Include negative fixtures for malformed discriminants, invalid booleans,
 truncated arrays, excessive guarded lengths, invalid semantic combinations, an
-OOB success without its immediately following raw payload, a truncated raw
-payload, and an intervening server-to-client OOB control.
+  OOB success without its immediately following raw payload, a truncated raw
+  payload, digest/length mismatch, and an intervening directional OOB control.
 
 ## Not currently planned
 

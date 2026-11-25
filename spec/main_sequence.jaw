@@ -1,174 +1,152 @@
 from "any.jaw" use {Any}
-from "common.jaw" use {EntityID}
-from "content.jaw" use {ContentMessage, ProposedContentMessage}
+from "common.jaw" use {EntityID, ExtensionID, NodeID, UUID}
+from "content.jaw" use {ContentMessage}
 from "events.jaw" use {EventMessage}
 
 variant MainSequenceMessage : u8
-- Transaction = 1 => Transaction
-- ProposedChangeTransaction = 2 => ProposedChangeTransaction
-- ProposedTransactionReply = 3 => ProposedTransactionReply
-- RPCInvoke = 4 => RPCInvoke
-- RPCReply = 5 => RPCReply
-- InitialStateComplete = 6 => InitialStateComplete
-- EventMessage = 7 => EventMessage
-- RPCCancel = 8 => RPCCancel
+- JoinRequest = 1 => JoinRequest
+- PeerJoined = 2 => PeerJoined
+- JoinRejected = 3 => JoinRejected
+- PeerDisconnectNotice = 4 => PeerDisconnectNotice
+- PeersDisconnected = 5 => PeersDisconnected
+- SnapshotBegin = 6 => SnapshotBegin
+- SnapshotBatch = 7 => SnapshotBatch
+- SnapshotComplete = 8 => SnapshotComplete
+- ContentBatch = 9 => ContentBatch
+- EventMessage = 10 => EventMessage
+- RPCInvoke = 11 => RPCInvoke
+- RPCReply = 12 => RPCReply
+- RPCCancel = 13 => RPCCancel
 
-# Direction is strict:
-# - Upstream -> Downstream: Transaction, InitialStateComplete,
-#   ProposedTransactionReply (to proposer only), RPCReply (to invoker only).
-# - Downstream -> Upstream: ProposedChangeTransaction, RPCInvoke, RPCCancel.
-# - Both directions: EventMessage. A Downstream sends an event to Upstream;
-#   Upstream broadcasts it to every Downstream, including its sender.
-# Receiving a MainSequenceMessage in the wrong direction is a protocol violation
-# and the connection must be closed.
-
-
-# ==========================
-# Transaction
-
-# Content is applied in array order. A Transaction is atomic: its intermediate
-# states must not be exposed to rendering, queries, systems, or other observers.
-# Every active reference must resolve at the point its operation is applied: the
-# target must already be alive before the Transaction or have been created by an
-# earlier operation in the same Transaction. Forward references are invalid.
-# Fields disabled by their surrounding flags are not active references.
-# A malformed or semantically invalid authoritative Transaction is a protocol
-# violation and must not be partially applied.
-
+dyn_array PeerName : u8 * u8
+dyn_array SessionExtensionList : u16 * ExtensionID
+dyn_array NodeIDList : u32 * NodeID
 dyn_array ContentArray : u32 * ContentMessage
-dyn_array ProposedContentArray : u32 * ProposedContentMessage
 
-seq Transaction
-- scene_generation : u64
+# ==============================================================
+# Membership and rooted-tree routing
+
+# UUIDs are UUIDv7 values generated freshly for each attempted session join.
+# Reconnection is not defined: a disconnected implementation joins later with a
+# new UUID and receives a new NodeID.
+seq JoinRequest
+- uuid : UUID
+- parent_node : NodeID
+- name : PeerName
+- capabilities : SessionExtensionList
+
+# JoinRequest travels only toward the Bookkeeper (NodeID 0). Each relay records
+# the child link from which uuid arrived. The Bookkeeper accepts only peers that
+# support the complete fixed session extension set and assigns a never-reused
+# nonzero NodeID.
+
+seq PeerRecord
+- uuid : UUID
+- node : NodeID
+- parent : NodeID
+- name : PeerName
+- connected : bool
+
+dyn_array PeerRecordList : u32 * PeerRecord
+
+# The Bookkeeper broadcasts this record through the entire tree. Its arrival at
+# the joining UUID is also the successful JoinRequest response. Every node adds
+# the new NodeID to the child-subtree route on the recorded return path. A peer
+# MUST NOT publish ContentBatch, EventMessage, or RPC traffic before receiving
+# its own PeerJoined and completing its snapshot.
+seq PeerJoined
+- peer : PeerRecord
+
+dyn_array JoinRejectionReason : u16 * u8
+
+# Rejection is routed back along the pending UUID path, after which the joining
+# main and OOB links close.
+seq JoinRejected
+- uuid : UUID
+- reason : JoinRejectionReason
+
+# When a child edge closes, the surviving parent sends the affected child and
+# all of its known descendants toward the Bookkeeper. The separated subtree can
+# no longer reach the Bookkeeper and its session ends immediately.
+seq PeerDisconnectNotice
+- reporter : NodeID
+- disconnected : NodeIDList
+
+# Bookkeeper broadcasts the resulting membership change. Listed NodeIDs and
+# their entity/asset ranges are never reused. Ordinary owned ECS state freezes;
+# proposal entities owned by disconnected nodes become inactive and may be
+# removed. Routed requests to them fail as unreachable.
+seq PeersDisconnected
+- disconnected : NodeIDList
+
+# A destination route is selected without flooding: consume locally when the
+# destination is self, otherwise send into the child subtree containing it, or
+# send to the parent. Join traffic establishes descendant-to-child mappings;
+# PeersDisconnected removes them. Sessions are implicitly trusted in version 0,
+# so origin NodeIDs provide correctness and routing identity, not authentication.
+
+# ==============================================================
+# Join snapshot
+
+# Snapshot messages are exchanged only from a joining peer's direct parent to
+# that child and MUST NOT be relayed. The parent briefly pauses scene application
+# at an engine boundary, captures serialized ECS state, then resumes while
+# buffering later broadcasts for the child. SnapshotBatch messages reproduce
+# current live entities, components, typed assets, active proposal entities, and
+# the Bookkeeper session entity. Unknown/deleted IDs need not be included.
+seq SnapshotBegin
+- peers : PeerRecordList
+
+seq SnapshotBatch
 - content : ContentArray
 
-# Scene generation is monotonically increasing and never wraps during a
-# main-channel session. Every live Transaction after InitialStateComplete has
-# the preceding generation plus one. All Transactions used to construct an
-# initial snapshot carry the generation of the consistent snapshot point; the
-# marker repeats it so an empty snapshot still communicates its generation.
-#
-# Upstream selects one serialization point, sends state representing that point,
-# and queues later live Transactions and events. It sends this marker exactly
-# once, then releases the queued messages in authoritative order. It MUST NOT
-# send a live event to this Downstream before the marker. Downstream must not
-# send proposals, RPC invokes, RPC cancellations, or events before receiving it.
-seq InitialStateComplete
-- scene_generation : u64
+# After this marker the parent flushes buffered broadcasts in their preserved
+# per-origin order. Broadcast events and routed traffic destined for the child
+# are buffered as well. The child may publish only after consuming that queue.
+seq SnapshotComplete
 
-# ==========================
-# Proposed transaction
+# ==============================================================
+# Replicated ECS changes
 
-# Proposal from Downstream to Upstream to modify the world. Arrival order is
-# preserved on each Downstream connection. Upstream chooses one total serialized
-# order across all connections and may interleave their proposal streams.
-# Complete component replacements use last-accepted-proposal-wins semantics.
-# Independently authored contributions SHOULD use separate entities to avoid
-# conflicting read-modify-write updates to one component.
-#
-# On acceptance, Upstream first sends ProposedTransactionReply.Accepted with the
-# scene generation assigned to the resulting authoritative Transaction. It MAY
-# interleave unrelated Transactions before that Transaction, so the generation,
-# rather than adjacency, correlates the result. The authoritative Transaction
-# contains the actual accepted changes and any cascade effects and is broadcast
-# in Upstream's serialization order.
-#
-# Proposed IDs are already final. New entities and assets MUST use the allocation
-# namespace assigned to this Downstream in IntroductionReply. An existing entity
-# or asset from any namespace may be targeted subject to Upstream policy;
-# namespace is allocation scope, not ownership or authorization. A new entity
-# must be explicitly created by an earlier operation before any later operation
-# may target or refer to it. An asset is created by an earlier ModifyAsset before
-# a later operation may refer to it. References are validated at their operation
-# position; forward references are invalid.
-#
-# For assets: payloads MUST be provided inline (buffer-backed) from downstream
-# to upstream; no OOB channels or URLs are permitted. ProposedContentMessage
-# does not include asset discard or deletion.
-#
-# There are no partial applications. Either the proposal is accepted in full, or
-# rejected in full. Downstream MAY display optimistic state using the final IDs
-# while the proposal is pending. It must remove/revert that state on rejection.
-# On acceptance, the correlated canonical Transaction replaces the optimistic
-# state; only authoritative Transaction content is authoritative.
-seq ProposedChangeTransaction
-- transaction_id : u32 # unique among this Downstream's in-flight proposals; reusable after reply
-- content : ProposedContentArray
+# A node first changes its own engine representation, then emits one or more
+# non-atomic batches from change detection. Every target entity and typed asset
+# MUST be owned by origin (high 32 ID bits equal origin). Operations apply in
+# content order and may be observed incrementally. A receiver applies a batch
+# once and forwards it over every tree edge except the arrival edge. The strict
+# tree and reliable ordered links preserve each origin's order without clocks,
+# counters, acknowledgements, or loop deduplication.
+seq ContentBatch
+- origin : NodeID
+- content : ContentArray
 
-# Reply from Upstream to a proposed change. Accepted replies are sent before the
-# corresponding authoritative Transaction and identify it by scene_generation;
-# unrelated Transactions may occur between them. Upstream may normalize accepted
-# values (for example, a quaternion or bounded UI value), and authority cascades
-# may add changes beyond the proposal. The correlated authoritative Transaction
-# carries the actual result. A materially different operation is rejected rather
-# than silently substituted.
-seq ProposedTransactionReply
-- transaction_id : u32
-- result : ProposedTransactionResult
-
-variant ProposedTransactionResult : u8
-- Accepted = 0 => ProposedTransactionAccepted
-- Rejected = 1 => ProposedTransactionRejected
-
-pack ProposedTransactionAccepted
-- scene_generation : u64
-
-dyn_array ProposalRejectionReason : u16 * u8
-
-seq ProposedTransactionRejected
-- code : u16 # see table below
-- failed_content_index : u32 # u32::MAX if rejection is not attributable to one outer content operation
-- reason : ProposalRejectionReason # UTF-8 diagnostic; may be empty
-
-# Error Codes (u16)
-# 1 => Denied: change not permitted for any reason (auth/policy/capability).
-# 2 => Resource exhaustion: insufficient resources to complete.
-# 3 => Malformed payload: failed semantic validation or contained disallowed content.
-# >= 256 => application-specific.
-# A rejected proposal has no corresponding authoritative Transaction. Invalid
-# proposals normally receive code 3 without closing the connection; repeated
-# malicious or resource-exhausting input may be disconnected. The diagnostic
-# reason is intended for the proposer and does not alter the meaning of code.
-
-# ==========================
-# RPC Invoke
+# ==============================================================
+# Routable RPC
 
 dyn_array RPCArgumentList : u8 * Any
 
-# A Downstream-to-Upstream request to invoke an RPC endpoint with given arguments.
-# this_invoke_id is used to correlate requests with responses, as the server may handle requests
-# in any order. If this_invoke_id is 0, then the client is signalling that they are not interested in a response, and the server must elide the reply.
-# this_invoke_id values can be repeated iff used values are not currently in-flight. 
-# Deleting the endpoint entity after accepting an invocation does not cancel it;
-# the invocation may complete normally or terminate with RPCError. New invokes
-# against an endpoint that does not exist are errors.
+# Invocation identity is (source, invocation_id). A nonzero ID is unique among
+# source's in-flight invocations; zero requests no replies. destination MUST be
+# the owner NodeID encoded by endpoint. Intermediate peers route but never
+# execute or reply. Only destination may consume the invocation.
 seq RPCInvoke
-- this_invoke_id : u32
+- source : NodeID
+- destination : NodeID
+- invocation_id : u32
 - endpoint : EntityID
 - args : RPCArgumentList
 
-# Best-effort request to cancel a nonzero invocation on this Downstream's
-# connection. Unknown or already completed IDs are ignored because completion
-# may race cancellation. Cancellation does not complete the invocation and its
-# ID remains in flight: Upstream MUST still send exactly one terminal
-# RPCComplete or RPCError unless the transport closes.
+# Best-effort cancellation follows the same route. Unknown or completed IDs are
+# ignored. A nonzero accepted invocation still produces one terminal reply unless
+# the caller, target, or route disconnects.
 seq RPCCancel
-- this_invoke_id : u32
+- source : NodeID
+- destination : NodeID
+- invocation_id : u32
 
-
-# ==========================
-# RPC Reply
-
-# An Upstream-to-Downstream response to an RPC endpoint invoke request.
-# this_invoke_id is correlated with the request. A nonzero invocation receives
-# zero or more RPCStreamResult replies followed by exactly one terminal
-# RPCComplete or RPCError. A reply for an unknown or completed ID, or any reply
-# after the terminal reply, is a protocol violation.
-#
-# RPC side effects on authoritative ECS state are communicated through ordinary
-# Transaction messages, not through RPCReply.
 seq RPCReply
-- this_invoke_id : u32
+- source : NodeID
+- destination : NodeID
+- invocation_id : u32
 - content : RPCReplyContent
 
 variant RPCReplyContent : u8
@@ -176,19 +154,19 @@ variant RPCReplyContent : u8
 - Error = 1 => RPCError
 - StreamResult = 2 => RPCStreamResult
 
-# The call has completed, with the given value result
 seq RPCComplete
 - result : Any
 
-# The call is in process, and has yielded the given value. Additional RPCStreamResult replies may result, and will be terminated by a final RPCComplete.
-# An RPCError reply is also terminal to streams. Streaming is not legal with this_invoke_id == 0; a zero this_invoke_id implies the client is not interested in replies. 
 seq RPCStreamResult
 - result : Any
 
-# UTF-8 error message
 dyn_array ErrorString : u32 * u8
 
-# The call resulted in an error. If the call was a streaming call, this indicates the stream has ended.
 seq RPCError
 - code : u16
 - message : ErrorString
+
+# Replies route to destination (the original caller). Only the invocation target
+# may originate replies. Zero-ID invocations cannot stream or reply. Deleting an
+# endpoint after invocation acceptance does not cancel it. RPC side effects are
+# ordinary owner-authored ContentBatch messages.
