@@ -16,10 +16,15 @@
 from "../../common.jaw" use {EntityID}
 from "interaction.jaw" use {InteractionAction}
 
-# Marks an entry point into a parameter graph. A root carrying GlobalComponent
-# is suitable for scene-wide UI such as a sidebar; otherwise it is local to the
-# entity/application context that exposes it. A root need not carry definition
-# or state components.
+# An entity that exposes entity-local parameters MUST carry
+# ParameterRootComponent on that same entity. A root that also carries
+# GlobalComponent exposes scene-wide parameters.
+#
+# To expose a group of controls, the root entity MUST carry ParameterComponent,
+# a Container ParamDefinitionComponent whose list references the child parameter
+# entities, and a matching Container ParamStateComponent. A root MAY expose a
+# single control by carrying that control's parameter components.
+# ParameterRootComponent alone marks an empty root.
 seq ParameterRootComponent
 
 # Parameter child relationships form a directed acyclic graph. Every referenced

@@ -54,7 +54,7 @@ Notes:
 | Skin             | 23         | Joint palette and inverse bind matrices for skinned meshes. |
 | MorphWeights     | 24         | Current morph target weights for an entity's mesh. |
 | SessionTime      | 25         | Best-effort Bookkeeper session clock.              |
-| ParameterRoot    | 26         | The start of a parameter UI tree.                    | 
+| ParameterRoot    | 26         | Marks the entity exposing parameter controls. With `Global`, the controls are scene-wide. |
 | Parameter        | 27         | Common parameter storage. |
 | ParamDefinition  | 28         | Parameter definition.                          | 
 | ParamState       | 29         | Parameter state storage.                          | 
