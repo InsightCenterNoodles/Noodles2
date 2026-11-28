@@ -18,14 +18,18 @@ NOODLES2 `Introduction`, sends an `IntroductionReply`, reports the result, and
 exits. A successful run verifies that the accepting parent can advertise the
 fixed session extension set and its associated OOB link.
 
+The validator defaults to the legacy port `50000`. Pass `--listen` to use the
+[recommended WebSocket port](../README.md#recommended-listener-ports) or another
+available port.
+
 ```console
-tools/bin/noodles2-handshake-validator --listen 127.0.0.1:50000
+tools/bin/noodles2-handshake-validator --listen 127.0.0.1:53000
 ```
 
 The first status line is suitable for test harnesses:
 
 ```text
-LISTENING ws://127.0.0.1:50000
+LISTENING ws://127.0.0.1:53000
 ```
 
 Success exits with status 0. Invalid introductions, transport failures, and

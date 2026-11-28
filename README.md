@@ -42,6 +42,19 @@ when they appear in all capitals.
 - Nodes MAY impose implementation resource limits and disconnect when content
   is malformed, unsafe, or exceeds them.
 
+## Recommended listener ports
+
+For local development and self-hosted deployments, use these ranges when
+choosing listener ports. Both ranges are inclusive.
+
+| Transport | Suggested first port | Recommended range |
+| --- | ---: | ---: |
+| Raw TCP | `51000` | `51000–52999` |
+| WebSocket | `53000` | `53000–54999` |
+
+Keep listener ports configurable and allow any valid port. Existing setups can
+continue to use `50000`, the legacy NOODLES port convention.
+
 ## Membership and connection flow
 
 1. A child opens a main link to an existing peer and sends `Introduction` with
