@@ -33,8 +33,8 @@ enum InstanceType : u8
 pack FullFloatInstance
 - position : Vec4            # Px Py Pz _
 - rotation : UnitQuaternion  # 
-- texture  : Vec4            # translate u v , scale u v
 - scale    : Vec4            # Sx Sy Sz _
+- texture  : Vec4            # translate u v , scale u v
 
 # 24-byte compact format, naturally grouped as three four-component GPU vertex
 # attributes: UNORM16 position/scale, SNORM16 rotation, and SNORM16 texture.
